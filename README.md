@@ -13,6 +13,7 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Vorstand | CMS-Sammlung „Vorstand“ (ID `Team`) | Dashboard → CMS |
 | Team (27 Personen), „Wer kümmert sich um was?“ | CMS-Sammlung „Kandidat*innen zur Stadtratswahl“ | Dashboard → CMS |
 | Ratsfraktion | CMS-Sammlung „Stadtrat“ (ID `Team1`) | Dashboard → CMS |
+| Instagram-Kacheln | Zwischenspeicher der Wix-Instagram-App (`@vanyadoing/instagram/ig-media`) – Bilder werden beim Bauen auf den eigenen Host kopiert | Instagram posten, Wix-App bleibt verbunden |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
 
 Die Seite wird **alle 30 Minuten** automatisch neu gebaut (GitHub Actions). Neue Beiträge oder Termine
@@ -37,6 +38,12 @@ src/data-fallback.mjs  Beispiel-/Ersatzinhalte und feste Texte (10-Punkte-Plan, 
 src/lib/wix.mjs      Anbindung an Wix (Blog, Events, CMS) inkl. Rich-Text- und Bild-Umwandlung
 .github/workflows/deploy.yml   Automatischer Bau + Veröffentlichung auf GitHub Pages
 ```
+
+## Vorschau über Tailscale (Testphase)
+
+`Vorschau starten.cmd` baut die Seite mit aktuellen Wix-Inhalten, verschlüsselt sie mit dem Passwort aus `.env`
+und startet den Server auf Port 8081. Tailscale Funnel leitet **https://tvdash.tail37ded4.ts.net:8443** dorthin
+(öffentlich erreichbar, Passwort nötig). Abschalten: `tailscale funnel --https=8443 off`.
 
 ## Lokal bauen und ansehen
 
@@ -85,5 +92,4 @@ Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wi
 
 - Formulare senden noch nicht (zeigen nur die Bestätigung). Geplant: Übergabe an Wix Forms/Posteingang.
 - Umfrage zählt nur lokal im Browser. Geplant: Zählung über eine CMS-Sammlung.
-- Instagram-Kacheln sind Platzhalter. Geplant: Abruf über die Meta-API (Business-/Creator-Konto nötig).
 - Impressum/Datenschutz mit den Mustern des SPD-Landesverbands abgleichen.

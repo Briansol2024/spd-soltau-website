@@ -40,7 +40,7 @@ async function loadData() {
     site,
     news: fallback.NEWS, events: fallback.EVENTS, people: fallback.PEOPLE, vorstand: fallback.VORSTAND,
     fraktion: fallback.PEOPLE.slice(0, 8), ziele: fallback.ZIELE, poll: fallback.POLL, insta: fallback.INSTA,
-    source: { news: 'fallback', events: 'fallback', people: 'fallback', vorstand: 'fallback', fraktion: 'fallback' },
+    source: { news: 'fallback', events: 'fallback', people: 'fallback', vorstand: 'fallback', fraktion: 'fallback', insta: 'fallback' },
   };
   if (!env.WIX_CLIENT_ID) {
     console.log('[build] Keine WIX_CLIENT_ID – Fallback-Inhalte werden verwendet.');
@@ -56,6 +56,7 @@ async function loadData() {
     await tryLoad('people', () => wix.fetchPeople(client, env.WIX_TEAM_COLLECTION || 'KandidatinnenzurStadtratswahl'));
     await tryLoad('vorstand', () => wix.fetchVorstand(client, env.WIX_VORSTAND_COLLECTION || 'Team'));
     await tryLoad('fraktion', () => wix.fetchPeople(client, env.WIX_FRAKTION_COLLECTION || 'Team1'));
+    await tryLoad('insta', () => wix.fetchInstagram(client));
   }
   // Ergänzungen aus dem Fallback (Rolle, Text, Themen), falls das CMS diese Felder (noch) nicht hat
   const fb = new Map(fallback.PEOPLE.map(p => [p.name.toLowerCase().replace(/ç/g, 'c'), p]));
@@ -104,6 +105,23 @@ async function main() {
   await mkdir(path.join(OUT, 'assets'), { recursive: true });
 
   const d = await loadData();
+  // Instagram-Bilder auf den eigenen Host holen (Besucher haben so keinen Kontakt zu Instagram-Servern)
+  if (d.source.insta === 'wix') {
+    await mkdir(path.join(OUT, 'assets', 'insta'), { recursive: true });
+    for (const it of d.insta) {
+      try {
+        const res = await fetch(it.img);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const file = `${it.id}.jpg`;
+        const buf = Buffer.from(await res.arrayBuffer());
+        // auf Kachelgröße verkleinern (quadratisch, 720 px) – spart bis zu 90 % Datenvolumen
+        const { default: sharp } = await import('sharp');
+        const small = await sharp(buf).resize(720, 720, { fit: 'cover', position: 'attention' }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+        await writeFile(path.join(OUT, 'assets', 'insta', file), small);
+        it.img = `${BASE}/assets/insta/${file}`;
+      } catch (e) { console.log('[build] Instagram-Bild nicht ladbar:', it.id, e.message); it.img = null; }
+    }
+  }
   const clientData = {
     people: d.people.map(p => ({ name: p.name, job: p.job, role: p.role, text: p.text, themen: p.themen, photo: p.photo })),
     vorstand: d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, text: '', themen: [], photo: v.photo })),

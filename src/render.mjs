@@ -83,5 +83,8 @@ export function pollButtons(poll, myVote) {
 
 export function instaTiles(items) {
   const heart = '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8 3.5 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.5 0 6 3.5 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg>';
-  return items.map(i => `<a class="ph${i.img ? ' has-img' : ''}" href="${esc(i.url || 'https://www.instagram.com/spd_soltau/')}" target="_blank" rel="noopener">${i.img ? `<img src="${esc(i.img)}" alt="${esc(i.label)}" loading="lazy">` : ''}<span>${heart}${i.likes ? esc(i.likes) + ' · ' : ''}${esc(i.label)}</span></a>`).join('');
+  return items.map(i => {
+    const label = i.label || (i.caption ? i.caption.replace(/\s+/g, ' ').trim().slice(0, 48) + (i.caption.length > 48 ? '…' : '') : 'Instagram');
+    return `<a class="ph${i.img ? ' has-img' : ''}" href="${esc(i.url || 'https://www.instagram.com/spd_soltau/')}" target="_blank" rel="noopener" aria-label="Instagram-Beitrag: ${esc(label)}">${i.img ? `<img src="${esc(i.img)}" alt="" loading="lazy" decoding="async">` : ''}<span>${heart}${i.likes ? esc(i.likes) + ' · ' : ''}${esc(label)}</span></a>`;
+  }).join('');
 }

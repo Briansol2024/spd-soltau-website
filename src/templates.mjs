@@ -33,7 +33,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <div id="site">
 <header class="header">
   <div class="wrap">
-    <a class="logo" href="${url('/')}" aria-label="SPD Soltau – Startseite"><span class="logo-box">SPD</span><span class="logo-ort">Soltau</span></a>
+    <a class="logo" href="${url('/')}" aria-label="SPD Soltau – Startseite"><img src="${url('/assets/images/logo-spd-soltau.png')}" alt="SPD Soltau" width="96" height="64" decoding="async"></a>
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
       ${NAV.map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
     </nav>
@@ -54,7 +54,7 @@ ${content}
     <div class="claim">Aus Liebe<br>zu Soltau.</div>
     <div class="grid">
       <div>
-        <a class="logo" href="${url('/')}" aria-label="SPD Soltau – Startseite"><span class="logo-box">SPD</span><span class="logo-ort">Soltau</span></a>
+        <a class="logo" href="${url('/')}" aria-label="SPD Soltau – Startseite"><img src="${url('/assets/images/logo-spd-soltau.png')}" alt="SPD Soltau" width="96" height="64" decoding="async"></a>
         <p style="margin-top:16px;max-width:36ch">SPD Ortsverein Soltau<br>Am Bahnhof 1t · 29614 Soltau</p>
         <p style="margin-top:12px"><a href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Instagram @spd_soltau</a></p>
       </div>
@@ -207,7 +207,7 @@ export function startPage(d) {
       <h2 class="title">@spd_soltau</h2>
       <a class="more" href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Auf Instagram folgen</a>
     </div>
-    <div class="insta" id="insta">${instaTiles(d.insta)}</div>
+    <div class="insta" id="insta" style="--n:${Math.min(Math.max(d.insta.length,3),6)}">${instaTiles(d.insta)}</div>
   </div>
 
   <div class="band-rot">

@@ -403,3 +403,29 @@ dialog[open]::backdrop{animation:fadeIn .35s}
 #ansprech-section{scroll-margin-top:90px}
 .event h3 a:hover{color:var(--rot)}
 .insta a.ph{text-decoration:none}
+
+/* Personenkarten dürfen ihre Rasterzelle nie sprengen (lange Funktionsbezeichnungen umbrechen) */
+.people .person,.ansprech .person{min-width:0;max-width:100%}
+.person .plate{min-width:0}
+.person .plate b,.person .plate small,.person .plate .rolle{overflow-wrap:anywhere;hyphens:auto}
+.person .avatar{width:100%}
+.split .people{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container site (max-width:900px){.split .people{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container site (max-width:600px){.split .people{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Echtes Logo auf weißer Plakette (Header rot, Footer schwarz) */
+.logo{background:#fff;padding:6px 8px;line-height:0;flex-direction:row;align-items:center}
+.logo img{display:block;height:44px;width:auto}
+.header.scrolled .logo img{height:38px}
+.logo img{transition:height .3s var(--ease)}
+.footer .logo{display:inline-flex}
+@container site (max-width:600px){.logo img{height:38px}}
+/* Instagram-Kacheln mit echten Bildern */
+.insta{grid-template-columns:repeat(var(--n,6),minmax(0,1fr))}
+@container site (max-width:800px){.insta{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container site (max-width:480px){.insta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.insta .ph.has-img{padding:8px 10px;align-items:flex-end}
+.insta .ph.has-img::before{display:block;content:"";position:absolute;inset:auto 0 0 0;height:60%;background:linear-gradient(transparent,rgba(0,0,0,.75));z-index:1}
+.insta .ph.has-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease)}
+.insta .ph.has-img:hover img{transform:scale(1.06)}
+.insta .ph.has-img span{position:relative;z-index:2;font-weight:600;letter-spacing:0;text-transform:none;font-size:12.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
