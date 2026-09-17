@@ -608,3 +608,12 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
   .hero.has-video .hero-text p{font-size:17px;line-height:1.55}
   .hero-media::after{background:linear-gradient(180deg,rgba(15,15,15,.55),rgba(15,15,15,.45) 50%,rgba(15,15,15,.7))}
 }
+
+/* Smartphone-Hero: „Moin!“ deutlich größer, Text mit klarem Kontrast auf dem Video */
+.hero p{color:#fff}
+@container site (max-width:600px){
+  .hero h1{font-size:clamp(72px,24cqw,100px);line-height:.88}
+  .hero h1 .sub{font-size:.38em;letter-spacing:.02em}
+  .hero.has-video .hero-text p{color:#fff;font-size:17px;line-height:1.5;background:rgba(15,15,15,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:14px 16px;border-left:5px solid var(--rot);max-width:none}
+  .hero.has-video .hero-text .tag{font-size:11px}
+}

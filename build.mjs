@@ -34,10 +34,10 @@ const site = {
   bookingUrl: env.BOOKING_URL || 'https://www.spd-soltau.de/book-online',
   // Soltau in Zahlen (Zahlenband auf der Startseite) – bitte bei Bedarf aktualisieren
   facts: [
-    ['936', 'Erste urkundliche Erwähnung Soltaus'],
-    ['rund 22.000', 'Menschen leben in Soltau'],
+    ['936', 'Erste urkundliche Erwähnung als „Curtis Salta“'],
+    ['22.522', 'Einwohnerinnen und Einwohner (Ende 2025)'],
     ['16 + 1', 'Ortschaften und Kernstadt'],
-    ['203 km²', 'Stadtgebiet in der Lüneburger Heide'],
+    ['203,8 km²', 'Stadtgebiet in der Lüneburger Heide'],
   ],
   // Drohnenvideo aus der Wix-Medienverwaltung (wird direkt von Wix' Video-Servern gestreamt)
   heroVideoId: env.HERO_VIDEO_ID === '' ? '' : (env.HERO_VIDEO_ID || 'e83cbb_ce49e360e15046c897e24239d59c4de6'),
