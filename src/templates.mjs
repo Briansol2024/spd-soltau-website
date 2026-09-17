@@ -120,7 +120,7 @@ export function startPage(d) {
       <div class="hero-text">
         <span class="tag">SPD Ortsverein &amp; Ratsfraktion Soltau</span>
         <h1><span class="ln"><span>Moin!</span></span><span class="ln"><em class="sub">Herzlich willkommen.</em></span></h1>
-        <p>Schön, dass Sie da sind. Wir sind die SPD in Soltau – im Stadtrat, im Roten Bahnhof und samstags auf dem Wochenmarkt. Schauen Sie sich um und kommen Sie mit uns ins Gespräch.</p>
+        <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
         <div class="hero-actions">
           <a class="btn btn-rot" href="${url('/ziele/')}">Unsere 10 Punkte</a>
           <a class="btn btn-line-weiss" href="${url('/mitmachen/')}">Mitmachen</a>
