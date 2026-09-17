@@ -600,3 +600,11 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
   .footer .claim{font-size:48px}
   .ziele-grid a{font-size:17px}
 }
+
+/* Smartphone: Willkommensbereich füllt den ganzen Bildschirm (9:16-Bühne mit Video) */
+@container site (max-width:600px){
+  .hero.has-video .wrap{min-height:calc(100vh - 72px);min-height:calc(100svh - 72px);padding-block:56px 64px;align-content:center}
+  .hero.has-video .hero-text{gap:18px}
+  .hero.has-video .hero-text p{font-size:17px;line-height:1.55}
+  .hero-media::after{background:linear-gradient(180deg,rgba(15,15,15,.55),rgba(15,15,15,.45) 50%,rgba(15,15,15,.7))}
+}
