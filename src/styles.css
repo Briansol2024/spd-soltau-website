@@ -523,3 +523,10 @@ dialog[open]::backdrop{animation:fadeIn .35s}
   .people .person .avatar{aspect-ratio:1/1}
   .people .person .plate{margin:-28px 12px 0 12px}
 }
+
+/* Beitragskarten: nur Bild, Datum und Überschrift – gelesen wird auf der Beitragsseite */
+.card .card-body{gap:8px;padding-bottom:6px}
+.card h3{font-size:28px}
+.news .card:first-child h3{font-size:38px}
+.card h3::after{content:"→";display:inline-block;margin-left:10px;color:var(--rot);transition:transform .25s var(--ease)}
+.card:hover h3::after{transform:translateX(6px)}

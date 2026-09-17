@@ -187,7 +187,6 @@ export function startPage(d) {
       ${erk ? `<div class="box box-schwarz">
         <span class="tag">Aus dem Rat erklärt</span>
         <h3>${esc(erk.title)}</h3>
-        <p class="small">${esc(erk.teaser)}</p>
         <a class="btn btn-rot" href="${url(`/aktuelles/${erk.slug}/`)}" style="justify-self:start">Weiterlesen</a>
       </div>` : ''}
       <div class="box box-rot">
