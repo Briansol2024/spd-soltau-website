@@ -413,13 +413,13 @@ dialog[open]::backdrop{animation:fadeIn .35s}
 @container site (max-width:900px){.split .people{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @container site (max-width:600px){.split .people{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* Echtes Logo auf weißer Plakette (Header rot, Footer schwarz) */
-.logo{background:#fff;padding:6px 8px;line-height:0;flex-direction:row;align-items:center}
-.logo img{display:block;height:44px;width:auto}
-.header.scrolled .logo img{height:38px}
-.logo img{transition:height .3s var(--ease)}
+/* Echtes Logo, weiße Variante direkt auf Rot (Header) bzw. Schwarz (Footer) */
+.logo{background:none;padding:0;line-height:0;flex-direction:row;align-items:center}
+.logo img{display:block;height:54px;width:auto;transition:height .3s var(--ease)}
+.header.scrolled .logo img{height:44px}
 .footer .logo{display:inline-flex}
-@container site (max-width:600px){.logo img{height:38px}}
+.footer .logo img{height:64px}
+@container site (max-width:600px){.logo img{height:46px}.header.scrolled .logo img{height:40px}}
 /* Instagram-Kacheln mit echten Bildern */
 .insta{grid-template-columns:repeat(var(--n,6),minmax(0,1fr))}
 @container site (max-width:800px){.insta{grid-template-columns:repeat(3,minmax(0,1fr))}}
