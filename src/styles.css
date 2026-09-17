@@ -617,3 +617,10 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
   .hero.has-video .hero-text p{color:#fff;font-size:17px;line-height:1.5;background:rgba(15,15,15,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:14px 16px;border-left:5px solid var(--rot);max-width:none}
   .hero.has-video .hero-text .tag{font-size:11px}
 }
+
+/* Wischbare Reihen (Aktuelles, Instagram) nur horizontal – kein vertikales Ruckeln im Bereich */
+@container site (max-width:600px){
+  #start-news,#fraktion-news,.insta{overflow-y:hidden;overscroll-behavior-x:contain;scroll-padding-inline:24px;padding-bottom:0;align-items:stretch}
+  #start-news .card,#fraktion-news .card,.insta .ph{--ty:0px;--tx:0px;transform:none}
+  #start-news .card .card-body,#fraktion-news .card .card-body{padding-bottom:12px}
+}
