@@ -505,3 +505,21 @@ dialog[open]::backdrop{animation:fadeIn .35s}
   .footer .grid{gap:22px}
   .totop{width:38px;height:38px}
 }
+
+/* ===== Drohnenvideo im Hero ===== */
+.hero.has-video .wrap{grid-template-columns:minmax(0,1fr);min-height:min(78vh,720px);align-content:center;padding-block:72px}
+.hero.has-video .hero-text{max-width:720px;padding-bottom:0}
+.hero-media{position:absolute;inset:0;z-index:0;background:#0F0F0F center/cover no-repeat}
+.hero-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
+.hero-media video.ready{opacity:1}
+.hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,15,15,.93) 0%,rgba(15,15,15,.78) 40%,rgba(15,15,15,.35) 75%,rgba(15,15,15,.2) 100%),linear-gradient(180deg,rgba(15,15,15,.35),transparent 30%,transparent 70%,rgba(15,15,15,.55))}
+.hero.has-video .wrap{position:relative;z-index:1}
+.hero.has-video::after{z-index:1}
+@container site (max-width:600px){
+  .hero.has-video .wrap{min-height:0;padding-block:40px 36px}
+  .hero-media::after{background:linear-gradient(180deg,rgba(15,15,15,.82),rgba(15,15,15,.72))}
+  /* Personenlisten: eine Person pro Zeile (Wunsch Vorstand) */
+  .people,.split .people,.people.vorstand{grid-template-columns:minmax(0,1fr);gap:14px}
+  .people .person .avatar{aspect-ratio:1/1}
+  .people .person .plate{margin:-28px 12px 0 12px}
+}

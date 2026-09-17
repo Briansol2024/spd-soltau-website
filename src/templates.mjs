@@ -97,9 +97,14 @@ const pageHead = (tag, h1, lead) => `
     ${lead ? `<p class="lead">${esc(lead)}</p>` : ''}
   </div></div>`;
 
-const heroPhoto = (site) => site.heroImage
+const heroPhoto = (site) => site.heroVideoId ? '' : site.heroImage
   ? `<div class="ph has-img"><img src="${esc(site.heroImage)}" alt="${esc(site.heroImageAlt || '')}" decoding="async" fetchpriority="high"></div>`
   : `<div class="ph"><span>Foto: Wahlabend, Roter Bahnhof</span></div>`;
+// Drohnenvideo als Hintergrund: Quelle wird per Skript passend zur Bildschirmbreite gesetzt (480p/720p),
+// bei „Bewegung reduzieren“ bleibt das Standbild stehen.
+const heroMedia = (site) => site.heroVideoId
+  ? `<div class="hero-media" aria-hidden="true"${site.heroPoster ? ` style="background-image:url('${esc(site.heroPoster)}')"` : ''}><video id="hero-video" muted loop playsinline preload="none"${site.heroPoster ? ` poster="${esc(site.heroPoster)}"` : ''}></video></div>`
+  : '';
 
 export function startPage(d) {
   const upcoming = d.events.slice(0, 3);
@@ -107,7 +112,8 @@ export function startPage(d) {
   const themen = d.themen;
   return `
 <section>
-  <div class="hero">
+  <div class="hero${d.site.heroVideoId ? ' has-video' : ''}">
+    ${heroMedia(d.site)}
     <div class="wrap">
       <div class="hero-text">
         <span class="tag">Kommunalwahl 2026 · Danke, Soltau!</span>

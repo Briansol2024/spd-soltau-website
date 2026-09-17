@@ -32,6 +32,9 @@ const site = {
   heroImageAlt: 'Soltau aus der Luft',
   programmPdf: env.PROGRAMM_PDF || 'https://www.spd-soltau.de/wahlprogramm',
   bookingUrl: env.BOOKING_URL || 'https://www.spd-soltau.de/book-online',
+  // Drohnenvideo aus der Wix-Medienverwaltung (wird direkt von Wix' Video-Servern gestreamt)
+  heroVideoId: env.HERO_VIDEO_ID === '' ? '' : (env.HERO_VIDEO_ID || 'e83cbb_ce49e360e15046c897e24239d59c4de6'),
+  heroPoster: '',
 };
 const noindex = env.NOINDEX === '1';
 
@@ -78,7 +81,8 @@ function relativize(html, rel) {
   const depth = rel.split('/').length - 1;
   const prefix = depth === 0 ? './' : '../'.repeat(depth);
   return html
-    .replace(/(href|src)="\/(?!\/)/g, `$1="${prefix}`)
+    .replace(/(href|src|poster)="\/(?!\/)/g, `$1="${prefix}`)
+    .replace(/url\('\/(?!\/)/g, `url('${prefix}`)
     .replace('"base":""', `"base":"${prefix.replace(/\/$/, '')}"`);
 }
 async function write(rel, html) {
@@ -132,6 +136,18 @@ async function main() {
       } catch (e) { console.log('[build] Instagram-Bild nicht ladbar:', it.id, e.message); it.img = null; }
     }
   }
+  // Standbild des Hero-Videos lokal ablegen (schneller erster Eindruck, Fallback bei „Bewegung reduzieren“)
+  if (site.heroVideoId) {
+    try {
+      const res = await fetch(`https://static.wixstatic.com/media/${site.heroVideoId}f000.jpg/v1/fill/w_1600,h_900,al_c,q_85/poster.jpg`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const { default: sharp } = await import('sharp');
+      const buf = await sharp(Buffer.from(await res.arrayBuffer())).resize(1600, 900, { fit: 'cover' }).jpeg({ quality: 78, mozjpeg: true }).toBuffer();
+      await mkdir(path.join(OUT, 'assets', 'images'), { recursive: true });
+      await writeFile(path.join(OUT, 'assets', 'images', 'hero-poster.jpg'), buf);
+      site.heroPoster = `${BASE}/assets/images/hero-poster.jpg`;
+    } catch (e) { console.log('[build] Hero-Standbild nicht ladbar:', e.message); }
+  }
   const clientData = {
     people: d.people.map(p => ({ name: p.name, job: p.job, role: p.role, text: p.text, themen: p.themen, photo: p.photo })),
     vorstand: d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, text: '', themen: [], photo: v.photo })),
@@ -140,6 +156,7 @@ async function main() {
     events: d.events,
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     poll: d.poll,
+    heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
   };
   const page = (rel, pth, title, description, content, extra = {}) =>
     write(rel, T.layout({ site, path: pth, title, description, content, clientData, noindex, ...extra }));

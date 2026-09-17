@@ -135,6 +135,19 @@ addEventListener('scroll', onScroll, { passive: true });
 totop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 arm(); onScroll();
 
+// Hero-Video: passende Qualität laden, bei „Bewegung reduzieren“ nur Standbild
+const heroVideo = $('#hero-video');
+if (heroVideo && SPD.heroVideo && !REDUCED) {
+  const q = innerWidth < 700 ? '480p' : '720p';
+  heroVideo.src = `${SPD.heroVideo.base}/${q}/mp4/file.mp4`;
+  const tryPlay = () => heroVideo.play().catch(() => { /* Autoplay (noch) blockiert → Standbild bleibt */ });
+  heroVideo.addEventListener('canplay', () => { heroVideo.classList.add('ready'); tryPlay(); }, { once: true });
+  tryPlay();
+  // Falls der Browser Autoplay erst nach einer Berührung erlaubt
+  ['touchstart', 'scroll', 'click'].forEach(ev => addEventListener(ev, () => { if (heroVideo.paused) tryPlay(); }, { passive: true, once: true }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && heroVideo.paused) tryPlay(); });
+}
+
 // Lichtkegel im Hero folgt der Maus
 const hero = $('.hero');
 hero?.addEventListener('mousemove', e => { const r = hero.getBoundingClientRect(); hero.style.setProperty('--mx', (e.clientX - r.left) + 'px'); hero.style.setProperty('--my', (e.clientY - r.top) + 'px'); });
