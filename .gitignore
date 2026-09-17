@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist-protected/
+.env
+src/_d_*.html
+src/_d_*.js

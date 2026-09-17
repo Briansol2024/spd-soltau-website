@@ -1,0 +1,61 @@
+# Baut die Website aus dem Wix-Backend und veröffentlicht sie auf GitHub Pages.
+# Läuft bei jedem Push, alle 30 Minuten (holt neue Beiträge/Termine) und manuell.
+#
+# Einstellungen im Repository (Settings → Secrets and variables → Actions):
+#   Variables: WIX_CLIENT_ID, SITE_URL, BASE_PATH (leer bei eigener Domain), CNAME, HERO_IMAGE, SITE_EMAIL, NOINDEX
+#   Secrets:   PREVIEW_PASSWORD  (gesetzt = Testphase mit Passwort; entfernen = Seite ist offen)
+name: Website bauen & veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Seiten bauen
+        run: node build.mjs
+        env:
+          WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          BASE_PATH: ${{ vars.BASE_PATH }}
+          CNAME: ${{ vars.CNAME }}
+          HERO_IMAGE: ${{ vars.HERO_IMAGE }}
+          SITE_EMAIL: ${{ vars.SITE_EMAIL }}
+          NOINDEX: ${{ vars.NOINDEX }}
+      - name: Passwortschutz (Testphase)
+        run: node protect.mjs
+        env:
+          PREVIEW_PASSWORD: ${{ secrets.PREVIEW_PASSWORD }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-protected
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

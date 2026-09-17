@@ -1,0 +1,29 @@
+{
+  "name": "spd-soltau-website",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Website des SPD Ortsvereins Soltau – statisch generiert, Inhalte aus dem Wix-Backend (Headless).",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "protect": "node protect.mjs",
+    "build:preview": "node build.mjs && node protect.mjs",
+    "serve": "node serve.mjs",
+    "serve:protected": "node serve.mjs --protected",
+    "dev": "node build.mjs && node serve.mjs"
+  },
+  "dependencies": {
+    "@fontsource/barlow": "^5.1.0",
+    "@fontsource/barlow-condensed": "^5.1.0",
+    "@wix/blog": "^1.0.0",
+    "@wix/data": "^1.0.0",
+    "@wix/events": "^1.0.0",
+    "@wix/sdk": "^1.15.0"
+  },
+  "devDependencies": {
+    "staticrypt": "^3.5.0"
+  }
+}
