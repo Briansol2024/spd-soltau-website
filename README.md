@@ -12,7 +12,7 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Termine | Wix Events | Dashboard → Veranstaltungen |
 | Vorstand | CMS-Sammlung „Vorstand“ (ID `Team`) | Dashboard → CMS |
 | Team (27 Personen), „Wer kümmert sich um was?“ | CMS-Sammlung „Kandidat*innen zur Stadtratswahl“ | Dashboard → CMS |
-| Ratsfraktion | CMS-Sammlung „Stadtrat“ | Dashboard → CMS |
+| Ratsfraktion | CMS-Sammlung „Stadtrat“ (ID `Team1`) | Dashboard → CMS |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
 
 Die Seite wird **alle 30 Minuten** automatisch neu gebaut (GitHub Actions). Neue Beiträge oder Termine

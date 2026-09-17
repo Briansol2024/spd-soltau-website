@@ -24,10 +24,10 @@ export function wixImageUrl(v, w = 1200, h = 800) {
   const s = typeof v === 'string' ? v : (v.url || v.src || v.id || '');
   if (!s) return null;
   if (/^https?:\/\//.test(s)) return s;
-  const m = s.match(/^wix:image:\/\/v1\/([^/]+)\/([^#]*)(#.*)?$/);
+  const m = s.match(/^wix:image:\/\/v1\/([^/#]+)(?:\/([^#]*))?(#.*)?$/);
   if (!m) return null;
   const id = m[1];
-  const name = decodeURIComponent(m[2] || 'bild.jpg');
+  const name = decodeURIComponent(m[2] || id);
   return `https://static.wixstatic.com/media/${id}/v1/fill/w_${w},h_${h},al_c,q_85,enc_auto/${encodeURIComponent(name)}`;
 }
 
@@ -186,12 +186,13 @@ export async function fetchPeople(client, collectionId = 'KandidatinnenzurStadtr
   const list = await fetchCollection(client, collectionId);
   return list
     .map(d => ({
+      // Sammlung „Kandidat*innen“: title = Name, description = Beruf, text = Kurztext, title1 = Listenplatz, image = Foto
       name: pick(d, ['name', 'title']) || '',
-      job: pick(d, ['beruf', 'job', 'taetigkeit']) || '',
-      role: pick(d, ['rolle', 'role', 'funktion', 'position']) || '',
-      text: pick(d, ['beschreibung', 'kurztext', 'text', 'description']) || '',
+      job: pick(d, ['beruf', 'job', 'taetigkeit', 'description', 'shortDescription']) || '',
+      role: pick(d, ['rolle', 'role', 'funktion', 'position', 'jobTitle']) || '',
+      text: pick(d, ['beschreibung', 'kurztext', 'text']) || '',
       themen: asList(pick(d, ['themen', 'tags', 'schwerpunkte'])),
-      listenplatz: Number(pick(d, ['listenplatz', 'platz', 'order'])) || 999,
+      listenplatz: Number(pick(d, ['listenplatz', 'platz', 'order', 'title1'])) || 999,
       photo: (() => { const u = wixImageUrl(pick(d, ['foto', 'photo', 'bild', 'image']), 600, 750); return u ? { url: u } : null; })(),
     }))
     .filter(p => p.name)
@@ -200,13 +201,16 @@ export async function fetchPeople(client, collectionId = 'KandidatinnenzurStadtr
 
 export async function fetchVorstand(client, collectionId = 'Team') {
   const list = await fetchCollection(client, collectionId);
+  const sortKey = d => { const k = Object.keys(d).find(k => k.startsWith('_manualSort')); return k ? String(d[k]) : ''; };
   return list
     .map(d => ({
+      // Sammlung „Vorstand“ (ID Team): title = Name, jobTitle = Position, shortDescription = Beruf, photo = Foto
       name: pick(d, ['name', 'title']) || '',
-      position: pick(d, ['position', 'funktion', 'rolle']) || '',
-      job: pick(d, ['beruf', 'job']) || '',
+      position: pick(d, ['position', 'funktion', 'rolle', 'jobTitle']) || '',
+      job: pick(d, ['beruf', 'job', 'shortDescription']) || '',
       photo: (() => { const u = wixImageUrl(pick(d, ['photo', 'foto', 'bild', 'image']), 600, 750); return u ? { url: u } : null; })(),
-      order: Number(pick(d, ['reihenfolge', 'order', 'sort'])) || 999,
+      sort: sortKey(d),
     }))
-    .filter(p => p.name);
+    .filter(p => p.name)
+    .sort((a, b) => a.sort.localeCompare(b.sort));
 }
