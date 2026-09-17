@@ -71,10 +71,19 @@ async function loadData() {
 }
 
 // ---------- Ausgabe ----------
+// Interne Links werden relativ zur Seitentiefe geschrieben ("../aktuelles/"), damit die Seite unter jedem
+// Pfad, Port oder Proxy funktioniert. Absolute Adressen (canonical, og:url, sitemap) bleiben absolut.
+function relativize(html, rel) {
+  const depth = rel.split('/').length - 1;
+  const prefix = depth === 0 ? './' : '../'.repeat(depth);
+  return html
+    .replace(/(href|src)="\/(?!\/)/g, `$1="${prefix}`)
+    .replace('"base":""', `"base":"${prefix.replace(/\/$/, '')}"`);
+}
 async function write(rel, html) {
   const file = path.join(OUT, rel);
   await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, html, 'utf8');
+  await writeFile(file, rel.endsWith('.html') && !BASE ? relativize(html, rel) : html, 'utf8');
 }
 
 async function copyFonts() {
@@ -91,7 +100,7 @@ async function copyFonts() {
       if (!existsSync(src)) { console.log('[build] Schrift fehlt:', src); continue; }
       const name = `${pkg}-${w}.woff2`;
       await copyFile(src, path.join(fontsDir, name));
-      css += `@font-face{font-family:'${family}';font-style:normal;font-weight:${w};font-display:swap;src:url(${BASE}/assets/fonts/${name}) format('woff2')}\n`;
+      css += `@font-face{font-family:'${family}';font-style:normal;font-weight:${w};font-display:swap;src:url(fonts/${name}) format('woff2')}\n`;
     }
   }
   await writeFile(path.join(OUT, 'assets', 'fonts.css'), css, 'utf8');

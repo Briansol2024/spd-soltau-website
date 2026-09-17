@@ -429,3 +429,79 @@ dialog[open]::backdrop{animation:fadeIn .35s}
 .insta .ph.has-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease)}
 .insta .ph.has-img:hover img{transform:scale(1.06)}
 .insta .ph.has-img span{position:relative;z-index:2;font-weight:600;letter-spacing:0;text-transform:none;font-size:12.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ===== Smartphone: kompakter, kürzer, schneller erfassbar ===== */
+@container site (max-width:600px){
+  .section{padding-block:40px}
+  .section-head{margin-bottom:18px;gap:10px}
+  h2.title{font-size:34px}
+  h1.title{font-size:44px}
+  .page-head{padding-block:32px 26px}
+  .lead{font-size:17px}
+  .more{font-size:14px}
+  /* Hero: Text im Vordergrund, Platzhalterfoto entfällt, echtes Foto als 16:9-Streifen */
+  .hero .wrap{padding-block:32px 0;gap:18px}
+  .hero h1{font-size:56px}
+  .hero p{font-size:17px}
+  .hero-text{padding-bottom:28px;gap:16px}
+  .hero .ph:not(.has-img){display:none}
+  .hero .ph.has-img{min-height:0;aspect-ratio:16/9}
+  .hero-actions .btn{padding:12px 16px;font-size:15px}
+  .ticker-track span{font-size:14px;padding:10px 16px}
+  /* Schnellzugriff: 2×2, nur Symbol und Titel */
+  .quick{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+  .quick a{padding:14px 12px;gap:8px}
+  .quick svg{width:26px;height:26px}
+  .quick b{font-size:19px}
+  .quick small{display:none}
+  /* Beiträge und Instagram auf der Startseite: seitlich wischen statt stapeln */
+  #start-news,#fraktion-news,.insta{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:6px;scrollbar-width:none;margin-inline:-24px;padding-inline:24px}
+  #start-news::-webkit-scrollbar,#fraktion-news::-webkit-scrollbar,.insta::-webkit-scrollbar{display:none}
+  #start-news .card,#fraktion-news .card{flex:0 0 80%;scroll-snap-align:start}
+  #start-news .card:first-child .ph,#start-news .card .ph,#fraktion-news .card .ph{min-height:170px}
+  #start-news .card h3,#start-news .card:first-child h3,#fraktion-news .card h3{font-size:24px}
+  .card-body{padding-top:12px;gap:6px}
+  .card p{font-size:15px}
+  .insta .ph{flex:0 0 44%;scroll-snap-align:start}
+  /* Archivseite Aktuelles: kompakte Karten */
+  #all-news .card .ph{min-height:160px}
+  #all-news .card h3{font-size:24px}
+  /* Themen-Chips: eine wischbare Zeile */
+  .themen{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-24px;padding-inline:24px;padding-bottom:4px}
+  .themen::-webkit-scrollbar{display:none}
+  .themen .chip{white-space:nowrap;flex:0 0 auto}
+  .ansprech .person{grid-template-columns:84px minmax(0,1fr)}
+  .ansprech .person .avatar{font-size:22px}
+  /* Zahlenband */
+  .stat{padding:16px 12px}
+  .stat b{font-size:40px}
+  .stat span{font-size:12px;margin-top:6px}
+  /* Termine kompakter */
+  .event{grid-template-columns:52px minmax(0,1fr);gap:12px;padding:14px 0}
+  .event-date b{font-size:40px}
+  .event-date span{font-size:11px}
+  .event h3{font-size:22px}
+  .event .meta{font-size:14px}
+  .month{font-size:18px;margin:26px 0 8px}
+  /* Ziele: zwei Spalten, kleiner */
+  .ziele-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}
+  .ziele-grid a{font-size:18px;padding:9px 0;gap:8px}
+  .ziele-grid .num{font-size:14px;min-width:22px}
+  .ziel summary{font-size:22px;padding:14px 0;gap:12px}
+  .ziel summary .num{font-size:22px}
+  /* Umfrage, Boxen, Formulare */
+  .poll button{font-size:16px;padding:12px 12px}
+  .box{padding:20px}
+  .box h3{font-size:22px}
+  .split{gap:28px}
+  /* Personenraster */
+  .people{gap:10px}
+  .person b{font-size:18px}
+  .person .plate{padding:8px 10px 10px;margin-top:-22px}
+  /* Newsletter und Footer */
+  .newsletter h2.title{font-size:34px}
+  .newsletter p{font-size:16px}
+  .footer .claim{font-size:60px;padding-top:36px;margin-bottom:28px}
+  .footer .grid{gap:22px}
+  .totop{width:38px;height:38px}
+}
