@@ -1,5 +1,5 @@
 // Seitenvorlagen – 1:1 nach Referenz-Entwurf D, mit echten Links und Inhalten aus dem Build.
-import { esc, fmt, url, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo } from './render.mjs';
+import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo } from './render.mjs';
 
 const NAV = [
   ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Ortsverein'],
@@ -34,6 +34,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <header class="header">
   <div class="wrap">
     <a class="logo" href="${url('/index.html')}" aria-label="SPD Soltau – Startseite"><img src="${url('/assets/images/logo-spd-soltau-weiss.png')}" alt="SPD Soltau" width="88" height="60" decoding="async"></a>
+    <span class="slogan">Aus Liebe<br>zu Soltau</span>
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
       ${NAV.map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
     </nav>
@@ -109,6 +110,7 @@ const heroMedia = (site) => site.heroVideoId
 export function startPage(d) {
   const upcoming = d.events.slice(0, 3);
   const erk = d.news.find(n => n.cat === 'Fraktion') || d.news[0];
+  const danke = d.news.find(n => /danke/i.test(n.slug) || /danke/i.test(n.title)) || null;
   const themen = d.themen;
   return `
 <section>
@@ -116,9 +118,9 @@ export function startPage(d) {
     ${heroMedia(d.site)}
     <div class="wrap">
       <div class="hero-text">
-        <span class="tag">Kommunalwahl 2026 · Danke, Soltau!</span>
-        <h1><span class="ln"><span>Stärkste</span></span><span class="ln"><span>Kraft</span></span><span class="ln"><em>im Rat.</em></span></h1>
-        <p>Zum ersten Mal in der Geschichte der Stadt stellt die SPD die stärkste Fraktion im Soltauer Stadtrat. Jetzt beginnt die Arbeit.</p>
+        <span class="tag">SPD Ortsverein &amp; Ratsfraktion Soltau</span>
+        <h1><span class="ln"><span>Moin!</span></span><span class="ln"><em class="sub">Herzlich willkommen.</em></span></h1>
+        <p>Schön, dass Sie da sind. Wir sind die SPD in Soltau – im Stadtrat, im Roten Bahnhof und samstags auf dem Wochenmarkt. Schauen Sie sich um und kommen Sie mit uns ins Gespräch.</p>
         <div class="hero-actions">
           <a class="btn btn-rot" href="${url('/ziele/')}">Unsere 10 Punkte</a>
           <a class="btn btn-line-weiss" href="${url('/mitmachen/')}">Mitmachen</a>
@@ -129,15 +131,23 @@ export function startPage(d) {
   </div>
   <div class="ticker" aria-label="Nächste Termine"><div class="ticker-track" id="ticker">${tickerItems(d.events).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>'}</div></div>
 
-  <div class="band-grau">
-    <div class="wrap" style="padding-block:56px">
-      <div class="section-head" style="margin-bottom:24px"><h2 class="title" style="font-size:clamp(34px,4.8cqw,56px)">Was können wir<br>für Sie tun?</h2></div>
-      <div class="quick">
-        <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns.</small></a>
-        <a href="${url('/termine/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><b>Ich will vorbeikommen</b><small>Ratssitzungen sind öffentlich. Alle Termine auf einen Blick.</small></a>
-        <a href="#ansprech-section"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg><b>Ich suche eine Ansprechperson</b><small>Wer kümmert sich um Schule, Verkehr oder die Ortschaften?</small></a>
-        <a href="${url('/mitmachen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9.5"/></svg><b>Ich will mitmachen</b><small>Mitglied werden, Newsletter oder ein Nachmittag am Infostand.</small></a>
+  ${danke ? `<div class="band-grau">
+    <div class="wrap section danke">
+      ${danke.img ? photo(danke.img, danke.title, 'danke-img') : ''}
+      <div class="danke-text">
+        <span class="tag">Kommunalwahl 2026</span>
+        <h2 class="title">${esc(danke.title)}</h2>
+        ${danke.teaser ? `<p class="lead">${esc(short(danke.teaser, 220))}</p>` : ''}
+        <a class="btn btn-rot" href="${url(`/aktuelles/${danke.slug}/`)}" style="justify-self:start">Zum Beitrag</a>
       </div>
+    </div>
+  </div>` : ''}
+
+  <div class="wrap" style="padding-block:56px">
+    <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
+    <div class="quick quick-2">
+      <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</small></a>
+      <a href="${url('/mitmachen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg><b>Ich will vorbeikommen oder mitmachen</b><small>Ratssitzungen sind öffentlich, der Rote Bahnhof steht offen – als Gast, Helferin oder Mitglied.</small></a>
     </div>
   </div>
 
@@ -151,11 +161,9 @@ export function startPage(d) {
 
   <div class="band-rot">
     <div class="wrap" style="padding-block:40px">
+      <span class="tag tag-schwarz" style="margin-bottom:18px">Soltau in Zahlen</span>
       <div class="stats">
-        <div class="stat"><b>Nr. 1</b><span>Erstmals stärkste Fraktion im Stadtrat</span></div>
-        <div class="stat"><b>${d.people.length}</b><span>Menschen im Team</span></div>
-        <div class="stat"><b>16+1</b><span>Ortschaften und Kernstadt</span></div>
-        <div class="stat"><b>10</b><span>Punkte für Soltau</span></div>
+        ${d.site.facts.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}
       </div>
     </div>
   </div>
@@ -176,14 +184,8 @@ export function startPage(d) {
     </div>
   </div>
 
-  <div class="wrap section split">
-    <div>
-      <span class="tag">Ihre Meinung</span>
-      <h2 class="title" style="margin:18px 0 10px">Was sollte Soltau jetzt als Erstes anpacken?</h2>
-      <p class="muted" style="margin-bottom:20px">Eine Stimme pro Person. Das Ergebnis sehen Sie sofort.</p>
-      <div class="poll" id="poll">${pollButtons(d.poll, null)}</div>
-    </div>
-    <div style="display:grid;gap:20px">
+  <div class="wrap section">
+    <div class="cols boxes">
       ${erk ? `<div class="box box-schwarz">
         <span class="tag">Aus dem Rat erklärt</span>
         <h3>${esc(erk.title)}</h3>

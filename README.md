@@ -34,6 +34,8 @@ src/templates.mjs    Seitenvorlagen (HTML)
 src/render.mjs       Bausteine (Karten, Termine, Personen …) – laufen im Build und im Browser
 src/site.js          Interaktion und Animationen im Browser
 src/styles.css       Gestaltung (Entwurf D)
+src/fonts/           SPD-Hausschrift TheSans SPD (Regular, Bold, Extrabold, Versal) – aus eurer Wix-Medienverwaltung, selbst gehostet
+src/images/          Logo (rot und weiß) – Hero-Standbild und Instagram-Bilder werden beim Bauen erzeugt
 src/data-fallback.mjs  Beispiel-/Ersatzinhalte und feste Texte (10-Punkte-Plan, Themenreihenfolge)
 src/lib/wix.mjs      Anbindung an Wix (Blog, Events, CMS) inkl. Rich-Text- und Bild-Umwandlung
 .github/workflows/deploy.yml   Automatischer Bau + Veröffentlichung auf GitHub Pages
@@ -93,3 +95,4 @@ Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wi
 - Formulare senden noch nicht (zeigen nur die Bestätigung). Geplant: Übergabe an Wix Forms/Posteingang.
 - Umfrage zählt nur lokal im Browser. Geplant: Zählung über eine CMS-Sammlung.
 - Impressum/Datenschutz mit den Mustern des SPD-Landesverbands abgleichen.
+- „Soltau in Zahlen“ (Startseite) prüfen/aktualisieren: Werte stehen in `build.mjs` unter `facts`.

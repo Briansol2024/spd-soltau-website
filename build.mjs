@@ -32,6 +32,13 @@ const site = {
   heroImageAlt: 'Soltau aus der Luft',
   programmPdf: env.PROGRAMM_PDF || 'https://www.spd-soltau.de/wahlprogramm',
   bookingUrl: env.BOOKING_URL || 'https://www.spd-soltau.de/book-online',
+  // Soltau in Zahlen (Zahlenband auf der Startseite) – bitte bei Bedarf aktualisieren
+  facts: [
+    ['936', 'Erste urkundliche Erwähnung Soltaus'],
+    ['rund 22.000', 'Menschen leben in Soltau'],
+    ['16 + 1', 'Ortschaften und Kernstadt'],
+    ['203 km²', 'Stadtgebiet in der Lüneburger Heide'],
+  ],
   // Drohnenvideo aus der Wix-Medienverwaltung (wird direkt von Wix' Video-Servern gestreamt)
   heroVideoId: env.HERO_VIDEO_ID === '' ? '' : (env.HERO_VIDEO_ID || 'e83cbb_ce49e360e15046c897e24239d59c4de6'),
   heroPoster: '',
@@ -92,21 +99,22 @@ async function write(rel, html) {
 }
 
 async function copyFonts() {
+  // SPD-Hausschrift „TheSans SPD“ (aus der Wix-Medienverwaltung des Ortsvereins), selbst gehostet
   const fontsDir = path.join(OUT, 'assets', 'fonts');
   await mkdir(fontsDir, { recursive: true });
   const specs = [
-    ['barlow', 'Barlow', [400, 500, 600, 700]],
-    ['barlow-condensed', 'Barlow Condensed', [600, 700, 800]],
+    ['thesans-spd-regular', 'TheSans SPD', 400, 'normal'],
+    ['thesans-spd-bold', 'TheSans SPD', 700, 'normal'],
+    ['thesans-spd-extrabold', 'TheSans SPD', 800, 'normal'],
+    ['thesans-spd-versal-extrabold', 'TheSans SPD Versal', 800, 'normal'],
+    ['thesans-spd-versal-bold-italic', 'TheSans SPD Versal', 700, 'italic'],
   ];
   let css = '';
-  for (const [pkg, family, weights] of specs) {
-    for (const w of weights) {
-      const src = path.join(__dirname, 'node_modules', '@fontsource', pkg, 'files', `${pkg}-latin-${w}-normal.woff2`);
-      if (!existsSync(src)) { console.log('[build] Schrift fehlt:', src); continue; }
-      const name = `${pkg}-${w}.woff2`;
-      await copyFile(src, path.join(fontsDir, name));
-      css += `@font-face{font-family:'${family}';font-style:normal;font-weight:${w};font-display:swap;src:url(fonts/${name}) format('woff2')}\n`;
-    }
+  for (const [file, family, weight, style] of specs) {
+    const src = path.join(__dirname, 'src', 'fonts', `${file}.woff2`);
+    if (!existsSync(src)) { console.log('[build] Schrift fehlt:', src); continue; }
+    await copyFile(src, path.join(fontsDir, `${file}.woff2`));
+    css += `@font-face{font-family:'${family}';font-style:${style};font-weight:${weight};font-display:swap;src:url(fonts/${file}.woff2) format('woff2')}\n`;
   }
   await writeFile(path.join(OUT, 'assets', 'fonts.css'), css, 'utf8');
 }
@@ -155,7 +163,6 @@ async function main() {
     themen: d.themen,
     events: d.events,
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
-    poll: d.poll,
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
   };
   const page = (rel, pth, title, description, content, extra = {}) =>

@@ -16,8 +16,6 @@
     "dev": "node build.mjs && node serve.mjs"
   },
   "dependencies": {
-    "@fontsource/barlow": "^5.1.0",
-    "@fontsource/barlow-condensed": "^5.1.0",
     "@wix/blog": "^1.0.0",
     "@wix/data": "^1.0.0",
     "@wix/events": "^1.0.0",
