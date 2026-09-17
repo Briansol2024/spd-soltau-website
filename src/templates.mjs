@@ -110,7 +110,6 @@ const heroMedia = (site) => site.heroVideoId
 export function startPage(d) {
   const upcoming = d.events.slice(0, 3);
   const erk = d.news.find(n => n.cat === 'Fraktion') || d.news[0];
-  const danke = d.news.find(n => /danke/i.test(n.slug) || /danke/i.test(n.title)) || null;
   const themen = d.themen;
   return `
 <section>
@@ -130,18 +129,6 @@ export function startPage(d) {
     </div>
   </div>
   <div class="ticker" aria-label="Nächste Termine"><div class="ticker-track" id="ticker">${tickerItems(d.events).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>'}</div></div>
-
-  ${danke ? `<div class="band-grau">
-    <div class="wrap section danke">
-      ${danke.img ? photo(danke.img, danke.title, 'danke-img') : ''}
-      <div class="danke-text">
-        <span class="tag">Kommunalwahl 2026</span>
-        <h2 class="title">${esc(danke.title)}</h2>
-        ${danke.teaser ? `<p class="lead">${esc(short(danke.teaser, 220))}</p>` : ''}
-        <a class="btn btn-rot" href="${url(`/aktuelles/${danke.slug}/`)}" style="justify-self:start">Zum Beitrag</a>
-      </div>
-    </div>
-  </div>` : ''}
 
   <div class="wrap" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
