@@ -31,6 +31,7 @@ const site = {
   heroImage: env.HERO_IMAGE || '',
   heroImageAlt: 'Soltau aus der Luft',
   programmPdf: env.PROGRAMM_PDF || 'https://www.spd-soltau.de/wahlprogramm',
+  bookingUrl: env.BOOKING_URL || 'https://www.spd-soltau.de/book-online',
 };
 const noindex = env.NOINDEX === '1';
 

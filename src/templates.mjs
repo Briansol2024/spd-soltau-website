@@ -189,6 +189,11 @@ export function startPage(d) {
         <p class="small">Schlagloch, Kita-Platz, Ratsbeschluss – wir antworten in der Regel innerhalb einer Woche.</p>
         <a class="btn btn-weiss" href="${url('/kontakt/')}" style="justify-self:start">Anliegen senden</a>
       </div>
+      <div class="box">
+        <h3>Roter Bahnhof buchen</h3>
+        <p class="small">Unser Treffpunkt am Bahnhof steht auch Vereinen und Gruppen offen. Termin anfragen – wir melden uns.</p>
+        <a class="btn btn-schwarz" href="${esc(d.site.bookingUrl)}" target="_blank" rel="noopener" style="justify-self:start">Anfrage stellen</a>
+      </div>
     </div>
   </div>
 
@@ -341,8 +346,9 @@ export function ortsvereinPage(d) {
     <div class="cols">
       <div class="col">
         <h3>Roter Bahnhof</h3>
-        <p>Unser Treffpunkt am Bahnhof: Hier tagt der Vorstand, hier planen wir Infostände, hier sind Gäste willkommen.</p>
+        <p>Unser Treffpunkt am Bahnhof: Hier tagt der Vorstand, hier planen wir Infostände, hier sind Gäste willkommen. Vereine und Gruppen können den Roten Bahnhof anfragen.</p>
         <p><b>Am Bahnhof 1t, 29614 Soltau</b></p>
+        <a class="btn btn-rot" href="${esc(d.site.bookingUrl)}" target="_blank" rel="noopener" style="justify-self:start">Roter Bahnhof buchen</a>
       </div>
       <div class="col">
         <h3>Mitglied werden</h3>
