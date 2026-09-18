@@ -574,7 +574,10 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .chip{font-size:14px;letter-spacing:.06em}
 .date{font-size:12.5px}
 /* Slogan neben dem Logo */
-.slogan{font:800 15px/1.05 var(--display);text-transform:uppercase;letter-spacing:.04em;color:#fff;margin-left:4px;padding-left:16px;border-left:2px solid rgba(255,255,255,.55)}
+.slogan{font:800 19px/1.05 var(--display);text-transform:uppercase;letter-spacing:.04em;color:#fff;margin-left:4px;padding-left:16px;border-left:2px solid rgba(255,255,255,.55);transform-origin:left center;animation:herzschlag 6s ease-in-out 2s infinite}
+/* Herzschlag: zwei kurze Schläge, dann Ruhe */
+@keyframes herzschlag{0%,8%{transform:scale(1)}2%{transform:scale(1.09)}4%{transform:scale(1)}6%{transform:scale(1.07)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.slogan{animation:none}}
 /* Danke-Beitrag unter dem Hero */
 .danke{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:40px;align-items:center}
 .danke .ph{min-height:300px;aspect-ratio:4/3}
@@ -587,7 +590,7 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .quick-2 small{font-size:16px}
 /* Drei Boxen statt Umfrage */
 .cols.boxes .box{align-content:start}
-@container site (max-width:900px){.danke{grid-template-columns:minmax(0,1fr)}.danke .ph{min-height:220px}.slogan{font-size:12px;padding-left:10px;margin-left:0}}
+@container site (max-width:900px){.danke{grid-template-columns:minmax(0,1fr)}.danke .ph{min-height:220px}.slogan{font-size:13.5px;padding-left:10px;margin-left:0}}
 @container site (max-width:360px){.slogan{display:none}}
 @container site (max-width:600px){
   .hero h1{font-size:50px}
@@ -1090,5 +1093,5 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 @media (prefers-reduced-motion:reduce){.za.open .za-pic img{animation:none}.za-head,.za-num,.za-title,.za-body,.za-cols,.za-pic img{transition:none}}
 
 /* Hero: „Moin!“ steht allein und groß (Slogan bleibt in der Kopfzeile) */
-.hero h1.hero-moin{font-size:clamp(88px,14cqw,200px);margin-bottom:10px}
-@container site (max-width:600px){.hero h1.hero-moin{font-size:84px}}
+.hero h1.hero-moin{font-size:clamp(76px,12cqw,168px);margin-bottom:10px}
+@container site (max-width:600px){.hero h1.hero-moin{font-size:72px}}
