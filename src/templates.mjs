@@ -57,6 +57,13 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 ${content}
 </main>
 
+${path.startsWith('/mitglieder/') ? '' : `<nav class="mb-tabbar app-tabbar" aria-label="App-Leiste">
+  <a href="${url('/index.html')}" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span>Webseite</span></a>
+  <a href="${url('/mitglieder/')}#start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg><span>Start</span></a>
+  <a href="${url('/mitglieder/')}#termine"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Termine</span></a>
+  <a href="${url('/mitglieder/')}#umfragen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Umfragen</span></a>
+  <a href="${url('/mitglieder/')}#mehr"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></svg><span>Mehr</span></a>
+</nav>`}
 <footer class="footer">
   <div class="ticker ticker-claim" aria-hidden="true"><div class="ticker-track">${'<span>Aus Liebe zu Soltau</span><span>Stärkste Kraft im Rat</span><span>Danke, Soltau</span><span>Jetzt beginnt die Arbeit</span>'.repeat(4)}</div></div>
   <div class="wrap">

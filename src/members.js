@@ -106,7 +106,16 @@ const appLink = hash => new URL(location.pathname + hash, location.href).href;
 const orteList = () => { if (!document.getElementById('orte')) { const dl = document.createElement('datalist'); dl.id = 'orte'; dl.innerHTML = ORTE.map(o => `<option value="${esc(o)}">`).join(''); document.body.appendChild(dl); } };
 
 // ===== Anmeldung / Registrierung =====
+function authBar() {
+  document.querySelectorAll('.mb-tabbar,.mb-sheet').forEach(el => el.remove());
+  document.body.classList.remove('has-tabbar', 'sheet-open');
+  if (!(isStandalone() || /[?&]app=1/.test(location.search))) return;
+  const bar = document.createElement('nav'); bar.className = 'mb-tabbar'; bar.setAttribute('aria-label', 'App-Leiste');
+  bar.innerHTML = `<a href="${esc(BASE)}/" data-tab="web">${ICON.web}<span>Webseite</span></a><a href="#" data-tab="login" aria-current="page">${ICON.user}<span>Anmelden</span></a><a href="${esc(BASE)}/termine/" data-tab="termine">${ICON.cal}<span>Termine</span></a><a href="${esc(BASE)}/aktuelles/" data-tab="news">${ICON.doc}<span>Aktuelles</span></a><a href="${esc(BASE)}/kontakt/" data-tab="kontakt">${ICON.more}<span>Kontakt</span></a>`;
+  document.body.append(bar); document.body.classList.add('has-tabbar');
+}
 function renderAuth(tab = 'login', hint = '') {
+  authBar();
   view(`
   <div class="mb-grid">
     <div class="mb-card">
@@ -312,25 +321,88 @@ const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitg
 const secVisible = k => (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege')) && (!SEC_VIS[k] || me.sees(SEC_VIS[k]));
 const visibleEvents = () => (SPD.events || []).filter(ev => me.sees('termine:' + (ev.typ || 'Öffentlich')));
 
+const ICON = {
+  web: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  poll: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>',
+  rat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg>',
+  users: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  user: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  inbox: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+  more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></svg>',
+  out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
+  close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+};
+// Gruppierte Bereichsliste – am PC als Seitenleiste, am Handy im „Mehr“-Blatt
+function navGroups() {
+  const sec = (k, l, icon) => secVisible(k) ? [k, l, icon] : null;
+  return [
+    ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('umfragen', 'Umfragen', ICON.poll), sec('dokumente', 'Dokumente', ICON.doc), sec('rat', 'Ratsvorbereitung', ICON.rat), sec('mitglieder', 'Mitglieder', ICON.users)]],
+    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
+    ['Vorstand', [sec('vorstand', 'Vorstand', ICON.inbox)]],
+  ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
+}
+function navList() {
+  return `${navGroups().map(([title, items]) => `<div class="mb-group"><div class="mb-group-title">${title}</div>${items.map(([k, l, icon]) => `<a href="#${k}" data-sec="${k}">${icon}<span>${l}</span><b class="mb-badge" data-badge="${k}" hidden></b></a>`).join('')}</div>`).join('')}
+  <div class="mb-group"><div class="mb-group-title">Website</div><a href="${esc(BASE)}/" data-sec="web">${ICON.web}<span>Zur Website</span></a></div>
+  <button type="button" class="mb-logout" data-logout>${ICON.out}<span>Abmelden</span></button>`;
+}
 function renderShell() {
   const first = me.name.split(' ')[0] || me.name;
   view(`
   ${DEMO ? '<p class="note note-info demo-note"><b>Vorschau mit Beispieldaten.</b> So sieht der Mitgliederbereich nach der Anmeldung aus – Änderungen werden hier nicht gespeichert. <a href="./">Zur echten Anmeldung</a></p>' : ''}
-  <div class="mb-head">
-    <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)} · ${esc(rolesOf({ memberId: me.id, rollen: me.rollen }))}</p></div>
-    <button class="btn btn-line" type="button" id="logout">Abmelden</button>
-  </div>
-  <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => secVisible(k)).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
-  <div id="mb-view" class="mb-view"></div>`);
+  <div class="mb-layout">
+    <aside class="mb-side" aria-label="Bereiche">${navList()}</aside>
+    <div class="mb-main">
+      <div class="mb-head">
+        <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)} · ${esc(rolesOf({ memberId: me.id, rollen: me.rollen }))}</p></div>
+        <button class="btn btn-line" type="button" id="logout">Abmelden</button>
+      </div>
+      <div id="mb-view" class="mb-view"></div>
+    </div>
+  </div>`);
+  // App-Leiste und „Mehr“-Blatt hängen direkt am body (feste Position, unabhängig von Animationen der Seite)
+  document.querySelectorAll('.mb-tabbar,.mb-sheet').forEach(el => el.remove());
+  const board = anyRight();
+  const bar = document.createElement('nav'); bar.className = 'mb-tabbar'; bar.setAttribute('aria-label', 'App-Leiste');
+  bar.innerHTML = `
+    <a href="${esc(BASE)}/" data-tab="web">${ICON.web}<span>Webseite</span></a>
+    <a href="#start" data-tab="start">${ICON.home}<span>Start</span></a>
+    <a href="#termine" data-tab="termine">${ICON.cal}<span>Termine</span></a>
+    ${board ? `<a href="#vorstand" data-tab="vorstand">${ICON.inbox}<span>Vorstand</span><b class="mb-badge" data-badge="vorstand" hidden></b></a>` : `<a href="#umfragen" data-tab="umfragen">${ICON.poll}<span>Umfragen</span></a>`}
+    <button type="button" data-tab="mehr" id="mb-more" aria-expanded="false" aria-controls="mb-sheet">${ICON.more}<span>Mehr</span></button>`;
+  const sheet = document.createElement('div'); sheet.className = 'mb-sheet'; sheet.id = 'mb-sheet'; sheet.hidden = true;
+  sheet.innerHTML = `<div class="mb-sheet-panel" role="dialog" aria-label="Weitere Bereiche"><div class="mb-sheet-head"><b>Bereiche</b><button type="button" class="mb-sheet-close" aria-label="Schließen">${ICON.close}</button></div><nav class="mb-sheet-nav">${navList()}</nav></div>`;
+  document.body.append(bar, sheet);
+  document.body.classList.add('has-tabbar');
+  const toggleSheet = open => { sheet.hidden = !open; $('#mb-more', bar).setAttribute('aria-expanded', String(open)); document.body.classList.toggle('sheet-open', open); };
+  $('#mb-more', bar).addEventListener('click', () => toggleSheet(sheet.hidden));
+  sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('.mb-sheet-close') || e.target.closest('a')) toggleSheet(false); });
+  document.querySelectorAll('[data-logout]').forEach(b => b.addEventListener('click', logout));
   $('#logout').addEventListener('click', logout);
+  updateBadges();
+}
+// Zähler: offene Vorgänge im Eingang (Vorstand)
+async function updateBadges() {
+  if (!anyRight()) return;
+  let n = 0;
+  try { n += (await db.list('Eingang', { eq: { status: 'offen' }, limit: 100 })).length; } catch (e) { /* kein Zugriff */ }
+  try { const local = await inboxAll(); n += local.filter(l => !l.done).length; } catch (e) { /* egal */ }
+  document.querySelectorAll('[data-badge="vorstand"]').forEach(b => { b.textContent = n > 99 ? '99+' : String(n); b.hidden = !n; });
 }
 const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
   if (['eingang', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
   if (key === 'push' || key === 'app-install') key = 'profil';
+  if (key === 'mehr') { key = 'start'; $('#mb-more', document.body)?.click(); }
   if (!RENDER[key] || !secVisible(key)) key = 'start';
-  $$('#mb-nav .chip').forEach(a => a.setAttribute('aria-pressed', String(a.dataset.sec === key)));
+  document.querySelectorAll('.mb-side a[data-sec],.mb-sheet a[data-sec]').forEach(a => { if (a.dataset.sec === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('.mb-tabbar [data-tab]').forEach(a => { if (a.dataset.tab === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  window.scrollTo({ top: Math.min(window.scrollY, (document.querySelector('.mb-main')?.getBoundingClientRect().top || 0) + window.scrollY - 80), behavior: 'auto' });
   const v = $('#mb-view'); if (!v) return;
   v.innerHTML = '<p class="muted">Lade …</p>';
   try { await RENDER[key](v); } catch (err) { v.innerHTML = `<p class="note note-err">Das konnte nicht geladen werden: ${esc(errText(err))}</p>`; }
@@ -1096,6 +1168,7 @@ async function renderInbox() {
     </article>`;
   }).join('');
   $('#inbox-done')?.addEventListener('change', e => { renderInbox.showDone = e.target.checked; renderInbox(); });
+  updateBadges();
   box.onclick = async e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const art = b.closest('.inbox-item'); const it = list.find(x => x.id === art.dataset.id); if (!it) return;

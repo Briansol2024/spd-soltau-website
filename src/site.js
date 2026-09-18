@@ -3,6 +3,8 @@ import { setBase, url, newsCard, eventsGrouped, personCard, pollButtons, esc } f
 
 const SPD = window.SPD || {};
 setBase(SPD.base || '');
+// Installierte App (Standalone) – dann zeigt auch die Website die App-Leiste unten (?app=1 zum Ausprobieren im Browser)
+if (matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /[?&]app=1/.test(location.search)) document.documentElement.classList.add('app-mode');
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;

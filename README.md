@@ -61,6 +61,13 @@ und der Push-Dienst (`push/README.md`).
 
 **Vorschau ohne Konto:** `/mitglieder/?demo` zeigt den kompletten Mitgliederbereich mit Beispieldaten (nichts wird gespeichert).
 
+**Navigation (App-Rahmen):** Am Handy eine feste App-Leiste unten – Webseite · Start · Termine · Vorstand (mit Zähler offener Anfragen; für
+Mitglieder ohne Vorstandsrechte: Umfragen) · Mehr. „Mehr“ öffnet ein Blatt mit allen Bereichen, gruppiert nach *Für alle / Persönlich / Vorstand / Website*,
+plus Abmelden. Am PC (ab 900 px) steht dieselbe gruppierte Liste als Seitenleiste links. Die installierte App (PWA, `start_url` = `/mitglieder/`) startet im
+Mitgliederbereich; auf den Website-Seiten zeigt sie dieselbe Leiste unten (nur im Standalone-Modus, zum Ausprobieren im Browser `?app=1`), auf dem
+Anmeldebildschirm eine Leiste mit Webseite, Termine, Aktuelles, Kontakt. Im normalen Browser sieht die Website aus wie bisher; der Mitgliederbereich hat
+die Leiste bzw. Seitenleiste immer.
+
 **Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
 Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·
