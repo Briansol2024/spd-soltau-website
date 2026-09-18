@@ -1008,3 +1008,40 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .zk-body ul{margin:0;padding-left:20px;display:grid;gap:6px}
 .zk[open] .zk-body{animation:fadeDown .4s var(--ease)}
 @container site (max-width:600px){.zk-tile{width:64px;height:64px}.zk-tile svg{width:34px;height:34px}.zk-title{font-size:22px}.zk-body{padding:0 16px 18px 16px}}
+
+/* ===== Ziele: Wahlprogramm-Blöcke mit Fotos ===== */
+.zj-wrap{padding-block:22px 0}
+.zj{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px}
+.zj::-webkit-scrollbar{display:none}
+.zj a{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;border:2px solid var(--schwarz);padding:8px 12px;text-decoration:none;color:var(--schwarz);font:700 13px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;transition:background .15s,color .15s}
+.zj a b{color:var(--rot)}
+.zj a:hover{background:var(--schwarz);color:#fff}
+.zb-list-wrap{display:grid;gap:64px;padding-top:40px}
+.zb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;align-items:stretch;scroll-margin-top:90px}
+.zb-pic{position:relative;overflow:hidden;background:var(--schwarz);min-height:320px}
+.zb-pic img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s var(--ease)}
+.zb:hover .zb-pic img{transform:scale(1.03)}
+.zb-pic::after{content:"";position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(180deg,transparent,rgba(15,15,15,.55))}
+.zb-num{position:absolute;left:18px;bottom:8px;font:800 clamp(88px,10cqw,150px)/1 var(--display);color:#fff;letter-spacing:-.03em;z-index:1;text-shadow:0 4px 30px rgba(0,0,0,.35)}
+.zb-num::after{content:"";display:block;width:64px;height:8px;background:var(--rot);margin-top:-4px}
+.zb-pic-leer{background:linear-gradient(135deg,#2B2727,#0F0F0F)}
+.zb-text{background:var(--grau);padding:44px 48px;display:grid;gap:14px;align-content:center}
+.zb-kicker{font:700 12px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--rot)}
+.zb-text .title{font-size:clamp(30px,3.6cqw,46px);line-height:.95}
+.zb-intro{font-size:17.5px;max-width:52ch}
+.zb-list{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:10px}
+.zb-list li{position:relative;padding-left:22px;font-size:16px;line-height:1.4}
+.zb-list li::before{content:"";position:absolute;left:0;top:.5em;width:10px;height:10px;background:var(--rot)}
+.zb-rev .zb-pic{order:2}
+.zb-rev .zb-text{order:1}
+@container site (max-width:800px){
+  .zb{grid-template-columns:minmax(0,1fr)}
+  .zb-rev .zb-pic{order:1}.zb-rev .zb-text{order:2}
+  .zb-pic{min-height:0;aspect-ratio:16/10}
+  .zb-num{font-size:84px;left:14px;bottom:4px}
+  .zb-text{padding:24px 20px 28px}
+  .zb-list-wrap{gap:36px;padding-top:28px}
+}
+.versprechen{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:40px;align-items:center;color:#fff}
+.versprechen .title{color:#fff;margin-top:14px}
+@container site (max-width:800px){.versprechen{grid-template-columns:minmax(0,1fr);gap:20px}}

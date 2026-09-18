@@ -150,3 +150,17 @@ export function zielCards(ziele) {
 export function zieleTiles(ziele) {
   return ziele.map((z, i) => `<a class="zt" href="${url('/ziele/')}#ziel-${i + 1}"><span class="zk-tile">${zielIcon(i)}</span><span class="zk-num">${String(i + 1).padStart(2, '0')}</span><span>${esc(z.title)}</span></a>`).join('');
 }
+
+// Wahlprogramm-Seite: jeder Punkt als breiter Block – Foto (Wix-Medien) und Text im Wechsel, große Nummer, Sprungleiste oben
+export const zielImg = (z, w = 1200, h = 800) => z.img ? `https://static.wixstatic.com/media/${z.img.id}/v1/fill/w_${w},h_${h},al_${z.img.al || 'c'},q_82,enc_auto/${z.img.id}` : null;
+export function zielJump(ziele) {
+  return `<nav class="zj" aria-label="Zu Punkt springen">${ziele.map((z, i) => `<a href="#ziel-${i + 1}"><b>${String(i + 1).padStart(2, '0')}</b><span>${esc(z.title)}</span></a>`).join('')}</nav>`;
+}
+export function zielBlocks(ziele) {
+  return ziele.map((z, i) => {
+    const n = String(i + 1).padStart(2, '0');
+    const src = zielImg(z, 1200, 800), src2 = zielImg(z, 720, 480);
+    const pic = src ? `<div class="zb-pic"><img src="${src2}" srcset="${src2} 720w, ${src} 1200w" sizes="(max-width: 800px) 100vw, 50vw" alt="${esc(z.img.alt || '')}" loading="lazy" decoding="async"><b class="zb-num" aria-hidden="true">${n}</b></div>` : `<div class="zb-pic zb-pic-leer"><b class="zb-num" aria-hidden="true">${n}</b></div>`;
+    return `<article class="zb${i % 2 ? ' zb-rev' : ''}" id="ziel-${i + 1}">${pic}<div class="zb-text"><span class="zb-kicker">Punkt ${i + 1} von ${ziele.length}</span><h2 class="title">${esc(z.title)}</h2><p class="zb-intro">${esc(z.intro)}</p><ul class="zb-list">${z.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></article>`;
+  }).join('');
+}

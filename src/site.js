@@ -155,7 +155,7 @@ $$('form.mock').forEach(f => f.addEventListener('submit', e => {
 
 // ===== Bewegung =====
 const site = $('#site'), header = $('.header') || $('.app-header'), progress = $('#progress'), totop = $('#totop'), heroPh = $('.hero .ph');
-const RV_SEL = '.section-head,.page-head>*,.card,.event,.ev-mini,.person,.tm,.box,.ziel,.zk,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll,.zinke>*';
+const RV_SEL = '.zb,.section-head,.page-head>*,.card,.event,.ev-mini,.person,.tm,.box,.ziel,.zk,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll,.zinke>*';
 const io = new IntersectionObserver(entries => {
   const vis = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
   vis.forEach((e, i) => { const el = e.target; io.unobserve(el); setTimeout(() => { el.classList.add('in'); setTimeout(() => el.classList.add('done'), 800); }, REDUCED ? 0 : Math.min(i, 10) * 50); });
