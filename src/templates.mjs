@@ -211,15 +211,19 @@ export function startPage(d) {
   </div>
   <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}"><div class="ticker-track" id="ticker">${band}</div></div>
 
-  ${d.stichwahl ? `<div class="wrap section zinke">
-    <div class="zinke-photo"><img src="${url('/assets/images/sebastian-zinke.jpg')}" alt="Sebastian Zinke" loading="lazy" decoding="async"></div>
+  ${d.stichwahl ? `<div class="band-schwarz zinke-band"><div class="wrap section zinke">
+    <a class="zinke-banner" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener"><img src="${url('/assets/images/zinke-banner.jpg')}" alt="Keine halben Sachen. Ein Landkreis, ein Landrat – Zinke, Heidekreis" width="1536" height="768" loading="lazy" decoding="async"></a>
     <div class="zinke-text">
-      <span class="tag">Stichwahl am ${esc(d.stichwahl.datumKurz)}</span>
-      <h2 class="title">Sebastian Zinke<br>zum Landrat wählen</h2>
-      <p>${esc(d.stichwahl.kurz)}</p>
-      <div class="hero-actions"><a class="btn btn-rot" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener">Mehr über Sebastian Zinke</a></div>
+      <div>
+        <span class="tag">Stichwahl am ${esc(d.stichwahl.datumKurz)}</span>
+        <h2 class="title">Sebastian Zinke<br>zum Landrat wählen</h2>
+      </div>
+      <div>
+        <p>${esc(d.stichwahl.kurz)}</p>
+        <div class="hero-actions"><a class="btn btn-rot" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener">Mehr über Sebastian Zinke</a></div>
+      </div>
     </div>
-  </div>` : ''}
+  </div></div>` : ''}
 
   <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>

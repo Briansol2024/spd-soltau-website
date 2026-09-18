@@ -949,14 +949,15 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 @container site (max-width:600px){.hero-box{padding:16px 16px}.hero-box p{font-size:16px}.hero-box .btn{width:100%;justify-content:center}}
 .ticker-slow .ticker-track{animation-duration:110s}
 .ticker-claim .ticker-track{animation-duration:90s}
-/* Stichwahl: Foto + Aufruf */
-.zinke{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:40px;align-items:center}
-.zinke-photo{aspect-ratio:4/5;overflow:hidden;background:var(--grau);position:relative}
-.zinke-photo img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
-.zinke-photo::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:10px;background:var(--rot)}
-.zinke-text{display:grid;gap:18px;justify-items:start}
-.zinke-text p{font-size:18px;max-width:56ch}
-@container site (max-width:800px){.zinke{grid-template-columns:minmax(0,1fr);gap:22px}.zinke-photo{aspect-ratio:16/10;max-height:380px}.zinke-photo img{object-position:top}}
+/* Stichwahl: Kampagnenbanner (mit Erlaubnis) + Aufruf, auf Schwarz */
+.zinke-band{color:#fff}
+.zinke{display:grid;gap:36px}
+.zinke-banner{display:block;background:#000}
+.zinke-banner img{width:100%;height:auto;display:block}
+.zinke-text{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:32px 48px;align-items:start}
+.zinke-text .title{color:#fff;margin-top:14px}
+.zinke-text p{font-size:18px;max-width:56ch;color:#D8D2D0;margin-bottom:22px}
+@container site (max-width:800px){.zinke{gap:24px}.zinke-text{grid-template-columns:minmax(0,1fr);gap:16px}.zinke-text p{font-size:16.5px}}
 /* Termine minimalistisch */
 .events-mini{display:grid}
 .ev-mini{display:grid;grid-template-columns:76px minmax(0,1fr);gap:20px;padding:16px 0;border-top:1px solid var(--linie);align-items:center}
