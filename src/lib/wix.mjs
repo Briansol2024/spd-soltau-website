@@ -108,6 +108,12 @@ function mapCategory(labels) {
   return labels[0] || 'Ortsverein';
 }
 
+// Blog-Kategorien (für das Beitragsformular im Mitgliederbereich)
+export async function fetchCategories(client) {
+  const res = await client.categories.queryCategories().find().catch(() => ({ items: [] }));
+  return (res.items || []).map(c => ({ id: c._id, label: c.label }));
+}
+
 export async function fetchNews(client) {
   const catRes = await client.categories.queryCategories().find().catch(() => ({ items: [] }));
   const cats = new Map((catRes.items || []).map(c => [c._id, c.label]));
@@ -142,9 +148,11 @@ export async function fetchNews(client) {
   return out;
 }
 
-function eventType(title = '') {
-  if (/fraktion/i.test(title)) return 'Fraktion';
-  if (/vorstand|mitglieder|klausur/i.test(title)) return 'Mitglieder';
+// Terminart aus Titel und Kurzbeschreibung (App-Termine tragen dort z. B. „Nur für Mitglieder“)
+function eventType(title = '', info = '') {
+  const t = `${title} ${info}`;
+  if (/fraktion/i.test(t)) return 'Fraktion';
+  if (/vorstand|mitglieder|klausur/i.test(t)) return 'Mitglieder';
   return 'Öffentlich';
 }
 
@@ -167,7 +175,7 @@ export async function fetchEvents(client) {
         title: e.title,
         ort: e.location?.name || e.location?.address?.formatted || '',
         zeit: tbd ? 'Uhrzeit folgt' : (start ? timeBerlin(start) : ''),
-        typ: eventType(e.title),
+        typ: eventType(e.title, e.shortDescription || ''),
         info: e.shortDescription || '',
         url: null,
       };

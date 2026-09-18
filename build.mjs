@@ -106,6 +106,7 @@ async function loadData() {
     await tryLoad('vorstand', () => wix.fetchVorstand(client, env.WIX_VORSTAND_COLLECTION || 'Team'));
     await tryLoad('fraktion', () => wix.fetchPeople(client, env.WIX_FRAKTION_COLLECTION || 'Team1'));
     await tryLoad('insta', () => wix.fetchInstagram(client));
+    try { d.blogCats = await wix.fetchCategories(client); } catch (e) { d.blogCats = []; }
   }
   // Ergänzungen aus dem Fallback (Rolle, Text, Themen), falls das CMS diese Felder (noch) nicht hat
   const fb = new Map(fallback.PEOPLE.map(p => [p.name.toLowerCase().replace(/ç/g, 'c'), p]));
@@ -267,7 +268,7 @@ async function main() {
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
-    app: { clientId: env.WIX_CLIENT_ID || '', vapid: env.VAPID_PUBLIC_KEY || '', ics: { public: `${BASE}/assets/termine.ics`, intern: `${BASE}/assets/termine-intern-${icsToken}.ics` } },
+    app: { clientId: env.WIX_CLIENT_ID || '', vapid: env.VAPID_PUBLIC_KEY || '', blogCats: d.blogCats || [], ics: { public: `${BASE}/assets/termine.ics`, intern: `${BASE}/assets/termine-intern-${icsToken}.ics` } },
   };
   // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
   await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich'), 'SPD Soltau – Termine'), 'utf8');

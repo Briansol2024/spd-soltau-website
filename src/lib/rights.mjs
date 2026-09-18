@@ -1,21 +1,27 @@
-// Rechte und Benachrichtigungs-Zuordnung der App – läuft im Browser (Mitgliederbereich) und im Push-Dienst.
+// Rechte, Vorstand und Benachrichtigungs-Zuordnung der App – läuft im Browser (Mitgliederbereich) und im Push-Dienst.
 //
-// Beide Einstellungen liegen als „Schnappschüsse“ in der Wix-Sammlung `Benachrichtigungen`: Jedes Speichern legt
+// Alle Einstellungen liegen als „Schnappschüsse“ in der Wix-Sammlung `Benachrichtigungen`: Jedes Speichern legt
 // ein neues Element an { thema, empfaenger: [Mitglieds-IDs], namen, von }. Es gilt jeweils der neueste Schnappschuss
-// eines Themas – aber nur, wenn ihn jemand gespeichert hat, der das darf. Themen der Rechte heißen `recht:<schlüssel>`.
+// eines Themas – aber nur, wenn ihn jemand gespeichert hat, der das darf. Themen der Rechte heißen `recht:<schlüssel>`,
+// der Vorstand selbst heißt `vorstand`.
 //
-// Grundregel: Solange für ein Recht/Thema nichts gespeichert ist, gilt der gesamte Vorstand (Wix-Rolle „Vorstandsmitglied“).
-// Das Recht „verwaltung“ (Rechte und Benachrichtigungen festlegen) kann nur der Vorstand selbst vergeben – so kann sich
-// niemand über Umwege selbst Rechte geben.
+// Grundregeln:
+//   • Ausgangspunkt ist der Vorstand laut Wix-Rolle „Vorstandsmitglied“ (AppMitglieder.vorstand, vom Push-Dienst gepflegt).
+//   • Wer „verwaltung“ hat (Standard: der Vorstand), darf den Vorstand, alle Rechte und die Benachrichtigungen festlegen.
+//   • Solange für ein Recht/Thema nichts gespeichert ist, gilt der gesamte Vorstand.
+//   • „verwaltung“ und „vorstand“ zählen nur, wenn sie ein Vorstandsmitglied (laut Wix-Rolle) oder ein bisheriger
+//     Verwalter gespeichert hat – so kann sich niemand über Umwege selbst Rechte geben.
 
 export const RIGHTS = [
+  ['beitraege', 'Beiträge für „Aktuelles“ schreiben und veröffentlichen'],
+  ['termine', 'Termine anlegen und absagen'],
   ['umfragen', 'Umfragen anlegen und schließen'],
   ['helfer', 'Helferlisten anlegen'],
   ['dokumente', 'Dokumente einstellen'],
   ['rat', 'Ratsvorbereitung pflegen'],
   ['nachrichten', 'Nachricht an alle senden'],
   ['freigaben', 'Eingang bearbeiten (Registrierungen freischalten, Buchungen und Anfragen)'],
-  ['verwaltung', 'Rechte und Benachrichtigungen festlegen'],
+  ['verwaltung', 'Vorstand, Rechte und Benachrichtigungen festlegen'],
 ];
 
 export const BOARD_TOPICS = [
@@ -29,33 +35,37 @@ export const BOARD_TOPICS = [
 export const RIGHT_KEYS = RIGHTS.map(r => r[0]);
 export const TOPIC_KEYS = BOARD_TOPICS.map(t => t[0]);
 
-// snaps: alle Schnappschüsse, neueste zuerst (_createdDate absteigend); people: AppMitglieder (memberId, vorstand)
-// Ergebnis: { board:Set, rights:{key:Set}, routing:{topic:string[]}, snap:{thema:item} }
+// snaps: alle Schnappschüsse, neueste zuerst (_createdDate absteigend); people: AppMitglieder (memberId, vorstand = Wix-Rolle)
+// Ergebnis: { board:Set (wirksamer Vorstand), wixBoard:Set, rights:{key:Set}, routing:{topic:string[]}, snap:{thema:item} }
 export function evaluateSettings(snaps, people) {
-  const board = new Set(people.filter(p => p && p.vorstand && p.memberId).map(p => p.memberId));
+  const wixBoard = new Set(people.filter(p => p && p.vorstand && p.memberId).map(p => p.memberId));
   const known = new Set(people.map(p => p.memberId));
+  const clean = ids => (Array.isArray(ids) ? ids : []).filter(id => known.size === 0 || known.has(id));
   const latestBy = allowed => {
     const m = new Map();
     for (const s of snaps) if (s && s.thema && !m.has(s.thema) && allowed(s._owner)) m.set(s.thema, s);
     return m;
   };
-  const clean = ids => (Array.isArray(ids) ? ids : []).filter(id => known.size === 0 || known.has(id));
-  // Stufe 1: „verwaltung“ darf nur der Vorstand vergeben
-  const l1 = latestBy(o => board.has(o));
-  const verwaltung = new Set(l1.has('recht:verwaltung') ? clean(l1.get('recht:verwaltung').empfaenger) : [...board]);
-  // Stufe 2: alles andere darf, wer „verwaltung“ hat (oder Vorstand ist)
-  const trusted = new Set([...board, ...verwaltung]);
-  const l2 = latestBy(o => trusted.has(o));
+  // Stufe 1: Verwalter und Vorstand dürfen nur der Wix-Vorstand oder bisherige Verwalter festlegen
+  const l1 = latestBy(o => wixBoard.has(o));
+  let verwaltung = new Set(l1.has('recht:verwaltung') ? clean(l1.get('recht:verwaltung').empfaenger) : [...wixBoard]);
+  const trusted1 = new Set([...wixBoard, ...verwaltung]);
+  const l2 = latestBy(o => trusted1.has(o));
+  if (l2.has('recht:verwaltung')) verwaltung = new Set(clean(l2.get('recht:verwaltung').empfaenger));
+  const board = new Set(l2.has('vorstand') ? clean(l2.get('vorstand').empfaenger) : [...wixBoard]);
+  // Stufe 2: alles andere darf, wer „verwaltung“ hat oder zum (wirksamen) Vorstand gehört
+  const trusted = new Set([...board, ...verwaltung, ...wixBoard]);
+  const l3 = latestBy(o => trusted.has(o));
   const rights = {};
   for (const k of RIGHT_KEYS) {
     if (k === 'verwaltung') { rights[k] = verwaltung; continue; }
-    const s = l2.get('recht:' + k);
+    const s = l3.get('recht:' + k);
     rights[k] = new Set(s ? clean(s.empfaenger) : [...board]);
   }
   const routing = {};
-  for (const k of TOPIC_KEYS) { const s = l2.get(k); routing[k] = s ? clean(s.empfaenger) : [...board]; }
-  const snap = {}; for (const [k, v] of l2) snap[k] = v;
-  return { board, rights, routing, snap };
+  for (const k of TOPIC_KEYS) { const s = l3.get(k); routing[k] = s ? clean(s.empfaenger) : [...board]; }
+  const snap = {}; for (const [k, v] of l3) snap[k] = v;
+  return { board, wixBoard, rights, routing, snap, trusted };
 }
 
 export const can = (settings, memberId, right) => !!(settings && settings.rights[right] && settings.rights[right].has(memberId));

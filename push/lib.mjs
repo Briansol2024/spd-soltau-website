@@ -2,11 +2,12 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createClient, ApiKeyStrategy } from '@wix/sdk';
+import { createClient, ApiKeyStrategy, OAuthStrategy } from '@wix/sdk';
 import { items, collections } from '@wix/data';
 import { members, authorization, memberRoleDefinition } from '@wix/members';
-import { posts } from '@wix/blog';
+import { posts, draftPosts, categories } from '@wix/blog';
 import { wixEventsV2 } from '@wix/events';
+import { files } from '@wix/media';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -28,9 +29,20 @@ export function adminClient() {
     throw new Error('WIX_API_KEY und WIX_SITE_ID fehlen in .env – siehe push/README.md (Admin-API-Schlüssel im Wix-Dashboard erstellen).');
   }
   return createClient({
-    modules: { items, collections, members, authorization, memberRoleDefinition, posts, wixEventsV2 },
+    modules: { items, collections, members, authorization, memberRoleDefinition, posts, draftPosts, categories, wixEventsV2, files },
     auth: ApiKeyStrategy({ siteId: env.WIX_SITE_ID, apiKey: env.WIX_API_KEY }),
   });
+}
+
+// Client, der im Namen eines Mitglieds schreibt (Server-Anmeldung mit Admin-Schlüssel) – für den persönlichen Eingang
+const memberClients = new Map();
+export async function memberClient(memberId) {
+  if (memberClients.has(memberId)) return memberClients.get(memberId);
+  const base = createClient({ modules: { items }, auth: OAuthStrategy({ clientId: env.WIX_CLIENT_ID }) });
+  const tokens = await base.auth.getMemberTokensForExternalLogin(memberId, env.WIX_API_KEY);
+  const c = createClient({ modules: { items }, auth: OAuthStrategy({ clientId: env.WIX_CLIENT_ID, tokens }) });
+  memberClients.set(memberId, c);
+  return c;
 }
 
 // Alle Elemente einer Sammlung (seitenweise), optional mit Filter-Funktion auf die Query

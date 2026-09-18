@@ -18,15 +18,15 @@ Der Push-Dienst ist ein kleines Node-Skript (`send.mjs`), das regelmäßig läuf
 | Mitglieder-Infos | angemeldete Mitglieder mit Thema „Mitglieder-Infos“ | neue Umfrage, Helferliste, Dokument, Ratsvorbereitung |
 | Nachricht | alle Mitglieder oder alle Abonnent*innen | Vorstand schreibt in der App unter „Nachricht an alle“ |
 
+Aktionen aus der App, die der Dienst bei Wix ausführt (nur mit dem jeweiligen Recht): Registrierung freischalten/ablehnen, Buchung annehmen/ablehnen, Anfrage erledigen, Nachricht senden, **Termin anlegen/absagen (Wix Events)**, **Beitrag anlegen/veröffentlichen (Wix Blog, Titelbild in die Medienverwaltung)**, Vorstand ↔ Wix-Rolle abgleichen.
+
 Jede Nachricht wird in **PushLog** vermerkt – nichts geht doppelt raus. Einstellungen aus „Wer wird benachrichtigt?“ und „Wer darf was?“ zählen nur, wenn sie jemand mit dem Recht „Verwaltung“ gespeichert hat (Standard: Vorstand, Wix-Rolle „Vorstandsmitglied“). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht. Der Dienst prüft außerdem die Rechte: Umfragen, Helferlisten, Dokumente und Ratsvorbereitungen von Mitgliedern ohne das jeweilige Recht werden entfernt, Aktionen ohne Recht abgelehnt.
 
 ## Einrichtung (einmalig)
 
-1. **Admin-API-Schlüssel** bei Wix erstellen: <https://manage.wix.com/account/api-keys> → „API-Schlüssel erstellen“ → Name „SPD Soltau Push-Dienst“ → Berechtigungen: *Wix CMS (alle)*, *Mitglieder & Kontakte (alle)*, *Blog (lesen)*, *Wix Events (lesen)* → Schlüssel kopieren.
-2. In `.env` eintragen: `WIX_API_KEY=…` (die Zeile ist schon vorbereitet). Der Schlüssel bleibt auf diesem PC und kommt nie in den Build oder ins Git.
-3. `node push/setup.mjs` – prüft den Zugang und legt die Felder der App-Sammlungen im CMS an (Spalten im Dashboard).
-4. `node push/send.mjs --test` – Testnachricht an alle Geräte, die Benachrichtigungen aktiviert haben.
-5. `push\Push-Dienst einrichten.cmd` doppelklicken – legt die Aufgabe „SPD Soltau Push-Dienst“ an (alle 5 Minuten, ohne Fenster). Protokolle liegen in `push/log/`.
+1. **Admin-API-Schlüssel** bei Wix erstellen: <https://manage.wix.com/account/api-keys> → „API-Schlüssel generieren“ → Name „SPD Soltau Push-Dienst“ → Sites: nur SPD Soltau → „Alle Website-Berechtigungen“ → „Schlüssel generieren“ → kopieren.
+2. `push\Push-Dienst einrichten.cmd` doppelklicken: fragt den Schlüssel ab (bleibt in `.env` auf diesem PC), prüft den Zugang, legt die CMS-Felder an, macht den ersten Lauf (Mitglieder abgleichen, Startvorstand aus `VORSTAND_EMAILS` setzen), baut die Website neu und legt die Aufgabe „SPD Soltau Push-Dienst“ an (alle 5 Minuten, ohne Fenster). Protokolle: `push/log/`.
+3. Einzeln bei Bedarf: `node push/setup.mjs`, `node push/send.mjs`, `node push/send.mjs --test` (Testnachricht), `node push/send.mjs --dry` (nur anzeigen).
 
 Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml` den Dienst (Secrets `WIX_API_KEY`, `VAPID_PRIVATE_KEY`, Vars `WIX_SITE_ID`, `VAPID_PUBLIC_KEY`, `PUSH_SITE_URL`) – dann muss kein PC mehr laufen.
 
@@ -39,6 +39,8 @@ Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml
 | `WIX_SITE_ID` | ID der Website (steht in der Dashboard-Adresse) |
 | `WIX_API_KEY` | Admin-API-Schlüssel (siehe oben) |
 | `PUSH_SITE_URL` | Adresse, auf die Benachrichtigungen verlinken (Vorschau: Tailscale-Adresse, später `https://www.spd-soltau.de`) |
+| `VORSTAND_EMAILS` | Startvorstand (E-Mail-Adressen, kommagetrennt): wird beim ersten Lauf freigeschaltet und als Vorstand gesetzt, solange bei Wix niemand die Rolle hat |
+| `WIX_CLIENT_ID` | wird auch vom Dienst gebraucht (persönlicher Eingang wird im Namen des Mitglieds geschrieben) |
 | `VORSTAND_ROLLE` | optional, Muster für die Vorstandsrolle (Standard: `vorstand`) |
 
 ## CMS-Sammlungen der App
@@ -56,3 +58,4 @@ Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml
 | `UmfragenOeffentlich` | Umfrage der Woche (Startseite) | jeder liest, Mitglieder legen an |
 | `Stimmen` | Abstimmungen (intern und öffentlich) | jeder darf abstimmen, Mitglieder lesen die Auswertung |
 | `Anfragen` | Kontakt- und Mitgliedsanfragen der Website | jeder darf anlegen, lesen nur Admin/Push-Dienst |
+| `Eingang` | persönliche Kopie jeder Anfrage je zuständiger Person (vom Dienst im Namen des Mitglieds angelegt) | Mitglieder anlegen, eigene lesen/ändern |

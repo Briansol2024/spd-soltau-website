@@ -75,7 +75,10 @@ export function makeDemoClient(SPD) {
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
       { _id: uid(), _owner: ids[7], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'suche', ab: 'Wolterdingen', plaetze: 1, zeit: '', memberId: ids[7], name: people[7].name, hinweis: '' },
     ],
-    Aktionen: [], PushSubscriptions: [], Buchungen: [], Anfragen: [],
+    Aktionen: [
+      { _id: uid(), _owner: ME, _createdDate: daysAgo(1), typ: 'beitrag_erstellen', title: 'Beitrag: Radweg nach Harber', payload: JSON.stringify({ titel: 'Radweg nach Harber: Sanierung kommt' }), status: 'erledigt', ergebnis: 'veröffentlicht', von: 'Brian Weber' },
+    ],
+    Eingang: [], PushSubscriptions: [], Buchungen: [], Anfragen: [],
   };
 
   const stripSys = it => it;
@@ -103,6 +106,7 @@ export function makeDemoClient(SPD) {
     async remove(col, id) { const list = data[col] || []; const i = list.findIndex(x => x._id === id); if (i >= 0) list.splice(i, 1); return {}; },
     async get(col, id) { return (data[col] || []).find(x => x._id === id); },
   };
+  SPD.app = SPD.app || {}; if (!(SPD.app.blogCats || []).length) SPD.app.blogCats = [{ id: 'c1', label: 'Fraktion' }, { id: 'c2', label: 'Ortsverein' }, { id: 'c3', label: 'Pressemitteilung' }];
   const members = { async getCurrentMember() { return { member: { _id: ME, loginEmail: 'weber.soltau@gmail.com', status: 'APPROVED', contact: { firstName: 'Brian', lastName: 'Weber' }, profile: { nickname: 'Brian Weber' } } }; } };
   const auth = { loggedIn: () => true, getTokens: () => ({}), setTokens() {}, async logout() { return { logoutUrl: null }; } };
   // Beispiel-Eingang (Registrierung, Buchung, Anfrage) – wie er nach Push-Nachrichten aussähe

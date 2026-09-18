@@ -20,6 +20,7 @@ if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
   log('VAPID-Schlüssel erzeugt und in .env eingetragen.');
 } else log('VAPID-Schlüssel vorhanden.');
 add('WIX_SITE_ID', '2678f727-8329-4f07-95bd-755df04f685d');
+add('VORSTAND_EMAILS', 'weber.soltau@gmail.com');
 add('ICS_TOKEN', [...Array(20)].map(() => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join(''));
 if (!env.WIX_API_KEY) add('WIX_API_KEY', '');
 writeFileSync(envFile, envText, 'utf8');
@@ -29,7 +30,7 @@ if (!env.WIX_API_KEY) {
   console.log(`
 Noch offen: der Admin-API-Schlüssel von Wix.
   1. https://manage.wix.com/account/api-keys → „API-Schlüssel erstellen“
-  2. Name z. B. „SPD Soltau Push-Dienst“, Berechtigungen: Wix CMS (Alle), Mitglieder & Kontakte (Alle), Blog (Lesen), Events (Lesen)
+  2. Name „SPD Soltau Push-Dienst“, Sites: nur SPD Soltau, Berechtigungen: „Alle Website-Berechtigungen“
   3. Schlüssel kopieren und in .env eintragen:  WIX_API_KEY=…
   4. danach noch einmal:  node push/setup.mjs
 `);
@@ -60,6 +61,7 @@ const SCHEMA = {
   Ratsvorbereitung: [T('gremium', 'Gremium'), T('sitzung', 'Sitzung am'), T('zeit', 'Uhrzeit'), T('titel', 'Titel'), T('link', 'Link'), T('hinweis', 'Hinweis'), T('von', 'Von')],
   Profile: [T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('ort', 'Ortsteil'), T('telefon', 'Telefon'), T('telefonSichtbar', 'Telefon sichtbar', 'BOOLEAN'), T('email', 'E-Mail'), T('emailSichtbar', 'E-Mail sichtbar', 'BOOLEAN'), T('geburtstag', 'Geburtstag'), T('geburtstagSichtbar', 'Geburtstag sichtbar', 'BOOLEAN'), T('eintritt', 'Eintrittsjahr', 'NUMBER'), T('fahreAb', 'Fährt ab')],
   Fahrgemeinschaften: [T('eventTitel', 'Termin'), T('eventDatum', 'Datum'), T('typ', 'Biete/Suche'), T('ab', 'Ab'), T('plaetze', 'Plätze', 'NUMBER'), T('zeit', 'Abfahrt'), T('name', 'Name'), T('memberId', 'Mitglieds-ID')],
+  Eingang: [T('typ', 'Art'), T('key', 'Schlüssel'), T('memberId', 'Für Mitglied'), T('body', 'Text'), T('status', 'Status'), T('payload', 'Daten')],
   Anfragen: [T('typ', 'Art'), T('thema', 'Thema'), T('name', 'Name'), T('email', 'E-Mail'), T('ort', 'Wohnort/Straße'), T('interesse', 'Interesse'), T('nachricht', 'Nachricht'), T('status', 'Status'), T('bearbeitetVon', 'Bearbeitet von'), T('bearbeitetAm', 'Bearbeitet am')],
 };
 for (const [id, fields] of Object.entries(SCHEMA)) {

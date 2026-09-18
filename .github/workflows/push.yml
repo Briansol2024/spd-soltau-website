@@ -2,7 +2,7 @@
 # Läuft alle 5 Minuten (GitHub verzögert Cron-Läufe manchmal um einige Minuten) und manuell.
 #
 # Secrets:   WIX_API_KEY, VAPID_PRIVATE_KEY
-# Variables: WIX_SITE_ID, VAPID_PUBLIC_KEY, VAPID_SUBJECT, PUSH_SITE_URL
+# Variables: WIX_SITE_ID, WIX_CLIENT_ID, VAPID_PUBLIC_KEY, VAPID_SUBJECT, PUSH_SITE_URL, VORSTAND_EMAILS
 name: Push-Dienst
 
 on:
@@ -35,3 +35,5 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
           PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}
+          WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
+          VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}

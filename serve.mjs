@@ -21,7 +21,7 @@ http.createServer(async (req, res) => {
   } catch { file = path.join(root, '404.html'); }
   try {
     const data = await readFile(file);
-    res.writeHead(file.endsWith('404.html') ? 404 : 200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
+    res.writeHead(file.endsWith('404.html') ? 404 : 200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     res.end(data);
   } catch { res.writeHead(404); res.end('Nicht gefunden'); }
 }).listen(port, '127.0.0.1', () => console.log(`Läuft: http://localhost:${port}/  (Ordner: ${path.basename(root)})`));

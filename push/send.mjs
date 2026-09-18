@@ -9,12 +9,15 @@
 //   node push/send.mjs --test     Testnachricht an alle aktiven Geräte
 //   node push/send.mjs --dry      nichts senden, nur zeigen, was gesendet würde
 import webpush from 'web-push';
-import { adminClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
+import { adminClient, memberClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
 import { evaluateSettings } from '../src/lib/rights.mjs';
 
 const DRY = process.argv.includes('--dry');
 const TEST = process.argv.includes('--test');
 const VORSTAND_RE = new RegExp(env.VORSTAND_ROLLE || 'vorstand', 'i');
+// Startvorstand: Diese E-Mail-Adressen werden beim ersten Lauf freigeschaltet und als Vorstand gesetzt, solange bei Wix
+// noch niemand die Rolle „Vorstandsmitglied“ hat – danach regelt die App unter „Wer darf was?“ alles Weitere.
+const BOOT = (env.VORSTAND_EMAILS || '').toLowerCase().split(/[,; ]+/).filter(Boolean);
 const SITE = (env.PUSH_SITE_URL || env.SITE_URL || '').replace(/\/$/, '');
 const NOW = Date.now();
 const H = 3600 * 1000;
@@ -92,11 +95,17 @@ async function syncMembers(subs) {
   const pushMembers = new Set(subs.map(s => s.memberId).filter(Boolean));
   const existing = await queryAll(client, 'AppMitglieder');
   const byId = new Map(existing.map(e => [e.memberId, e]));
-  const board = new Set(); const approved = []; const pending = [];
+  const board = new Set(); const approved = []; const pending = []; const emails = new Map();
   for (const m of list) {
     const c = m.contact || {}, p = m.profile || {};
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || p.nickname || m.loginEmail || m._id;
     const entry = { memberId: m._id, name, email: m.loginEmail || '', status: m.status, registriert: m._createdDate };
+    emails.set(m._id, (m.loginEmail || '').toLowerCase());
+    // Startvorstand wartet nicht auf Freigabe
+    if (m.status === 'PENDING' && BOOT.includes((m.loginEmail || '').toLowerCase())) {
+      log(`  Startvorstand ${name} wird freigeschaltet`);
+      if (!DRY) { try { await client.members.approveMember(m._id); m.status = 'APPROVED'; } catch (e) { log('  approveMember', e.message); } }
+    }
     if (m.status === 'PENDING') { pending.push(entry); continue; }
     if (m.status !== 'APPROVED') continue;
     let rollen = [];
@@ -105,6 +114,17 @@ async function syncMembers(subs) {
     const vorstand = rollen.some(r => VORSTAND_RE.test(r));
     if (vorstand) board.add(m._id);
     approved.push({ memberId: m._id, name, rollen, vorstand, pushAktiv: pushMembers.has(m._id), status: 'aktiv', title: name });
+  }
+  // Noch niemand mit Vorstandsrolle bei Wix? Dann übernimmt der Startvorstand aus .env (VORSTAND_EMAILS)
+  if (board.size === 0 && BOOT.length) {
+    let roleKey = null;
+    try { const { roles } = await client.memberRoleDefinition.listMemberRoleDefinitions(); roleKey = (roles || []).find(r => VORSTAND_RE.test(r.title || r.roleKey))?.roleKey || null; } catch (e) { /* ohne Rolle */ }
+    for (const a of approved) {
+      if (!BOOT.includes(emails.get(a.memberId))) continue;
+      a.vorstand = true; a.rollen = [...new Set([...a.rollen, 'Vorstandsmitglied'])]; board.add(a.memberId);
+      log(`  Startvorstand: ${a.name}`);
+      if (!DRY && roleKey) await client.authorization.assignRole(a.memberId, roleKey).catch(e => log('  assignRole', e.message));
+    }
   }
   // Sammlung AppMitglieder auf den Stand bringen (nur Name, Rollen, Push-Status – keine Kontaktdaten)
   if (!DRY) {
@@ -118,8 +138,28 @@ async function syncMembers(subs) {
     const keep = new Set(approved.map(a => a.memberId));
     for (const e of existing) if (!keep.has(e.memberId)) await client.items.remove('AppMitglieder', e._id).catch(() => {});
   }
-  log(`Mitglieder: ${approved.length} freigeschaltet, ${pending.length} wartend, Vorstand: ${board.size}`);
+  log(`Mitglieder: ${approved.length} freigeschaltet, ${pending.length} wartend, Vorstand (Wix-Rolle): ${board.size}`);
   return { approved, pending, board };
+}
+
+// Der in der App festgelegte Vorstand wird als Wix-Rolle „Vorstandsmitglied“ gespiegelt (Wix bleibt Quelle der Wahrheit)
+async function syncBoardRole(st, approved) {
+  const wanted = st.board, current = st.wixBoard;
+  const diff = [...wanted].filter(id => !current.has(id)).length + [...current].filter(id => !wanted.has(id)).length;
+  if (!diff) return;
+  let roleKey = null;
+  try { const { roles } = await client.memberRoleDefinition.listMemberRoleDefinitions(); roleKey = (roles || []).find(r => VORSTAND_RE.test(r.title || r.roleKey))?.roleKey || null; }
+  catch (e) { log('Rollen lesen:', e.message); }
+  if (!roleKey) { log('Rolle „Vorstandsmitglied“ bei Wix nicht gefunden – Vorstand bleibt wie in der App festgelegt'); }
+  for (const id of wanted) if (!current.has(id)) { log(`  Vorstand: ${approved.find(a => a.memberId === id)?.name || id} → Wix-Rolle setzen`); if (!DRY && roleKey) await client.authorization.assignRole(id, roleKey).catch(e => log('  assignRole', e.message)); }
+  for (const id of current) if (!wanted.has(id)) { log(`  Vorstand: ${approved.find(a => a.memberId === id)?.name || id} → Wix-Rolle entfernen`); if (!DRY && roleKey) await client.authorization.unassignRole(id, roleKey).catch(e => log('  unassignRole', e.message)); }
+  // AppMitglieder sofort angleichen (nächster Lauf liest die Rolle ohnehin neu)
+  if (!DRY) for (const a of approved) {
+    const v = wanted.has(a.memberId);
+    if (v === !!a.vorstand) continue;
+    const cur = (await client.items.query('AppMitglieder').eq('memberId', a.memberId).find()).items[0];
+    if (cur) await client.items.update('AppMitglieder', { ...cur, vorstand: v }).catch(() => {});
+  }
 }
 
 // ---------- Rechte + „Wer wird benachrichtigt?“ (gemeinsame Logik mit dem Mitgliederbereich) ----------
@@ -157,7 +197,7 @@ async function moderate(st) {
 // ---------- Aktionen des Vorstands ----------
 async function processActions(st, subs, logKeys) {
   const open = await queryAll(client, 'Aktionen', q => q.eq('status', 'offen'));
-  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten' };
+  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten', termin_erstellen: 'termine', termin_absagen: 'termine', beitrag_erstellen: 'beitraege' };
   for (const a of open) {
     let payload = {}; try { payload = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ }
     const done = async (status, ergebnis) => { log(`  Aktion ${a.typ}: ${ergebnis}`); if (!DRY) await client.items.update('Aktionen', { ...a, status, ergebnis, erledigtAm: new Date().toISOString() }).catch(e => log('Aktion update', e.message)); };
@@ -167,15 +207,16 @@ async function processActions(st, subs, logKeys) {
       switch (a.typ) {
         case 'mitglied_freigeben':
           if (!payload.memberId) throw new Error('memberId fehlt');
-          await client.members.approveMember(payload.memberId); await done('erledigt', `Mitglied ${payload.name || payload.memberId} freigeschaltet`); break;
+          await client.members.approveMember(payload.memberId); await inboxDone('registrierung:' + payload.memberId, `freigeschaltet von ${a.von || ''}`); await done('erledigt', `Mitglied ${payload.name || payload.memberId} freigeschaltet`); break;
         case 'mitglied_ablehnen':
           if (!payload.memberId) throw new Error('memberId fehlt');
-          await client.members.blockMember(payload.memberId); await done('erledigt', `Registrierung ${payload.name || payload.memberId} abgelehnt (blockiert)`); break;
+          await client.members.blockMember(payload.memberId); await inboxDone('registrierung:' + payload.memberId, `abgelehnt von ${a.von || ''}`); await done('erledigt', `Registrierung ${payload.name || payload.memberId} abgelehnt (blockiert)`); break;
         case 'buchung_annehmen': case 'buchung_ablehnen': {
           if (!payload.buchungId) throw new Error('buchungId fehlt');
           const b = await client.items.get('Buchungen', payload.buchungId);
           const status = a.typ === 'buchung_annehmen' ? 'bestätigt' : 'abgelehnt';
           if (!DRY) await client.items.update('Buchungen', { ...b, status, bearbeitetVon: a.von || '', bearbeitetAm: new Date().toISOString() });
+          await inboxDone('buchung:' + b._id, `${status} von ${a.von || ''}`);
           await done('erledigt', `Buchung ${b.name || ''} ${b.datum || ''}: ${status} – Bitte die anfragende Person informieren (${b.email || ''} ${b.telefon || ''})`);
           break;
         }
@@ -183,7 +224,21 @@ async function processActions(st, subs, logKeys) {
           if (!payload.anfrageId) throw new Error('anfrageId fehlt');
           const an = await client.items.get('Anfragen', payload.anfrageId);
           if (!DRY) await client.items.update('Anfragen', { ...an, status: 'erledigt', bearbeitetVon: a.von || '', bearbeitetAm: new Date().toISOString() });
+          await inboxDone('anfrage:' + an._id, `erledigt von ${a.von || ''}`);
           await done('erledigt', `Anfrage von ${an.name || ''} als erledigt markiert`); break;
+        }
+        case 'termin_erstellen': {
+          const ev = await createWixEvent(payload);
+          await done('erledigt', `Termin „${payload.titel}“ bei Wix Events angelegt (${ev?._id || '?'})`); break;
+        }
+        case 'termin_absagen': {
+          if (!payload.eventId) throw new Error('eventId fehlt');
+          if (!DRY) await client.wixEventsV2.cancelEvent(payload.eventId);
+          await done('erledigt', `Termin „${payload.titel || payload.eventId}“ abgesagt`); break;
+        }
+        case 'beitrag_erstellen': {
+          const r = await createBlogPost(payload);
+          await done('erledigt', payload.veroeffentlichen ? `Beitrag „${payload.titel}“ veröffentlicht` : `Beitrag „${payload.titel}“ als Entwurf bei Wix abgelegt`); break;
         }
         case 'nachricht': {
           const to = payload.ziel === 'alle' ? subs : memberSubs(subs);
@@ -195,6 +250,80 @@ async function processActions(st, subs, logKeys) {
     } catch (e) { await done('fehler', e.message); }
   }
   if (open.length) log(`Aktionen: ${open.length} bearbeitet`);
+}
+
+// ---------- Persönlicher Eingang: eine Kopie je Empfänger, geschrieben im Namen des Mitglieds ----------
+// Vorteil: nur die betreffende Person kann ihren Eingang lesen (Sammlung „Eingang“: Ersteller sehen nur eigene Elemente).
+let inboxKeys = null;
+async function inbox(recipients, entry) {
+  if (inboxKeys === null) { try { inboxKeys = new Set((await queryAll(client, 'Eingang')).map(e => `${e.key}|${e.memberId}`)); } catch (e) { inboxKeys = new Set(); } }
+  for (const memberId of recipients) {
+    const k = `${entry.key}|${memberId}`; if (inboxKeys.has(k)) continue;
+    if (DRY) { log(`  Eingang → ${memberId}: ${entry.title}`); continue; }
+    try {
+      const mc = await memberClient(memberId);
+      await mc.items.insert('Eingang', { title: entry.title, key: entry.key, memberId, typ: entry.typ, body: entry.body, details: entry.details || {}, payload: JSON.stringify(entry.payload || {}), status: 'offen' });
+      inboxKeys.add(k);
+    } catch (e) { log(`  Eingang für ${memberId} nicht möglich: ${e.message} (API-Schlüssel braucht „Serveranmeldung für Mitglieder“)`); }
+  }
+}
+async function inboxDone(key, text) {
+  try { for (const e of (await queryAll(client, 'Eingang', q => q.eq('key', key)))) if (!DRY) await client.items.update('Eingang', { ...e, status: text }).catch(() => {}); } catch (e) { /* egal */ }
+}
+
+// ---------- Wix Events: Termin aus der App anlegen ----------
+async function createWixEvent(p) {
+  const zone = 'Europe/Berlin';
+  // Berliner Ortszeit → UTC-Zeitpunkt (Sommer-/Winterzeit über Intl)
+  const tzOffset = (tz, date) => { const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(date); const g = t => +parts.find(x => x.type === t).value; return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - date.getTime(); };
+  const toUtc = (dateStr, timeStr) => { const [y, m, d] = dateStr.split('-').map(Number); const [hh, mm] = (timeStr || '19:00').split(':').map(Number); const guess = new Date(Date.UTC(y, m - 1, d, hh, mm)); return new Date(guess.getTime() - tzOffset(zone, guess)); };
+  const start = toUtc(p.datum, p.von || '19:00');
+  let end = toUtc(p.datum, p.bis || p.von || '21:00'); if (end <= start) end = new Date(start.getTime() + 2 * 3600 * 1000);
+  const typHinweis = p.typ && p.typ !== 'Öffentlich' ? `Nur für ${p.typ === 'Mitglieder' ? 'Mitglieder' : p.typ}.` : '';
+  const event = {
+    title: p.titel,
+    dateAndTimeSettings: { startDate: start, endDate: end, timeZoneId: zone },
+    location: { type: 'VENUE', name: p.ort || 'Roter Bahnhof', locationTbd: false },
+    registration: { initialType: 'RSVP' },
+    shortDescription: [typHinweis, p.beschreibung].filter(Boolean).join(' ').slice(0, 250),
+  };
+  if (DRY) { log('  (Trockenlauf) Event:', JSON.stringify(event)); return null; }
+  return client.wixEventsV2.createEvent(event, { draft: false });
+}
+
+// ---------- Wix Blog: Beitrag aus der App anlegen (Text → Ricos, Titelbild in die Medienverwaltung) ----------
+function textToRicos(text) {
+  const nodes = []; let list = null;
+  const para = t => ({ type: 'PARAGRAPH', id: '', nodes: [{ type: 'TEXT', id: '', nodes: [], textData: { text: t, decorations: [] } }], paragraphData: {} });
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^[-*•] /.test(line)) { if (!list) { list = { type: 'BULLETED_LIST', id: '', nodes: [], bulletedListData: {} }; nodes.push(list); } list.nodes.push({ type: 'LIST_ITEM', id: '', nodes: [para(line.replace(/^[-*•] /, ''))] }); continue; }
+    list = null;
+    if (!line) continue;
+    if (/^#{1,3} /.test(line)) nodes.push({ type: 'HEADING', id: '', nodes: [{ type: 'TEXT', id: '', nodes: [], textData: { text: line.replace(/^#+ /, ''), decorations: [] } }], headingData: { level: 2 } });
+    else nodes.push(para(line));
+  }
+  return { nodes, metadata: { version: 1 } };
+}
+async function uploadCover(dataUrl, name) {
+  const m = String(dataUrl || '').match(/^data:(image\/[a-z]+);base64,(.+)$/); if (!m) return null;
+  const buf = Buffer.from(m[2], 'base64');
+  const { uploadUrl } = await client.files.generateFileUploadUrl(m[1], { fileName: name, sizeInBytes: String(buf.length), parentFolderId: 'media-root' });
+  const res = await fetch(uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(name), { method: 'PUT', headers: { 'Content-Type': m[1] }, body: buf });
+  if (!res.ok) throw new Error('Upload fehlgeschlagen (' + res.status + ')');
+  const j = await res.json();
+  const f = j.file || j;
+  return f.url || f.id || f._id || null;
+}
+async function createBlogPost(p) {
+  const draft = { title: p.titel, excerpt: p.teaser || undefined, richContent: textToRicos(p.text), categoryIds: p.kategorieId ? [p.kategorieId] : undefined, commentingEnabled: false };
+  if (p.bild) {
+    try { const media = await uploadCover(p.bild, `beitrag-${Date.now()}.jpg`); if (media) draft.media = { wixMedia: { image: media }, displayed: true, custom: true }; }
+    catch (e) { log('  Titelbild:', e.message); }
+  }
+  if (DRY) { log('  (Trockenlauf) Beitrag:', draft.title); return null; }
+  const { draftPost } = await client.draftPosts.createDraftPost(draft, { publish: !!p.veroeffentlichen });
+  return draftPost;
 }
 
 // ---------- Inhalte: Beiträge, Termine, Erinnerungen ----------
@@ -255,9 +384,11 @@ async function memberPushes(subs, logKeys) {
 async function boardPushes(subs, pending, routing, logKeys) {
   for (const m of pending) {
     const key = 'registrierung:' + m.memberId; if (logKeys.has(key)) continue;
+    const entry = { key, typ: 'registrierung', title: 'Neue Registrierungsanfrage', body: `${m.name} (${m.email}) möchte in den Mitgliederbereich.`, details: { Name: m.name, 'E-Mail': m.email, Registriert: fmtDe(m.registriert) }, payload: { memberId: m.memberId, name: m.name } };
+    await inbox(routing.registrierung, entry);
     await send(byMembers(subs, routing.registrierung), {
-      title: 'Neue Registrierungsanfrage', body: `${m.name} (${m.email}) möchte in den Mitgliederbereich. Freischalten oder ablehnen im Eingang.`, tag: key, url: url(INBOX),
-      data: { typ: 'registrierung', id: key, memberId: m.memberId, name: m.name, details: { Name: m.name, 'E-Mail': m.email, Registriert: fmtDe(m.registriert) } },
+      title: entry.title, body: entry.body + ' Freischalten oder ablehnen im Eingang.', tag: key, url: url(INBOX),
+      data: { typ: 'registrierung', id: key, memberId: m.memberId, name: m.name, details: entry.details },
     }, key, logKeys);
   }
   // Kontakt- und Mitgliedsanfragen (Formulare der Website)
@@ -268,9 +399,11 @@ async function boardPushes(subs, pending, routing, logKeys) {
       if (NOW - new Date(a._createdDate).getTime() > 14 * 24 * H) continue;
       const art = a.typ === 'mitglied' ? 'Mitgliedsanfrage' : 'Kontaktanfrage';
       const text = a.nachricht || a.interesse || '';
+      const details = { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '' };
+      await inbox(routing.anfrage, { key, typ: 'anfrage', title: art + (a.thema ? ': ' + a.thema : ''), body: `${a.name || '?'}: ${text}`.slice(0, 180), details, payload: { anfrageId: a._id } });
       await send(byMembers(subs, routing.anfrage), {
         title: art + (a.thema ? ': ' + a.thema : ''), body: `${a.name || '?'}: ${text}`.slice(0, 180), tag: key, url: url(INBOX),
-        data: { typ: 'anfrage', id: key, anfrageId: a._id, details: { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '' } },
+        data: { typ: 'anfrage', id: key, anfrageId: a._id, details },
       }, key, logKeys);
     }
   } catch (e) { log('Anfragen:', e.message); }
@@ -297,6 +430,7 @@ async function boardPushes(subs, pending, routing, logKeys) {
       const key = 'buchung:' + b._id; if (logKeys.has(key)) continue;
       if (NOW - new Date(b._createdDate).getTime() > 14 * 24 * H) continue;
       const zeit = [b.datum, b.von && b.bis ? `${b.von}–${b.bis} Uhr` : ''].filter(Boolean).join(' ');
+      await inbox(routing.buchung, { key, typ: 'buchung', title: 'Buchungsanfrage Roter Bahnhof', body: `${b.name || '?'}${b.organisation ? ' (' + b.organisation + ')' : ''}: ${zeit} – ${b.zweck || ''}`, details: { Name: b.name || '', 'Verein/Gruppe': b.organisation || '', Wann: zeit, Anlass: b.zweck || '', Personen: b.personen || '', 'E-Mail': b.email || '', Telefon: b.telefon || '', Nachricht: b.nachricht || '' }, payload: { buchungId: b._id } });
       await send(byMembers(subs, routing.buchung), {
         title: 'Buchungsanfrage Roter Bahnhof', body: `${b.name || '?'}${b.organisation ? ' (' + b.organisation + ')' : ''}: ${zeit} – ${b.zweck || ''}`, tag: key, url: url(INBOX),
         data: { typ: 'buchung', id: key, buchungId: b._id, details: { Name: b.name || '', 'Verein/Gruppe': b.organisation || '', Wann: zeit, Anlass: b.zweck || '', Personen: b.personen || '', 'E-Mail': b.email || '', Telefon: b.telefon || '', Nachricht: b.nachricht || '' } },
@@ -325,6 +459,7 @@ async function boardPushes(subs, pending, routing, logKeys) {
   const logKeys = await loadLog();
   const { approved, pending } = await syncMembers(subs);
   const st = await loadSettings(approved);
+  await syncBoardRole(st, approved);
   await moderate(st);
   await processActions(st, subs, logKeys);
   await contentPushes(subs, logKeys);

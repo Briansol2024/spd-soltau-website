@@ -12,7 +12,7 @@ import { RIGHTS, BOARD_TOPICS, evaluateSettings } from './lib/rights.mjs';
 import { makeDemoClient } from './demo.js';
 
 const SPD = window.SPD || {};
-const CFG = SPD.app || {};
+const CFG = (SPD.app = SPD.app || {});
 const app = document.getElementById('mitglieder-app');
 if (!app) throw new Error('Mitgliederbereich: Container fehlt');
 const $ = (s, r = app) => r.querySelector(s);
@@ -24,8 +24,9 @@ const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Er
 const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrichseck', 'Harber', 'Hötzingen', 'Leitzingen', 'Marbostel', 'Meinern', 'Mittelstendorf', 'Moide', 'Oeningen', 'Tetendorf', 'Wolterdingen', 'Woltem'];
 const SECTIONS = [
   ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],
-  ['rat', 'Rat'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'],
+  ['rat', 'Rat'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'],
 ];
+const ORTE_TERMIN = ['Roter Bahnhof, Am Bahnhof 1t', 'Altes Rathaus', 'Alte Reithalle', 'Marktplatz', 'Online'];
 
 // ---------- Speicher (nur dieses Gerät) ----------
 const store = {
@@ -312,16 +313,16 @@ function renderShell() {
     <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)}${me.vorstand ? ' · Vorstand' : ''}${me.rollen.length && !me.vorstand ? ' · ' + esc(me.rollen.join(', ')) : ''}</p></div>
     <button class="btn btn-line" type="button" id="logout">Abmelden</button>
   </div>
-  <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => k !== 'vorstand' || anyRight()).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
+  <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege'))).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
   <div id="mb-view" class="mb-view"></div>`);
   $('#logout').addEventListener('click', logout);
 }
-const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand };
+const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
   if (['eingang', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
   if (key === 'push' || key === 'app-install') key = 'profil';
-  if (!RENDER[key] || (key === 'vorstand' && !anyRight())) key = 'start';
+  if (!RENDER[key] || (key === 'vorstand' && !anyRight()) || (key === 'beitraege' && !me.can('beitraege'))) key = 'start';
   $$('#mb-nav .chip').forEach(a => a.setAttribute('aria-pressed', String(a.dataset.sec === key)));
   const v = $('#mb-view'); if (!v) return;
   v.innerHTML = '<p class="muted">Lade …</p>';
@@ -391,6 +392,22 @@ async function secTermine(v) {
   v.innerHTML = `
   ${sectionHead('Termine – kommst du?', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
   <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
+  ${me.can('termine') ? `<details class="mb-details" id="ev-new"><summary>Termin anlegen (wird bei Wix Events eingetragen)</summary>
+    <form class="form mb-form" id="f-event" novalidate>
+      <div class="field"><label for="ev-titel">Titel</label><input id="ev-titel" name="titel" type="text" required maxlength="80" placeholder="z. B. Fraktionssitzung"></div>
+      <div class="mb-3">
+        <div class="field"><label for="ev-datum">Datum</label><input id="ev-datum" name="datum" type="date" required></div>
+        <div class="field"><label for="ev-von">Beginn</label><input id="ev-von" name="von" type="time" required value="19:00"></div>
+        <div class="field"><label for="ev-bis">Ende</label><input id="ev-bis" name="bis" type="time" value="21:00"></div>
+      </div>
+      <div class="mb-2">
+        <div class="field"><label for="ev-ort">Ort</label><input id="ev-ort" name="ort" type="text" list="orte-termin" required value="Roter Bahnhof, Am Bahnhof 1t"><datalist id="orte-termin">${ORTE_TERMIN.map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+        <div class="field"><label for="ev-typ">Für wen?</label><select id="ev-typ" name="typ"><option value="Öffentlich">Öffentlich (alle Interessierten)</option><option value="Mitglieder">Nur Mitglieder</option><option value="Fraktion">Fraktion</option><option value="Vorstand">Vorstand</option></select></div>
+      </div>
+      <div class="field"><label for="ev-text">Kurzbeschreibung (optional)</label><textarea id="ev-text" name="beschreibung" rows="2" maxlength="300"></textarea></div>
+      <p class="note" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Termin eintragen</button></div>
+    </form></details>` : ''}
   <section class="mb-sub" id="helferlisten">
     ${sectionHead('Helferlisten', me.can('helfer') ? 'Du darfst Listen anlegen' : '')}
     <div id="hl-list">${listen.filter(l => !l.datum || l.datum >= today).map(l => helperList(l, helfer, events)).join('') || '<p class="muted small">Gerade werden keine Helfer*innen gesucht.</p>'}</div>
@@ -432,6 +449,7 @@ function eventCard(ev, zusagen, listen, helfer, fahrten) {
       </div>
       <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
       ${myLists.map(l => `<p class="small">🙋 <a href="#termine/hl-${esc(l._id)}">Helfer gesucht: ${esc(l.titel)}</a></p>`).join('')}
+      ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
       <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
         <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} Platz${(r.plaetze || 1) === 1 ? '' : 'e'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
         <form class="form mb-form ride-form" novalidate>
@@ -523,6 +541,24 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
     // Kalender-Adresse kopieren
     const c = e.target.closest('button[data-copy]');
     if (c) { try { await navigator.clipboard.writeText(c.dataset.copy); msg($('#ics-msg'), 'Adresse kopiert – im Kalender unter „Abonnement/Per URL“ einfügen.', 'ok'); } catch (err) { msg($('#ics-msg'), c.dataset.copy, 'info'); } }
+  });
+  // Termin anlegen / absagen → Auftrag an den Push-Dienst (der trägt es bei Wix Events ein)
+  $('#f-event')?.addEventListener('submit', async e => {
+    const f = e.target; e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+    const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    const payload = { titel: fd.get('titel').trim(), datum: fd.get('datum'), von: fd.get('von'), bis: fd.get('bis'), ort: fd.get('ort').trim(), typ: fd.get('typ'), beschreibung: fd.get('beschreibung').trim() };
+    try {
+      await db.insert('Aktionen', { title: `Termin: ${payload.titel} ${payload.datum}`, typ: 'termin_erstellen', payload: JSON.stringify(payload), status: 'offen', von: me.name });
+      f.reset(); msg(f.querySelector('.note'), DEMO ? 'In der echten App wird der Termin in den nächsten Minuten bei Wix eingetragen und erscheint dann auf der Website und in der App.' : 'Eingereicht – der Termin wird in den nächsten Minuten bei Wix eingetragen und erscheint dann auf der Website.', 'ok');
+    } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
+    busy(btn, false);
+  });
+  v.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-cancel-event]'); if (!b) return;
+    const art = b.closest('.rsvp'); const ev = events.find(x => x.id === art.dataset.id); if (!ev || !confirm(`„${ev.title}“ wirklich absagen? Der Termin wird bei Wix abgesagt und verschwindet von der Website.`)) return;
+    busy(b, true);
+    try { await db.insert('Aktionen', { title: `Termin absagen: ${ev.title}`, typ: 'termin_absagen', payload: JSON.stringify({ eventId: ev.id, titel: ev.title }), status: 'offen', von: me.name }); msg(art.querySelector(':scope > .rsvp-body > .note'), 'Absage eingereicht – wird in den nächsten Minuten umgesetzt.', 'ok'); }
+    catch (err) { msg(art.querySelector(':scope > .rsvp-body > .note'), errText(err)); busy(b, false); }
   });
   // Neue Helferliste
   const f = $('#f-hl');
@@ -730,6 +766,55 @@ function wireRat(v, all) {
   v.addEventListener('click', e => { const b = e.target.closest('button[data-edit-rat]'); if (!b) return; secRat(v, b.closest('.rat').dataset.id); });
 }
 
+// ---------- Beiträge für „Aktuelles“ (Wix Blog) ----------
+async function secBeitraege(v) {
+  const cats = CFG.blogCats || [];
+  let mine = [];
+  try { mine = (await db.list('Aktionen', { desc: '_createdDate', limit: 50 })).filter(a => a.typ === 'beitrag_erstellen'); } catch (e) { mine = []; }
+  v.innerHTML = `
+  ${sectionHead('Beitrag schreiben', 'Erscheint unter „Aktuelles“ auf der Website – Wix bleibt der Speicherort')}
+  <form class="form mb-form" id="f-post" novalidate>
+    <div class="field"><label for="po-titel">Überschrift</label><input id="po-titel" name="titel" type="text" required maxlength="120" placeholder="z. B. Radweg nach Harber: Sanierung kommt"></div>
+    <div class="field"><label for="po-teaser">Anrisstext (1–2 Sätze, erscheint in der Übersicht)</label><textarea id="po-teaser" name="teaser" rows="2" maxlength="300"></textarea></div>
+    <div class="field"><label for="po-text">Text</label><textarea id="po-text" name="text" rows="12" required placeholder="Absätze durch Leerzeile trennen.&#10;## Zwischenüberschrift&#10;- Aufzählungspunkt"></textarea><span class="small muted">Leerzeile = neuer Absatz · „## “ am Zeilenanfang = Zwischenüberschrift · „- “ = Aufzählung</span></div>
+    <div class="mb-2">
+      <div class="field"><label for="po-kat">Kategorie</label><select id="po-kat" name="kategorie">${cats.length ? cats.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('') : '<option value="">(Kategorien werden beim Bauen der Website geladen)</option>'}</select></div>
+      <div class="field"><label for="po-bild">Titelbild (optional, wird verkleinert)</label><input id="po-bild" name="bild" type="file" accept="image/*"></div>
+    </div>
+    <div id="po-preview" class="po-preview" hidden></div>
+    <label class="check"><input type="checkbox" name="veroeffentlichen" checked> <span>Sofort veröffentlichen (sonst als Entwurf bei Wix ablegen)</span></label>
+    <p class="note" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot" type="submit">Beitrag einreichen</button></div>
+  </form>
+  ${mine.length ? `<section class="mb-sub">${sectionHead('Meine eingereichten Beiträge')}<div class="doc-list">${mine.map(a => { let p = {}; try { p = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ } return `<article class="doc"><div class="doc-body"><b>${esc(p.titel || a.title)}</b><p class="small muted">${esc(fmtWhen(a._createdDate))} · ${esc({ offen: 'wartet auf Übertragung', erledigt: 'übertragen', fehler: 'Fehler', abgelehnt: 'abgelehnt' }[a.status] || a.status)}${a.ergebnis ? ' – ' + esc(a.ergebnis) : ''}</p></div></article>`; }).join('')}</div></section>` : ''}`;
+  let bild = '';
+  $('#po-bild').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) { bild = ''; $('#po-preview').hidden = true; return; }
+    try { bild = await resizeImage(file, 1280, 0.72); $('#po-preview').hidden = false; $('#po-preview').innerHTML = `<img src="${bild}" alt=""><span class="small muted">${Math.round(bild.length * 0.75 / 1024)} KB</span>`; }
+    catch (err) { msg($('#f-post .note'), 'Bild konnte nicht verarbeitet werden: ' + errText(err)); }
+  });
+  $('#f-post').addEventListener('submit', async e => {
+    const f = e.target; e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+    const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    const payload = { titel: fd.get('titel').trim(), teaser: fd.get('teaser').trim(), text: fd.get('text'), kategorieId: fd.get('kategorie') || '', kategorie: $('#po-kat').selectedOptions[0]?.textContent || '', veroeffentlichen: !!fd.get('veroeffentlichen'), bild, autor: me.name, autorId: me.id };
+    if (JSON.stringify(payload).length > 480000) { msg(f.querySelector('.note'), 'Das Bild ist zu groß – bitte ein kleineres Foto wählen.'); busy(btn, false); return; }
+    try {
+      await db.insert('Aktionen', { title: `Beitrag: ${payload.titel}`, typ: 'beitrag_erstellen', payload: JSON.stringify(payload), status: 'offen', von: me.name });
+      f.reset(); bild = ''; $('#po-preview').hidden = true;
+      msg(f.querySelector('.note'), DEMO ? 'In der echten App wird der Beitrag in den nächsten Minuten bei Wix angelegt und erscheint dann unter „Aktuelles“.' : 'Eingereicht – der Beitrag wird in den nächsten Minuten bei Wix angelegt und erscheint spätestens nach dem nächsten Website-Bau unter „Aktuelles“.', 'ok');
+    } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
+    busy(btn, false);
+  });
+}
+// Foto im Browser verkleinern (JPEG), damit es durch die Wix-Sammlung passt
+function resizeImage(file, max, q) {
+  return new Promise((res, rej) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q)); };
+    img.onerror = () => rej(new Error('Kein gültiges Bild')); img.src = url;
+  });
+}
+
 // ---------- Mitglieder: Verzeichnis, Geburtstage, Jubiläen ----------
 async function secMitglieder(v) {
   const profiles = await db.list('Profile').catch(() => []);
@@ -895,7 +980,7 @@ async function secVorstand(v) {
   if (me.can('freigaben')) renderInbox();
   if (me.can('verwaltung')) {
     renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.');
-    renderMatrix('rights', RIGHTS.map(([k, l]) => [k, l, '']), k => [...settings.rights[k]], k => 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand (Wix-Rolle „Vorstandsmitglied“). Das Recht „Rechte und Benachrichtigungen festlegen“ kann nur der Vorstand vergeben.');
+    renderMatrix('rights', [['vorstand', 'Vorstand', 'Wer zum Vorstand gehört. Der Push-Dienst setzt die Wix-Rolle „Vorstandsmitglied“ entsprechend.'], ...RIGHTS.map(([k, l]) => [k, l, ''])], k => k === 'vorstand' ? [...settings.board] : [...settings.rights[k]], k => k === 'vorstand' ? 'vorstand' : 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand. Vorstand und das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.');
   }
   $('#f-broadcast')?.addEventListener('submit', onBroadcast);
   $('#f-wa')?.addEventListener('submit', async e => {
@@ -910,7 +995,13 @@ async function secVorstand(v) {
 }
 async function renderInbox() {
   const box = $('#inbox'); if (!box) return;
-  const list = (await inboxAll()).sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 50);
+  // Zwei Quellen: die eigenen Einträge in der Sammlung Eingang (vom Push-Dienst für jedes Vorstandsmitglied angelegt)
+  // und die Push-Nachrichten, die auf diesem Gerät angekommen sind
+  let remote = [];
+  try { remote = (await db.list('Eingang', { desc: '_createdDate', limit: 100 })).map(r => ({ id: r.key || r._id, _id: r._id, title: r.title, body: r.body, data: { typ: r.typ, id: r.key, ...(r.payload ? JSON.parse(r.payload) : {}), details: r.details || {} }, receivedAt: new Date(r._createdDate).getTime(), done: r.status && r.status !== 'offen' ? r.status : '', remote: true })); } catch (e) { remote = []; }
+  const local = await inboxAll();
+  const seen = new Set(remote.map(r => r.id));
+  const list = [...remote, ...local.filter(l => !seen.has(l.id))].sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 50);
   if (!list.length) { box.innerHTML = '<p class="muted">Noch nichts eingegangen. Anfragen erscheinen hier, sobald sie per Push auf diesem Gerät ankommen.</p>'; return; }
   const LABEL = { registrierung: 'Registrierung', buchung: 'Buchung', anfrage: 'Anfrage' };
   box.innerHTML = list.map(it => {
@@ -934,7 +1025,9 @@ async function renderInbox() {
     busy(b, true);
     try {
       await db.insert('Aktionen', { title: `${b.dataset.act}: ${it.title || ''}`, typ: b.dataset.act, payload: JSON.stringify(it.data || {}), status: 'offen', von: me.name });
-      it.done = b.textContent.trim() + (DEMO ? '' : ' (wird ausgeführt)'); await inboxPut(it);
+      it.done = b.textContent.trim() + (DEMO ? '' : ' (wird ausgeführt)');
+      if (it.remote && it._id) { try { const cur = (await db.list('Eingang', { eq: { _id: it._id }, limit: 1 }))[0]; if (cur) await db.update('Eingang', { ...cur, status: it.done }); } catch (e) { /* lokal reicht */ } }
+      else await inboxPut(it);
       renderInbox();
     } catch (err) { msg(art.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(b, false); }
   };

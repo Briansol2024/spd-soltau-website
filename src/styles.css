@@ -834,3 +834,5 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .wa svg{width:16px;height:16px;fill:currentColor}
 .event .share{display:inline-block;margin-top:8px;font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--schwarz);text-decoration:none;border-bottom:2px solid var(--rot);padding-bottom:3px}
 .start-ev svg{width:18px;height:18px;fill:#25D366}
+.po-preview{display:grid;gap:6px;max-width:320px}
+.po-preview img{width:100%;height:auto;display:block;border:2px solid var(--schwarz)}

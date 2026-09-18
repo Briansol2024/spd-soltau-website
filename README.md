@@ -66,13 +66,29 @@ Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite
 Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·
 Vorstand (Eingang, Wer wird benachrichtigt?, Wer darf was?, Nachricht an alle, WhatsApp-Gruppen).
 
-**Rechte:** Standard = der gesamte Vorstand (Wix-Rolle „Vorstandsmitglied“) darf alles. Unter „Wer darf was?“ lässt sich je Recht (Umfragen, Helferlisten,
-Dokumente, Ratsvorbereitung, Nachrichten, Eingang, Verwaltung) einzeln festlegen, wer es darf. Die Logik steckt in `src/lib/rights.mjs` und wird vom Push-Dienst
-ebenfalls geprüft (Einträge ohne Recht werden entfernt).
+**Rechte:** Standard = der gesamte Vorstand darf alles. Unter Vorstand → „Wer darf was?“ legt man fest, **wer zum Vorstand gehört** und wer je Recht
+(Beiträge schreiben, Termine anlegen, Umfragen, Helferlisten, Dokumente, Ratsvorbereitung, Nachrichten, Eingang, Verwaltung) etwas darf – alles in der App,
+nichts im Wix-Dashboard. Der Push-Dienst spiegelt den Vorstand in die Wix-Rolle „Vorstandsmitglied“ und prüft die Rechte ebenfalls (Einträge ohne Recht werden
+entfernt). Startvorstand beim allerersten Lauf: `VORSTAND_EMAILS` in `.env` (wird automatisch freigeschaltet und als Vorstand gesetzt). Logik: `src/lib/rights.mjs`.
+
+**Beiträge und Termine aus der App:** Wer das Recht hat, schreibt unter „Beiträge“ einen Beitrag (Überschrift, Anriss, Text, Kategorie, Titelbild) oder legt unter
+„Termine“ einen Termin an bzw. sagt einen ab. Der Push-Dienst trägt das innerhalb weniger Minuten bei Wix Blog bzw. Wix Events ein; die Website übernimmt es beim
+nächsten Bau (alle 30 Minuten).
+
+**Eingang:** Registrierungs-, Buchungs- und Kontaktanfragen landen als persönliche Kopie bei jeder zuständigen Person (Sammlung `Eingang`, nur die jeweilige
+Person kann ihre Einträge lesen) – zusätzlich zur Push-Nachricht. Freischalten/Annehmen/Erledigen direkt dort.
 
 **WhatsApp:** In Gruppen posten kann die App nicht automatisch (WhatsApp hat dafür keine Schnittstelle). Stattdessen: „WhatsApp“-Knopf an Terminen, Helferlisten,
 Umfragen, Dokumenten und Nachrichten – öffnet WhatsApp mit dem fertigen Text, Gruppe auswählen, abschicken. Einladungslinks der Gruppen pflegt der Vorstand
 unter „WhatsApp-Gruppen“, Mitglieder sehen sie auf der Startseite des Mitgliederbereichs. Auf der öffentlichen Terminseite gibt es „Per WhatsApp teilen“ je Termin.
+
+## Veröffentlichen auf GitHub Pages (Testphase, mit Passwort)
+
+Einmalig: GitHub-Konto anlegen, dann in einem Terminal `winget install --id GitHub.cli`, neues Fenster, `gh auth login` (Browser-Anmeldung).
+Danach `tools\GitHub Pages einrichten.cmd` doppelklicken – legt das Repository an, überträgt alle Einstellungen aus `.env` als Variablen/Secrets,
+schaltet Pages ein und startet den Bau. Ergebnis: `https://<konto>.github.io/spd-soltau-website/` (Passwort wie bisher). Die alte Wix-Seite bleibt unter
+spd-soltau.de unverändert online. Danach bei Wix die Umleitungs-URI `https://<konto>.github.io/spd-soltau-website/mitglieder/` eintragen (Headless-Einstellungen).
+Für eine schönere Adresse (z. B. `neu.spd-soltau.de`) später einen CNAME-Eintrag bei Wix setzen und in GitHub Pages die Domain eintragen (`BASE_PATH` leeren).
 
 ## Vorschau über Tailscale (Testphase)
 

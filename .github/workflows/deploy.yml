@@ -43,6 +43,7 @@ jobs:
           SITE_EMAIL: ${{ vars.SITE_EMAIL }}
           NOINDEX: ${{ vars.NOINDEX }}
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          ICS_TOKEN: ${{ vars.ICS_TOKEN }}
       - name: Passwortschutz (Testphase)
         run: node protect.mjs
         env:
