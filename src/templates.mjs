@@ -1,5 +1,5 @@
 // Seitenvorlagen – 1:1 nach Referenz-Entwurf D, mit echten Links und Inhalten aus dem Build.
-import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo } from './render.mjs';
+import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards } from './render.mjs';
 
 const NAV = [
   ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Ortsverein'],
@@ -65,6 +65,7 @@ ${path.startsWith('/mitglieder/') ? `<header class="app-header">
 
 <main>
 ${content}
+${path.startsWith('/mitglieder/') ? '' : pageEnd()}
 </main>
 
 ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new Date().getFullYear()} SPD Ortsverein Soltau</span><span><a href="${url('/impressum/')}" data-website>Impressum</a> · <a href="${url('/datenschutz/')}" data-website>Datenschutz</a></span></footer>` : `<footer class="footer">
@@ -131,6 +132,47 @@ ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new D
 `;
 }
 
+// Ende jeder Website-Seite (Wunsch Vorsitz): drei Kästen – Vorstand, Ratsfraktion, Roter Bahnhof – und „Nichts verpassen“
+const pageEnd = () => `
+<div class="wrap section page-end">
+  <div class="cols boxes end-boxes">
+    <a class="box box-schwarz" href="${url('/ortsverein/')}">
+      <span class="tag">Ortsverein</span>
+      <h3>Unser Vorstand</h3>
+      <p class="small">Wer den Ortsverein führt, wo wir uns treffen und wie Sie uns erreichen.</p>
+      <span class="btn btn-rot">Vorstand kennenlernen</span>
+    </a>
+    <a class="box box-rot" href="${url('/fraktion/')}">
+      <span class="tag tag-schwarz">Stadtrat</span>
+      <h3>Unsere Ratsfraktion</h3>
+      <p class="small">Die SPD im Rat der Stadt Soltau: Ratsmitglieder, Themen, Anträge.</p>
+      <span class="btn btn-weiss">Zur Fraktion</span>
+    </a>
+    <a class="box" href="${url('/roter-bahnhof/')}">
+      <span class="tag">Treffpunkt</span>
+      <h3>Roter Bahnhof buchen</h3>
+      <p class="small">Unser Treffpunkt am Bahnhof steht auch Vereinen und Gruppen offen. Termin anfragen – wir melden uns.</p>
+      <span class="btn btn-schwarz">Anfrage stellen</span>
+    </a>
+  </div>
+</div>
+<div class="band-rot">
+  <div class="wrap section newsletter">
+    <div style="display:grid;gap:12px">
+      <h2 class="title">Nichts verpassen.</h2>
+      <p style="font-size:19px">Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.</p>
+    </div>
+    <form class="mock" id="form-news" novalidate>
+      <div class="form-fields" style="display:contents">
+        <label for="nl-mail" style="position:absolute;left:-9999px">E-Mail-Adresse</label>
+        <input id="nl-mail" type="email" required placeholder="E-Mail-Adresse">
+        <button class="btn btn-schwarz" type="submit">Anmelden</button>
+      </div>
+      <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung über den Link in Ihrer E-Mail.</p>
+    </form>
+  </div>
+</div>`;
+
 const pageHead = (tag, h1, lead) => `
   <div class="page-head"><div class="wrap">
     <span class="tag">${esc(tag)}</span>
@@ -148,43 +190,43 @@ const heroMedia = (site) => site.heroVideoId
   : '';
 
 export function startPage(d) {
-  const upcoming = d.events.slice(0, 3);
-  const erk = d.news.find(n => n.cat === 'Fraktion') || d.news[0];
-  const themen = d.themen;
+  const upcoming = d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat').slice(0, 4); // Website: nur öffentliche Termine
+  // Laufband: bis zur Stichwahl der Wahlaufruf, danach die nächsten Termine
+  const band = d.stichwahl ? `<span>Am 27.09. Zinke zum Landrat wählen!</span>`.repeat(6) : (tickerItems(d.events).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>');
   return `
 <section>
   <div class="hero${d.site.heroVideoId ? ' has-video' : ''}">
     ${heroMedia(d.site)}
     <div class="wrap">
       <div class="hero-text">
-        <span class="tag">SPD Ortsverein &amp; Ratsfraktion Soltau</span>
-        <h1><span class="ln"><span>Moin!</span></span><span class="ln"><em class="sub">Herzlich willkommen.</em></span></h1>
-        <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
-        ${d.stichwahl ? `<div class="hero-stichwahl"><a class="btn btn-stichwahl" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener"><small>Stichwahl am ${esc(d.stichwahl.datumKurz)}</small><b>Sebastian Zinke wählen</b></a></div>` : ''}
-        <div class="hero-actions">
-          <a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a>
-          <a class="btn btn-line-weiss" href="${url('/mitmachen/')}">Mitmachen</a>
+        <span class="tag">Aus Liebe zu Soltau</span>
+        <h1><span class="ln"><span>Moin!</span></span></h1>
+        <div class="hero-box">
+          <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
+          <a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>
         </div>
       </div>
       ${heroPhoto(d.site)}
     </div>
   </div>
-  <div class="ticker" aria-label="Nächste Termine"><div class="ticker-track" id="ticker">${((d.stichwahl ? `<span>So 27. Sep – Stichwahl Landrat: Sebastian Zinke wählen</span>` : '') + tickerItems(d.events)).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>'}</div></div>
+  <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}"><div class="ticker-track" id="ticker">${band}</div></div>
 
-  <div class="wrap" style="padding-block:56px">
+  ${d.stichwahl ? `<div class="wrap section zinke">
+    <div class="zinke-photo"><img src="${url('/assets/images/sebastian-zinke.jpg')}" alt="Sebastian Zinke" loading="lazy" decoding="async"></div>
+    <div class="zinke-text">
+      <span class="tag">Stichwahl am ${esc(d.stichwahl.datumKurz)}</span>
+      <h2 class="title">Sebastian Zinke<br>zum Landrat wählen</h2>
+      <p>${esc(d.stichwahl.kurz)}</p>
+      <div class="hero-actions"><a class="btn btn-rot" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener">Mehr über Sebastian Zinke</a></div>
+    </div>
+  </div>` : ''}
+
+  <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
     <div class="quick quick-2">
       <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</small></a>
       <a href="${url('/mitmachen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg><b>Ich will vorbeikommen oder mitmachen</b><small>Ratssitzungen sind öffentlich, der Rote Bahnhof steht offen – als Gast, Helferin oder Mitglied.</small></a>
     </div>
-  </div>
-
-  <div class="wrap section">
-    <div class="section-head">
-      <h2 class="title">Aktuelles</h2>
-      <a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a>
-    </div>
-    <div class="news" id="start-news">${d.news.slice(0, 5).map(newsCard).join('')}</div>
   </div>
 
   <div class="band-rot">
@@ -196,77 +238,33 @@ export function startPage(d) {
     </div>
   </div>
 
-  <div class="wrap section" id="ansprech-section">
-    <div class="section-head"><h2 class="title">Wer kümmert sich<br>um was?</h2><a class="more" href="${url('/ortsverein/')}">Das ganze Team</a></div>
-    <div class="themen" role="group" aria-label="Thema wählen" id="themen">${themen.map((t, i) => `<button class="chip" type="button" aria-pressed="${i === 0}">${esc(t)}</button>`).join('')}</div>
-    <div class="ansprech" id="ansprech">${d.people.filter(p => p.themen.includes(themen[0])).map(personCard).join('')}</div>
+  <div class="wrap section">
+    <div class="section-head">
+      <h2 class="title">Aktuelles</h2>
+      <a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a>
+    </div>
+    <div class="news" id="start-news">${d.news.slice(0, 5).map(newsCard).join('')}</div>
   </div>
 
   <div class="band-grau">
     <div class="wrap section">
       <div class="section-head">
-        <h2 class="title">Termine</h2>
-        <a class="more" href="${url('/termine/')}">Alle Termine</a>
+        <h2 class="title">@spd_soltau</h2>
+        <a class="more" href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Auf Instagram folgen</a>
       </div>
-      <div class="events" id="start-events">${upcoming.length ? upcoming.map(e => eventRow(e, false)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
-    </div>
-  </div>
-
-  <div id="umfrage-box" class="umfrage-box" hidden></div>
-  <div class="wrap section">
-    <div class="cols boxes">
-      ${erk ? `<div class="box box-schwarz">
-        <span class="tag">Aus dem Rat erklärt</span>
-        <h3>${esc(erk.title)}</h3>
-        <a class="btn btn-rot" href="${url(`/aktuelles/${erk.slug}/`)}" style="justify-self:start">Weiterlesen</a>
-      </div>` : ''}
-      <div class="box box-rot">
-        <h3>Ihr Anliegen</h3>
-        <p class="small">Schlagloch, Kita-Platz, Ratsbeschluss – wir antworten in der Regel innerhalb einer Woche.</p>
-        <a class="btn btn-weiss" href="${url('/kontakt/')}" style="justify-self:start">Anliegen senden</a>
-      </div>
-      <div class="box">
-        <h3>Roter Bahnhof buchen</h3>
-        <p class="small">Unser Treffpunkt am Bahnhof steht auch Vereinen und Gruppen offen. Termin anfragen – wir melden uns.</p>
-        <a class="btn btn-schwarz" href="${url('/roter-bahnhof/')}" style="justify-self:start">Anfrage stellen</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="band-schwarz">
-    <div class="wrap section">
-      <div class="section-head">
-        <h2 class="title">Unsere 10 Punkte<br>für Soltau</h2>
-        <a class="more" href="${url('/ziele/')}">Zum Plan</a>
-      </div>
-      <div class="ziele-grid" id="start-ziele">${zieleGrid(d.ziele)}</div>
+      <div class="insta" id="insta" style="--n:${Math.min(Math.max(d.insta.length,3),6)}">${instaTiles(d.insta)}</div>
     </div>
   </div>
 
   <div class="wrap section">
     <div class="section-head">
-      <h2 class="title">@spd_soltau</h2>
-      <a class="more" href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Auf Instagram folgen</a>
+      <h2 class="title">Termine</h2>
+      <a class="more" href="${url('/termine/')}">Alle Termine</a>
     </div>
-    <div class="insta" id="insta" style="--n:${Math.min(Math.max(d.insta.length,3),6)}">${instaTiles(d.insta)}</div>
+    <div class="events-mini" id="start-events">${upcoming.length ? upcoming.map(eventRowMini).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
   </div>
 
-  <div class="band-rot">
-    <div class="wrap section newsletter">
-      <div style="display:grid;gap:12px">
-        <h2 class="title">Nichts verpassen.</h2>
-        <p style="font-size:19px">Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.</p>
-      </div>
-      <form class="mock" id="form-news-start" novalidate>
-        <div class="form-fields" style="display:contents">
-          <label for="nl-mail-start" style="position:absolute;left:-9999px">E-Mail-Adresse</label>
-          <input id="nl-mail-start" type="email" required placeholder="E-Mail-Adresse">
-          <button class="btn btn-schwarz" type="submit">Anmelden</button>
-        </div>
-        <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung über den Link in Ihrer E-Mail.</p>
-      </form>
-    </div>
-  </div>
+  <div id="umfrage-box" class="umfrage-box" hidden></div>
 </section>`;
 }
 
@@ -326,92 +324,72 @@ export function terminePage(d) {
 </section>`;
 }
 
-export function fraktionPage(d) {
-  const chair = d.vorstand.find(v => /Kaçar|Kacar/.test(v.name)) || null;
+// Ortsverein und Fraktion haben dieselbe Struktur (Wunsch Vorsitz): Kopf → Zahlenband → Team nach Funktion → zwei Kästen → Beiträge
+function teamPage({ tag, h1, lead, stats, people, teamTitle, teamHint, boxA, boxB, news, newsTitle }) {
   return `
 <section>
-  ${pageHead('SPD-Ratsfraktion', 'Unsere Fraktion<br>im Stadtrat', 'Seit dem 13. September 2026 erstmals stärkste Fraktion im Rat der Stadt Soltau. Wir erklären Entscheidungen, bleiben ansprechbar und setzen den 10-Punkte-Plan um.')}
+  ${pageHead(tag, h1, lead)}
   <div class="band-rot"><div class="wrap" style="padding-block:40px">
-    <div class="stats">
-      <div class="stat"><b>Nr. 1</b><span>Erstmals stärkste Fraktion</span></div>
-      <div class="stat"><b>2026–31</b><span>Wahlperiode</span></div>
-      <div class="stat"><b>1. Nov.</b><span>Beginn der Wahlperiode</span></div>
-      <div class="stat"><b>10</b><span>Punkte für Soltau</span></div>
-    </div>
+    <div class="stats">${stats.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>
   </div></div>
-  <div class="wrap section split">
-    <div>
-      <div class="section-head"><h2 class="title">Ratsmitglieder</h2></div>
-      <p class="small muted" style="margin-bottom:20px">Die Zusammensetzung der neuen Fraktion wird nach der konstituierenden Sitzung eingetragen.</p>
-      <div class="people" id="fraktion-people">${d.fraktion.map(personCard).join('')}</div>
-    </div>
-    <div style="display:grid;gap:20px">
-      <div class="box box-schwarz">
-        <h3>Fraktionsvorsitz</h3>
-        <p><b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">Birhat Kaçar</b><br><span class="small">Fraktionsvorsitzender, stellv. Bürgermeister</span></p>
-        <dl>
-          <dt>Sitzungen</dt><dd>Vor jeder Ratssitzung, Altes Rathaus</dd>
-          <dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd>
-        </dl>
-        <a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Fraktion kontaktieren</a>
-      </div>
-      <div class="box box-rot">
-        <span class="tag tag-schwarz" style="justify-self:start">Ab 1. November 2026</span>
-        <h3>Die neue Fraktion</h3>
-        <p class="small">Bei der Kommunalwahl am 13. September wurden elf SPD-Ratsmitglieder gewählt – erstmals stärkste Fraktion im Rat.</p>
-        <a class="btn btn-weiss" href="${url('/stadtrat-2026/')}" style="justify-self:start">Unsere 11 im Stadtrat</a>
-      </div>
-      <div class="box">
-        <h3>Anträge &amp; Anfragen</h3>
-        <ul class="list">
-          <li><b>Zeitplan Unterführung Walsroder Straße</b><span class="small muted">Antrag</span></li>
-          <li><b>Sachstand Neubau Wilhelm-Busch-Schule</b><span class="small muted">Anfrage</span></li>
-          <li><b>Ganztag an den Grundschulen</b><span class="small muted">Antrag</span></li>
-        </ul>
-        <p class="small muted">Beispiele – später mit Link ins Ratsinformationssystem.</p>
-      </div>
-    </div>
+  <div class="wrap section">
+    <div class="section-head"><h2 class="title">${teamTitle}</h2>${teamHint ? `<span class="muted">${esc(teamHint)}</span>` : ''}</div>
+    <div class="team">${byRole(people).map(teamCard).join('') || '<p class="muted">Wird nach der konstituierenden Sitzung eingetragen.</p>'}</div>
+  </div>
+  <div class="wrap section" style="padding-top:0">
+    <div class="cols cols-2">${boxA}${boxB}</div>
   </div>
   <div class="band-schwarz"><div class="wrap section">
-    <div class="section-head"><h2 class="title">Aus dem Rat</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
-    <div class="news" id="fraktion-news">${d.news.filter(n => n.cat === 'Fraktion').slice(0, 3).map(newsCard).join('') || d.news.slice(0, 3).map(newsCard).join('')}</div>
+    <div class="section-head"><h2 class="title">${newsTitle}</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
+    <div class="news">${news.map(newsCard).join('')}</div>
   </div></div>
 </section>`;
 }
 
+export function fraktionPage(d) {
+  const chair = byRole(d.fraktion).find(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
+  return teamPage({
+    tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat',
+    lead: 'Seit dem 13. September 2026 erstmals stärkste Fraktion im Rat der Stadt Soltau. Wir erklären Entscheidungen, bleiben ansprechbar und setzen den 10-Punkte-Plan um.',
+    stats: [['Nr. 1', 'Erstmals stärkste Fraktion'], ['11', 'Gewählte Ratsmitglieder'], ['1. Nov.', 'Beginn der Wahlperiode 2026–31'], ['10', 'Punkte für Soltau']],
+    people: d.fraktion, teamTitle: 'Ratsmitglieder', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
+    boxA: `<div class="box box-schwarz">
+        <h3>Fraktionsvorsitz</h3>
+        <p><b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(chair ? chair.name : 'Birhat Kaçar')}</b><br><span class="small">${esc(chair ? chair.role : 'Fraktionsvorsitzender, stellv. Bürgermeister')}</span></p>
+        <dl><dt>Sitzungen</dt><dd>Vor jeder Ratssitzung, Altes Rathaus</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
+        <a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Fraktion kontaktieren</a>
+      </div>`,
+    boxB: `<div class="box box-rot">
+        <span class="tag tag-schwarz" style="justify-self:start">Ab 1. November 2026</span>
+        <h3>Die neue Fraktion</h3>
+        <p class="small">Bei der Kommunalwahl am 13. September wurden elf SPD-Ratsmitglieder gewählt – erstmals stärkste Fraktion im Rat.</p>
+        <a class="btn btn-weiss" href="${url('/stadtrat-2026/')}" style="justify-self:start">Unsere 11 Gewählten</a>
+      </div>`,
+    news: (d.news.filter(n => n.cat === 'Fraktion').slice(0, 3).length ? d.news.filter(n => n.cat === 'Fraktion') : d.news).slice(0, 3), newsTitle: 'Aus dem Rat',
+  });
+}
+
 export function ortsvereinPage(d) {
-  return `
-<section>
-  ${pageHead('SPD Ortsverein Soltau', 'Wer wir sind', 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.')}
-  <div class="wrap section">
-    <div class="section-head"><h2 class="title">Vorstand</h2></div>
-    <div class="people vorstand" id="vorstand">${d.vorstand.map(v => personCard({ name: v.name, job: v.job, role: v.position, photo: v.photo, text: '' })).join('')}</div>
-  </div>
-  <div class="wrap section" style="padding-top:0">
-    <div class="cols">
-      <div class="col">
-        <h3>Roter Bahnhof</h3>
-        <p>Unser Treffpunkt am Bahnhof: Hier tagt der Vorstand, hier planen wir Infostände, hier sind Gäste willkommen. Vereine und Gruppen können den Roten Bahnhof anfragen.</p>
-        <p><b>Am Bahnhof 1t, 29614 Soltau</b></p>
-        <a class="btn btn-rot" href="${url('/roter-bahnhof/')}" style="justify-self:start">Roter Bahnhof buchen</a>
-      </div>
-      <div class="col">
+  const people = d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, photo: v.photo, text: '' }));
+  const chairs = byRole(people).filter(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
+  return teamPage({
+    tag: 'SPD Ortsverein Soltau', h1: 'Wer wir sind',
+    lead: 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.',
+    stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], ['16 + 1', 'Ortschaften und Kernstadt'], ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(d.people.length), 'Kandidatinnen und Kandidaten 2026']],
+    people, teamTitle: 'Vorstand', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
+    boxA: `<div class="box box-schwarz">
+        <h3>Vorsitz</h3>
+        <p>${chairs.map(c => `<b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(c.name)}</b><br><span class="small">${esc(c.role)}</span>`).join('<br><br>') || '<span class="small">Wird eingetragen.</span>'}</p>
+        <dl><dt>Treffpunkt</dt><dd>Roter Bahnhof, Am Bahnhof 1t</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
+        <a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Vorstand kontaktieren</a>
+      </div>`,
+    boxB: `<div class="box box-rot">
         <h3>Mitglied werden</h3>
-        <p>Mitgestalten statt zuschauen. Im Rat, am Infostand oder im Hintergrund – es gibt viele Wege.</p>
-        <a class="btn btn-rot" href="${url('/mitmachen/')}" style="justify-self:start">Jetzt mitmachen</a>
-      </div>
-      <div class="col">
-        <h3>Ihr Anliegen</h3>
-        <p>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</p>
-        <a class="btn btn-line" href="${url('/kontakt/')}" style="justify-self:start">Kontakt</a>
-      </div>
-    </div>
-  </div>
-  <div class="band-grau"><div class="wrap section">
-    <div class="section-head"><h2 class="title">Unser Team</h2><span class="muted">${d.people.length} Menschen aus Kernstadt und Ortschaften</span></div>
-    <div class="people" id="all-people">${d.people.map(personCard).join('')}</div>
-  </div></div>
-</section>`;
+        <p class="small">Mitgestalten statt zuschauen. Im Rat, am Infostand oder im Hintergrund – es gibt viele Wege.</p>
+        <a class="btn btn-weiss" href="${url('/mitmachen/')}" style="justify-self:start">Jetzt mitmachen</a>
+      </div>`,
+    news: (d.news.filter(n => n.cat === 'Ortsverein').slice(0, 3).length ? d.news.filter(n => n.cat === 'Ortsverein') : d.news).slice(0, 3), newsTitle: 'Aus dem Ortsverein',
+  });
 }
 
 export function zielePage(d) {
@@ -419,7 +397,7 @@ export function zielePage(d) {
 <section>
   ${pageHead('Unsere Ziele', 'Der 10-Punkte-<br>Plan', 'Soltau kann mehr. Dafür braucht es klare Prioritäten, verlässliche Entscheidungen und den Mut, wichtige Projekte endlich umzusetzen.')}
   <div class="wrap section split">
-    <div id="ziele-list">${zielAccordion(d.ziele)}</div>
+    <div id="ziele-list" class="zk-list">${zielCards(d.ziele)}</div>
     <div class="box box-rot">
       <h3>Unser Versprechen</h3>
       <p>Wir wollen Projekte nicht über Jahre diskutieren, sondern Entscheidungen treffen, Finanzierung sichern und anschließend umsetzen.</p>

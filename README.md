@@ -74,6 +74,13 @@ Mitgliederbereich“ (Klasse `from-app`, gemerkt in `sessionStorage`; in der ins
 Mitgliederbereich (einmal je Sitzung). Besucher ohne Konto sehen in der App einfach die Website und kommen über das Personen-Symbol zur Anmeldung.
 Zum Ausprobieren im Browser: `?app=1`.
 
+**Website-Struktur (Wünsche Vorsitz, 18.09.2026):** Startseite = Hero („Aus Liebe zu Soltau“, „Moin!“, Textbox mit „Unsere 11 Gewählten“) →
+Laufband (bis zur Stichwahl „Am 27.09. Zinke zum Landrat wählen!“, danach Termine; langsam) → Stichwahl-Abschnitt mit Foto (bis 27.09.) → „Was können
+wir für Sie tun?“ → Soltau in Zahlen → Aktuelles → Instagram → Termine (schlank, nur öffentliche). **Jede Website-Seite endet gleich** (`pageEnd()` im
+Layout): drei Kästen Vorstand · Ratsfraktion · Roter Bahnhof buchen, dann „Nichts verpassen“. Ortsverein und Fraktion nutzen dieselbe Vorlage
+(`teamPage()`): Kopf → Zahlenband → Team nach Funktion sortiert (`byRole`, große Namen, quadratische Fotos) → zwei Kästen → Beiträge. Ziele als Karten mit
+Piktogrammen (`zielCards`). Alle 27 Kandidat*innen stehen weiterhin unter „Unsere 11 im Stadtrat“.
+
 **Hilfe & Anleitungen (`#hilfe`):** 13 nummerierte Themen für alle Mitglieder (01 Registrieren und Anmelden … 13 Zur Website und zurück), je Thema
 ein kurzes Video für Android, iPhone/iPad, Windows und Mac – ohne Sprecherstimme, alle Schritte als Untertitel, mit fröhlicher Ukulele-Hintergrundmusik –
 und darunter dieselben Schritte als Text. Erreichbar über „Mehr“ bzw. die Seitenleiste und ohne Anmeldung vom Anmeldebildschirm aus.

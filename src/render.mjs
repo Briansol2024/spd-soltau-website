@@ -100,3 +100,53 @@ export function instaTiles(items) {
     return `<button class="ph has-img" type="button" data-insta="${k}" aria-label="Instagram-Beitrag öffnen: ${esc(label)}">${(i.images || []).length > 1 ? multi : ''}<img src="${esc(i.img)}" alt="" loading="lazy" decoding="async"><span>${heart}${i.likes ? esc(i.likes) + ' · ' : ''}${esc(label)}</span></button>`;
   }).join('');
 }
+
+// ---------- Neu (Wunsch Vorsitz, 18.09.2026): Team-Karten mit großem Namen, schlanke Terminzeilen, Ziel-Karten mit Piktogrammen ----------
+// Reihenfolge nach Funktion: Vorsitz → Stellvertretung → Finanzen/Geschäftsführung → Schriftführung → Beisitz → übrige
+export function roleRank(role = '') {
+  const r = String(role).toLowerCase();
+  if (/stellv|stellvertret/.test(r)) return 1;
+  if (/vorsitz/.test(r)) return 0;
+  if (/finanz|kasse|schatz|geschäftsf|geschaeftsf/.test(r)) return 2;
+  if (/schriftf/.test(r)) return 3;
+  if (/beisitz/.test(r)) return 4;
+  if (r.trim()) return 5;
+  return 6;
+}
+export const byRole = list => list.map((p, i) => [p, i]).sort((a, b) => roleRank(a[0].role) - roleRank(b[0].role) || a[1] - b[1]).map(x => x[0]);
+
+// Team-Karte: quadratisches Foto (schlicht), großer Name, Funktion in Rot, Beruf klein
+export function teamCard(p) {
+  const img = p.photo && p.photo.url ? `<img src="${esc(p.photo.url)}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<span>${initials(p.name)}</span>`;
+  return `<button class="tm" type="button" data-name="${esc(p.name)}"><div class="tm-photo">${img}</div><div class="tm-name">${esc(p.name)}</div>${p.role ? `<div class="tm-role">${esc(p.role)}</div>` : ''}${p.job ? `<div class="tm-job">${esc(p.job)}</div>` : ''}</button>`;
+}
+
+// Schlanke Terminzeile für die Startseite: Datum, Titel, Uhrzeit · Ort
+export function eventRowMini(e) {
+  const x = D(e.date);
+  const title = e.url ? `<a href="${esc(e.url)}">${esc(e.title)}</a>` : esc(e.title);
+  return `<div class="ev-mini"><div class="ev-mini-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div><div class="ev-mini-body"><h3>${title}</h3><div class="meta">${esc(e.zeit)}${e.ort ? ' · ' + esc(e.ort) : ''}</div></div></div>`;
+}
+
+// Piktogramme zu den 10 Punkten (Reihenfolge wie im Programm)
+const ZIEL_ICONS = [
+  '<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h2M13 11h2"/>',                                   // Innenstadt
+  '<path d="M4 19V9l8-5 8 5v10M4 19h16M9 19v-5h6v5M12 4v3"/><circle cx="12" cy="11" r="1.5"/>',            // Kitas und Schulen
+  '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18M3 12h18M6.5 6.5c3 3 8 3 11 0M6.5 17.5c3-3 8-3 11 0"/>', // Sport und Therme
+  '<path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3 1-6 1-8z"/><path d="M4 21h16"/>', // Feuerwehr
+  '<path d="M3 20h18M6 20V10l4-3 4 3v10M14 20V13l4-3 3 3v7M9 20v-4h2v4"/>',                               // Ortschaften
+  '<path d="M3 11l9-7 9 7v10H3zM10 21v-6h4v6"/>',                                                         // Wohnen
+  '<path d="M3 21h18M5 21V9h6v12M13 21V4h6v17M8 12h0M8 15h0M8 18h0M16 8h0M16 11h0M16 14h0M16 17h0"/>',    // Arbeitsplätze
+  '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/><circle cx="12" cy="12" r="4"/>', // Energie
+  '<path d="M3 17h18M5 17l2-6h10l2 6M7 17v2M17 17v2M9 11V8h6v3"/><circle cx="8" cy="17" r="1"/><circle cx="16" cy="17" r="1"/>', // Verkehr
+  '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M10 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/>', // Zusammenhalt
+];
+const zielIcon = i => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ZIEL_ICONS[i % ZIEL_ICONS.length]}</svg>`;
+
+// Ziel-Karten: Kachel mit Nummer und Piktogramm, aufklappbarer Text
+export function zielCards(ziele) {
+  return ziele.map((z, i) => `<details class="zk"${i === 0 ? ' open' : ''}><summary><span class="zk-tile"><span class="zk-num">${String(i + 1).padStart(2, '0')}</span>${zielIcon(i)}</span><span class="zk-title">${esc(z.title)}</span><span class="zk-plus" aria-hidden="true"></span></summary><div class="zk-body"><p>${esc(z.intro)}</p><p><b>Konkret wollen wir:</b></p><ul>${z.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></details>`).join('');
+}
+export function zieleTiles(ziele) {
+  return ziele.map((z, i) => `<a class="zt" href="${url('/ziele/')}#ziel-${i + 1}"><span class="zk-tile">${zielIcon(i)}</span><span class="zk-num">${String(i + 1).padStart(2, '0')}</span><span>${esc(z.title)}</span></a>`).join('');
+}

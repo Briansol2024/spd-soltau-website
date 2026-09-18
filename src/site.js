@@ -90,7 +90,7 @@ kt?.addEventListener('click', e => {
 const dlg = $('#person-dialog');
 const findPerson = name => [...(SPD.rat || []), ...(SPD.people || []), ...(SPD.vorstand || []), ...(SPD.fraktion || [])].find(p => p.name === name);
 document.addEventListener('click', e => {
-  const b = e.target.closest('.person'); if (!b || !dlg) return;
+  const b = e.target.closest('.person,.tm'); if (!b || !dlg) return;
   const p = findPerson(b.dataset.name); if (!p) return;
   $('#dlg-job').textContent = p.job || '';
   $('#dlg-name').textContent = p.name;
@@ -155,7 +155,7 @@ $$('form.mock').forEach(f => f.addEventListener('submit', e => {
 
 // ===== Bewegung =====
 const site = $('#site'), header = $('.header') || $('.app-header'), progress = $('#progress'), totop = $('#totop'), heroPh = $('.hero .ph');
-const RV_SEL = '.section-head,.page-head>*,.card,.event,.person,.box,.ziel,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll';
+const RV_SEL = '.section-head,.page-head>*,.card,.event,.ev-mini,.person,.tm,.box,.ziel,.zk,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll,.zinke>*';
 const io = new IntersectionObserver(entries => {
   const vis = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
   vis.forEach((e, i) => { const el = e.target; io.unobserve(el); setTimeout(() => { el.classList.add('in'); setTimeout(() => el.classList.add('done'), 800); }, REDUCED ? 0 : Math.min(i, 10) * 50); });
