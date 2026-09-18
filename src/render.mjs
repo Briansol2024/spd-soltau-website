@@ -41,7 +41,7 @@ export function newsCard(n) {
 }
 
 export function badge(t) {
-  const c = t === 'Öffentlich' ? 'badge-off' : t === 'Mitglieder' ? 'badge-mit' : '';
+  const c = t === 'Öffentlich' || t === 'Rat' ? 'badge-off' : t === 'Mitglieder' || t === 'Vorstand' ? 'badge-mit' : '';
   return `<span class="badge ${c}">${esc(t)}</span>`;
 }
 

@@ -33,10 +33,10 @@ export const NEWS = [
 
 export const EVENTS = [
   { id: 'e1', date: '2026-09-16', title: 'Sitzung der SPD-Ratsfraktion', ort: 'Altes Rathaus', zeit: '19:00 Uhr', typ: 'Fraktion', info: 'Vorbereitung der Ratssitzung am 1. Oktober.' },
-  { id: 'e2', date: '2026-10-01', title: 'Sitzung des Soltauer Stadtrates', ort: 'Alte Reithalle', zeit: '18:00 Uhr', typ: 'Öffentlich', info: 'Öffentliche Ratssitzung – Zuhören ausdrücklich erwünscht.' },
+  { id: 'e2', date: '2026-10-01', title: 'Sitzung des Soltauer Stadtrates', ort: 'Alte Reithalle', zeit: '18:00 Uhr', typ: 'Rat', info: 'Öffentliche Ratssitzung – Zuhören ausdrücklich erwünscht.' },
   { id: 'e3', date: '2026-10-05', title: 'Vorstandssitzung', ort: 'Roter Bahnhof', zeit: '19:00 Uhr', typ: 'Mitglieder', info: 'Sitzung des Ortsvereinsvorstands.' },
   { id: 'e4', date: '2026-10-10', title: 'Infostand auf dem Wochenmarkt', ort: 'Marktplatz', zeit: '9–12 Uhr', typ: 'Öffentlich', info: 'Kommen Sie vorbei – wir freuen uns auf Ihre Anliegen.' },
-  { id: 'e5', date: '2026-11-05', title: 'Konstituierende Sitzung des neuen Stadtrates', ort: 'Alte Reithalle', zeit: '18:00 Uhr', typ: 'Öffentlich', info: 'Beginn der Wahlperiode 2026–2031. Termin wird von der Stadt bestätigt.' },
+  { id: 'e5', date: '2026-11-05', title: 'Konstituierende Sitzung des neuen Stadtrates', ort: 'Alte Reithalle', zeit: '18:00 Uhr', typ: 'Rat', info: 'Beginn der Wahlperiode 2026–2031. Termin wird von der Stadt bestätigt.' },
   { id: 'e6', date: '2026-12-03', title: 'Mitgliederversammlung mit Jahresrückblick', ort: 'Roter Bahnhof', zeit: '19:00 Uhr', typ: 'Mitglieder', info: 'Rückblick auf das Wahljahr und Ausblick auf 2027.' },
 ];
 

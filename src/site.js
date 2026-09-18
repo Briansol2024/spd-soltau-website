@@ -30,7 +30,7 @@ if (allNews && SPD.news) {
 const onlyPublic = $('#only-public'), allEv = $('#all-events');
 if (onlyPublic && allEv && SPD.events) {
   onlyPublic.addEventListener('change', () => {
-    const list = SPD.events.filter(e => !onlyPublic.checked || e.typ === 'Öffentlich');
+    const list = SPD.events.filter(e => !onlyPublic.checked || e.typ === 'Öffentlich' || e.typ === 'Rat');
     allEv.innerHTML = list.length ? eventsGrouped(list, true) : '<p class="muted">Keine Termine in dieser Auswahl.</p>';
   });
 }

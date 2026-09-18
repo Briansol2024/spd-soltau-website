@@ -8,7 +8,7 @@ import { createClient, OAuthStrategy } from '@wix/sdk';
 import * as items from '@wix/wix-data-items-sdk';
 import * as members from '@wix/auto_sdk_members_members';
 import { esc, D, WD, MONS, MONL } from './render.mjs';
-import { RIGHTS, BOARD_TOPICS, evaluateSettings } from './lib/rights.mjs';
+import { RIGHTS, BOARD_TOPICS, VISIBILITY, evaluateSettings, canSee } from './lib/rights.mjs';
 import { makeDemoClient } from './demo.js';
 
 const SPD = window.SPD || {};
@@ -93,7 +93,7 @@ const fmtShort = s => { if (!s) return ''; const x = D(s); return `${WD[x.getDay
 const fmtWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr'; };
 const nameOf = id => people.find(p => p.memberId === id)?.name || '–';
 const dateBox = s => { const x = D(s); return `<div class="event-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div>`; };
-const badge = t => `<span class="badge ${t === 'Öffentlich' ? 'badge-off' : t === 'Mitglieder' ? 'badge-mit' : ''}">${esc(t)}</span>`;
+const badge = t => `<span class="badge ${t === 'Öffentlich' || t === 'Rat' ? 'badge-off' : t === 'Mitglieder' || t === 'Vorstand' ? 'badge-mit' : ''}">${esc(t)}</span>`;
 const nl2br = t => esc(t).replace(/\n/g, '<br>');
 const linkOf = d => d.url || (d.datei && String(d.datei).startsWith('wix:document://') ? 'https://docs.wixstatic.com/ugd/' + String(d.datei).replace(/^wix:document:\/\/v1\/ugd\//, '').split('/')[0] : d.datei) || '';
 const opt = (list, cur) => list.map(o => `<option${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('');
@@ -263,6 +263,8 @@ function renderPending() {
 async function finishLogin(sessionToken) {
   const oauthData = client.auth.generateOAuthData(REDIRECT, REDIRECT);
   store.set('spd-oauth', oauthData);
+  // Ziel merken (z. B. geteilter Link zu einer Helferliste) – die Weiterleitung über Wix verliert den #-Teil
+  if (location.hash && !/^#(registrieren|start)?$/.test(location.hash)) store.set('spd-return', location.hash);
   const { authUrl } = await client.auth.getAuthUrl(oauthData, { prompt: 'none', responseMode: 'query', sessionToken });
   location.href = authUrl;
 }
@@ -275,6 +277,7 @@ async function completeRedirect() {
   if (!oauthData) { renderAuth('login'); msg($('#l-msg'), 'Die Anmeldung konnte nicht abgeschlossen werden (Sitzungsdaten fehlen). Bitte noch einmal anmelden.'); return true; }
   try { const tokens = await client.auth.getMemberTokens(q.get('code'), q.get('state'), oauthData); client.auth.setTokens(tokens); saveTokens(); store.del('spd-oauth'); }
   catch (err) { renderAuth('login'); msg($('#l-msg'), 'Anmeldung fehlgeschlagen: ' + errText(err)); return true; }
+  const back = store.get('spd-return'); if (back) { store.del('spd-return'); history.replaceState(null, '', REDIRECT + back); }
   return false;
 }
 async function logout() {
@@ -290,7 +293,7 @@ async function loadMe() {
   const { member } = await client.members.getCurrentMember({ fieldsets: ['FULL'] });
   const c = member.contact || {}, p = member.profile || {};
   const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || p.nickname || member.loginEmail;
-  me = { id: member._id, name, email: member.loginEmail, rollen: [], vorstand: false, can: r => !!settings?.rights[r]?.has(me.id) };
+  me = { id: member._id, name, email: member.loginEmail, rollen: [], vorstand: false, can: r => !!settings?.rights[r]?.has(me.id), sees: k => canSee(settings, me.id, k) };
   await loadSettings();
   const mine = people.find(x => x.memberId === me.id);
   if (mine) { me.rollen = mine.rollen || []; me.vorstand = !!mine.vorstand; if (mine.name) me.name = mine.name; }
@@ -304,6 +307,9 @@ async function loadSettings() {
   settings = evaluateSettings(snaps, people);
 }
 const anyRight = () => RIGHTS.some(([k]) => me.can(k));
+const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitglieder: 'mitglieder' };
+const secVisible = k => (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege')) && (!SEC_VIS[k] || me.sees(SEC_VIS[k]));
+const visibleEvents = () => (SPD.events || []).filter(ev => me.sees('termine:' + (ev.typ || 'Öffentlich')));
 
 function renderShell() {
   const first = me.name.split(' ')[0] || me.name;
@@ -313,7 +319,7 @@ function renderShell() {
     <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)}${me.vorstand ? ' · Vorstand' : ''}${me.rollen.length && !me.vorstand ? ' · ' + esc(me.rollen.join(', ')) : ''}</p></div>
     <button class="btn btn-line" type="button" id="logout">Abmelden</button>
   </div>
-  <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege'))).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
+  <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => secVisible(k)).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
   <div id="mb-view" class="mb-view"></div>`);
   $('#logout').addEventListener('click', logout);
 }
@@ -322,18 +328,18 @@ async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
   if (['eingang', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
   if (key === 'push' || key === 'app-install') key = 'profil';
-  if (!RENDER[key] || (key === 'vorstand' && !anyRight()) || (key === 'beitraege' && !me.can('beitraege'))) key = 'start';
+  if (!RENDER[key] || !secVisible(key)) key = 'start';
   $$('#mb-nav .chip').forEach(a => a.setAttribute('aria-pressed', String(a.dataset.sec === key)));
   const v = $('#mb-view'); if (!v) return;
   v.innerHTML = '<p class="muted">Lade …</p>';
   try { await RENDER[key](v); } catch (err) { v.innerHTML = `<p class="note note-err">Das konnte nicht geladen werden: ${esc(errText(err))}</p>`; }
-  const sub = location.hash.split('/')[1]; if (sub) document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const sub = location.hash.split('/')[1]; if (sub && key !== 'vorstand') document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 const sectionHead = (title, extra = '') => `<div class="section-head"><h3 class="title">${title}</h3>${extra ? `<span class="muted small">${extra}</span>` : ''}</div>`;
 
 // ---------- Start: Überblick ----------
 async function secStart(v) {
-  const events = (SPD.events || []).slice(0, 3);
+  const events = visibleEvents().slice(0, 3);
   const [zusagen, umfragen, listen, helfer, docs, profiles] = await Promise.all([
     db.list('Zusagen').catch(() => []), db.list('Umfragen', { eq: { offen: true } }).catch(() => []), db.list('Helferlisten').catch(() => []),
     db.list('Helfer').catch(() => []), db.list('Dokumente', { desc: '_createdDate', limit: 3 }).catch(() => []), db.list('Profile').catch(() => []),
@@ -349,18 +355,18 @@ async function secStart(v) {
       ${events.length ? events.map(ev => { const mine = zusagen.find(z => z.eventId === ev.id && z.memberId === me.id); return `<a class="start-ev" href="#termine/ev-${esc(ev.id)}"><b>${esc(fmtShort(ev.date))}</b> ${esc(ev.title)} <span class="small muted">${esc(ev.zeit || '')}</span>${mine ? `<span class="badge ${mine.status === 'zusage' ? 'badge-mit' : ''}">${mine.status === 'zusage' ? 'zugesagt' : 'abgesagt'}</span>` : '<span class="badge">offen</span>'}</a>`; }).join('') : '<p class="muted small">Keine Termine eingetragen.</p>'}
       <a class="btn btn-schwarz btn-sm" href="#termine">Alle Termine</a>
     </div>
-    <div class="mb-card">
+    ${me.sees('umfragen') || me.sees('helfer') ? `<div class="mb-card">
       <h3>Mitmachen</h3>
-      <p class="small"><b>${umfragen.length}</b> offene Umfrage${umfragen.length === 1 ? '' : 'n'} · <b>${freeSlots}</b> freie Helferplätze</p>
-      ${umfragen.slice(0, 2).map(u => `<a class="start-ev" href="#umfragen/u-${esc(u._id)}">🗳️ ${esc(u.frage)}</a>`).join('')}
-      ${openLists.slice(0, 2).map(l => `<a class="start-ev" href="#termine/hl-${esc(l._id)}">🙋 ${esc(l.titel)} <span class="small muted">${esc(fmtShort(l.datum))}</span></a>`).join('')}
-      <div class="mb-actions"><a class="btn btn-schwarz btn-sm" href="#umfragen">Umfragen</a><a class="btn btn-line btn-sm" href="#termine/helferlisten">Helferlisten</a></div>
-    </div>
-    <div class="mb-card">
+      <p class="small">${me.sees('umfragen') ? `<b>${umfragen.length}</b> offene Umfrage${umfragen.length === 1 ? '' : 'n'}` : ''}${me.sees('umfragen') && me.sees('helfer') ? ' · ' : ''}${me.sees('helfer') ? `<b>${freeSlots}</b> freie Helferplätze` : ''}</p>
+      ${me.sees('umfragen') ? umfragen.slice(0, 2).map(u => `<a class="start-ev" href="#umfragen/u-${esc(u._id)}">🗳️ ${esc(u.frage)}</a>`).join('') : ''}
+      ${me.sees('helfer') ? openLists.slice(0, 2).map(l => `<a class="start-ev" href="#termine/hl-${esc(l._id)}">🙋 ${esc(l.titel)} <span class="small muted">${esc(fmtShort(l.datum))}</span></a>`).join('') : ''}
+      <div class="mb-actions">${me.sees('umfragen') ? '<a class="btn btn-schwarz btn-sm" href="#umfragen">Umfragen</a>' : ''}${me.sees('helfer') ? '<a class="btn btn-line btn-sm" href="#termine/helferlisten">Helferlisten</a>' : ''}</div>
+    </div>` : ''}
+    ${me.sees('dokumente') ? `<div class="mb-card">
       <h3>Neue Dokumente</h3>
       ${docs.length ? docs.map(d => `<a class="start-ev" href="${esc(linkOf(d) || '#dokumente')}" ${linkOf(d) ? 'target="_blank" rel="noopener"' : ''}>📄 ${esc(d.titel)} <span class="small muted">${esc(d.kategorie || '')}</span></a>`).join('') : '<p class="muted small">Noch keine Dokumente.</p>'}
       <a class="btn btn-schwarz btn-sm" href="#dokumente">Alle Dokumente</a>
-    </div>
+    </div>` : ''}
     ${(settings.snap.whatsapp?.gruppen || []).length ? `<div class="mb-card"><h3>Unsere WhatsApp-Gruppen</h3><p class="small muted">Die App schickt Push-Nachrichten – in den Gruppen läuft der Austausch. Termine, Helferlisten und Umfragen lassen sich mit einem Tipp dorthin teilen.</p>${settings.snap.whatsapp.gruppen.map(g => `<a class="start-ev" href="${esc(g.url)}" target="_blank" rel="noopener">${WA_ICON} ${esc(g.name)}<span class="badge" style="margin-left:auto">Beitreten</span></a>`).join('')}</div>` : ''}
     <div class="mb-card">
       <h3>Geburtstage</h3>
@@ -384,7 +390,7 @@ function upcomingBirthdays(profiles, days) {
 
 // ---------- Termine: Zu-/Absagen, Helferlisten, Fahrgemeinschaften ----------
 async function secTermine(v) {
-  const events = (SPD.events || []).slice(0, 40);
+  const events = visibleEvents().slice(0, 40);
   const [zusagen, listen, helfer, fahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => [])]);
   const today = todayIso();
   const ics = CFG.ics || {};
@@ -402,17 +408,17 @@ async function secTermine(v) {
       </div>
       <div class="mb-2">
         <div class="field"><label for="ev-ort">Ort</label><input id="ev-ort" name="ort" type="text" list="orte-termin" required value="Roter Bahnhof, Am Bahnhof 1t"><datalist id="orte-termin">${ORTE_TERMIN.map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-        <div class="field"><label for="ev-typ">Für wen?</label><select id="ev-typ" name="typ"><option value="Öffentlich">Öffentlich (alle Interessierten)</option><option value="Mitglieder">Nur Mitglieder</option><option value="Fraktion">Fraktion</option><option value="Vorstand">Vorstand</option></select></div>
+        <div class="field"><label for="ev-typ">Für wen?</label><select id="ev-typ" name="typ"><option value="Öffentlich">Öffentlich (alle Interessierten)</option><option value="Rat">Ratstermin (öffentlich)</option><option value="Mitglieder">Nur Mitglieder</option><option value="Fraktion">Fraktion</option><option value="Vorstand">Vorstand</option></select></div>
       </div>
       <div class="field"><label for="ev-text">Kurzbeschreibung (optional)</label><textarea id="ev-text" name="beschreibung" rows="2" maxlength="300"></textarea></div>
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Termin eintragen</button></div>
     </form></details>` : ''}
-  <section class="mb-sub" id="helferlisten">
+  ${me.sees('helfer') ? `<section class="mb-sub" id="helferlisten">
     ${sectionHead('Helferlisten', me.can('helfer') ? 'Du darfst Listen anlegen' : '')}
     <div id="hl-list">${listen.filter(l => !l.datum || l.datum >= today).map(l => helperList(l, helfer, events)).join('') || '<p class="muted small">Gerade werden keine Helfer*innen gesucht.</p>'}</div>
     ${me.can('helfer') ? `<details class="mb-details" id="hl-new"><summary>Neue Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
-  </section>
+  </section>` : ''}
   <section class="mb-sub" id="kalender">
     ${sectionHead('Kalender abonnieren', 'Termine automatisch im Handy-Kalender')}
     <p class="small">Einmal abonnieren – neue Termine erscheinen von selbst im Kalender (iPhone: Link antippen → „Abonnieren“; Android/Google: Kalender → „Per URL hinzufügen“).</p>
@@ -448,7 +454,7 @@ function eventCard(ev, zusagen, listen, helfer, fahrten) {
         <button type="button" class="btn btn-schwarz btn-sm" data-save-grund>Speichern</button>
       </div>
       <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
-      ${myLists.map(l => `<p class="small">🙋 <a href="#termine/hl-${esc(l._id)}">Helfer gesucht: ${esc(l.titel)}</a></p>`).join('')}
+      ${me.sees('helfer') ? myLists.map(l => `<p class="small">🙋 <a href="#termine/hl-${esc(l._id)}">Helfer gesucht: ${esc(l.titel)}</a></p>`).join('') : ''}
       ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
       <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
         <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} Platz${(r.plaetze || 1) === 1 ? '' : 'e'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
@@ -955,13 +961,26 @@ function wireInstall() {
 
 // ---------- Vorstand ----------
 async function secVorstand(v) {
-  const tabs = [me.can('freigaben') && ['eingang', 'Eingang'], me.can('verwaltung') && ['wer', 'Wer wird benachrichtigt?'], me.can('verwaltung') && ['rechte', 'Wer darf was?'], me.can('nachrichten') && ['nachricht', 'Nachricht an alle'], me.can('verwaltung') && ['whatsapp', 'WhatsApp-Gruppen']].filter(Boolean);
+  const panels = [
+    me.can('freigaben') && ['eingang', 'Eingang'],
+    me.can('verwaltung') && ['wer', 'Benachrichtigen'],
+    me.can('verwaltung') && ['rechte', 'Rechte'],
+    me.can('verwaltung') && ['sicht', 'Sichtbarkeit'],
+    me.can('nachrichten') && ['nachricht', 'Nachricht'],
+    me.can('verwaltung') && ['whatsapp', 'WhatsApp'],
+  ].filter(Boolean);
+  const wanted = (location.hash.split('/')[1] || '').replace(/-.*$/, '');
+  const cur = panels.find(([k]) => k === wanted)?.[0] || panels[0]?.[0];
   v.innerHTML = `
-  <nav class="mb-subnav">${tabs.map(([k, l]) => `<a href="#vorstand/${k}">${l}</a>`).join('')}</nav>
-  ${me.can('freigaben') ? `<section class="mb-sub" id="eingang">${sectionHead('Eingang', 'Anfragen, die per Push auf diesem Gerät angekommen sind')}<div id="inbox"><p class="muted">Lade …</p></div></section>` : ''}
-  ${me.can('verwaltung') ? `<section class="mb-sub" id="wer">${sectionHead('Wer wird benachrichtigt?', 'Push-Nachrichten an den Vorstand')}<div id="routing"></div></section>
-  <section class="mb-sub" id="rechte">${sectionHead('Wer darf was?', 'Rechte im Mitgliederbereich')}<div id="rights"></div></section>` : ''}
-  ${me.can('nachrichten') ? `<section class="mb-sub" id="nachricht">${sectionHead('Nachricht an alle', 'Push an alle, die Benachrichtigungen aktiviert haben')}
+  <nav class="mb-subnav" id="vs-nav">${panels.map(([k, l]) => `<a href="#vorstand/${k}" ${k === cur ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
+  <div id="vs-panel"></div>`;
+  const panel = $('#vs-panel');
+  if (cur === 'eingang') { panel.innerHTML = `${sectionHead('Eingang', 'Anfragen an den Vorstand – persönlich für dich abgelegt')}<div id="inbox"><p class="muted">Lade …</p></div>`; renderInbox(); }
+  if (cur === 'wer') { panel.innerHTML = `${sectionHead('Wer wird benachrichtigt?', 'Push-Nachrichten an den Vorstand')}<div id="routing"></div>`; renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät und den Vorgang in ihren Eingang (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.'); }
+  if (cur === 'rechte') { panel.innerHTML = `${sectionHead('Wer darf was?', 'Vorstand und Rechte im Mitgliederbereich')}<div id="rights"></div>`; renderMatrix('rights', [['vorstand', 'Vorstand', 'Wer zum Vorstand gehört. Der Push-Dienst setzt die Wix-Rolle „Vorstandsmitglied“ entsprechend.'], ...RIGHTS.map(([k, l]) => [k, l, ''])], k => k === 'vorstand' ? [...settings.board] : [...settings.rights[k]], k => k === 'vorstand' ? 'vorstand' : 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand. Vorstand und das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.'); }
+  if (cur === 'sicht') { panel.innerHTML = `${sectionHead('Wer sieht was?', 'Sichtbarkeit im Mitgliederbereich')}<div id="visibility"></div>`; renderVisibility(); }
+  if (cur === 'nachricht') {
+    panel.innerHTML = `${sectionHead('Nachricht an alle', 'Push an alle, die Benachrichtigungen aktiviert haben')}
     <form class="form mb-form" id="f-broadcast" novalidate>
       <div class="field"><label for="b-titel">Überschrift</label><input id="b-titel" type="text" required maxlength="60" placeholder="z. B. Mitgliederversammlung verschoben"></div>
       <div class="field"><label for="b-text">Text</label><textarea id="b-text" required maxlength="300" placeholder="Kurz und klar – max. 300 Zeichen"></textarea></div>
@@ -969,28 +988,60 @@ async function secVorstand(v) {
       <p class="note" id="b-msg" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Senden</button></div>
       <p id="b-wa" class="small" hidden>Dieselbe Nachricht auch in eine WhatsApp-Gruppe: <a class="btn btn-line btn-sm wa" href="#" target="_blank" rel="noopener">${WA_ICON}WhatsApp öffnen</a></p>
-    </form></section>` : ''}
-  ${me.can('verwaltung') ? `<section class="mb-sub" id="whatsapp">${sectionHead('WhatsApp-Gruppen', 'Einladungslinks für Mitglieder')}
+    </form>`;
+    $('#f-broadcast').addEventListener('submit', onBroadcast);
+  }
+  if (cur === 'whatsapp') {
+    panel.innerHTML = `${sectionHead('WhatsApp-Gruppen', 'Einladungslinks für Mitglieder')}
     <p class="small muted">Eine Zeile pro Gruppe: <b>Name | Einladungslink</b> (in WhatsApp: Gruppeninfo → „Per Link einladen“). Die Links sehen nur angemeldete Mitglieder – wer den Link hat, kann beitreten. Automatisch in Gruppen posten kann die App nicht (WhatsApp bietet dafür keine Schnittstelle); Termine, Helferlisten und Umfragen haben aber einen „WhatsApp“-Knopf, der den fertigen Text in die Gruppe schickt.</p>
     <form class="form mb-form" id="f-wa" novalidate>
       <div class="field"><label for="wa-list">Gruppen</label><textarea id="wa-list" rows="4" placeholder="Ortsverein | https://chat.whatsapp.com/…&#10;Fraktion | https://chat.whatsapp.com/…">${esc((settings.snap.whatsapp?.gruppen || []).map(g => `${g.name} | ${g.url}`).join('\n'))}</textarea></div>
       <p class="note" id="wa-msg" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Speichern</button></div>
-    </form></section>` : ''}`;
-  if (me.can('freigaben')) renderInbox();
-  if (me.can('verwaltung')) {
-    renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.');
-    renderMatrix('rights', [['vorstand', 'Vorstand', 'Wer zum Vorstand gehört. Der Push-Dienst setzt die Wix-Rolle „Vorstandsmitglied“ entsprechend.'], ...RIGHTS.map(([k, l]) => [k, l, ''])], k => k === 'vorstand' ? [...settings.board] : [...settings.rights[k]], k => k === 'vorstand' ? 'vorstand' : 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand. Vorstand und das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.');
+    </form>`;
+    $('#f-wa').addEventListener('submit', async e => {
+      e.preventDefault(); const f = e.target; const btn = f.querySelector('[type=submit]'); busy(btn, true);
+      const gruppen = $('#wa-list').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(x => x[0] && /^https:\/\/(chat\.whatsapp\.com|wa\.me)\//.test(x[1] || '')).map(([name, url]) => ({ name, url }));
+      try {
+        await db.insert('Benachrichtigungen', { title: `WhatsApp-Gruppen: ${gruppen.map(g => g.name).join(', ') || 'keine'}`, thema: 'whatsapp', gruppen, empfaenger: [], von: me.name });
+        await loadSettings(); msg($('#wa-msg'), `Gespeichert (${gruppen.length} Gruppe${gruppen.length === 1 ? '' : 'n'}).`, 'ok');
+      } catch (err) { msg($('#wa-msg'), 'Nicht gespeichert: ' + errText(err)); }
+      busy(btn, false);
+    });
   }
-  $('#f-broadcast')?.addEventListener('submit', onBroadcast);
-  $('#f-wa')?.addEventListener('submit', async e => {
-    e.preventDefault(); const f = e.target; const btn = f.querySelector('[type=submit]'); busy(btn, true);
-    const gruppen = $('#wa-list').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(x => x[0] && /^https:\/\/(chat\.whatsapp\.com|wa\.me)\//.test(x[1] || '')).map(([name, url]) => ({ name, url }));
+}
+// Sichtbarkeit: je Bereich/Termintyp „alle Mitglieder“, „nur Vorstand“ oder eine Auswahl von Personen
+function renderVisibility() {
+  const box = $('#visibility'); if (!box) return;
+  if (!people.length) { box.innerHTML = '<p class="note note-info">Die Mitgliederliste ist noch leer – sie wird vom Push-Dienst automatisch aus den Wix-Mitgliedern befüllt.</p>'; return; }
+  const nonBoard = people.filter(p => !settings.board.has(p.memberId));
+  box.innerHTML = `
+    <p class="small muted">Legt fest, was Mitglieder in der App angezeigt bekommen. Vorstand und Verwalter sehen immer alles. Hinweis: Das ist eine Anzeige-Einstellung in der App – Termine, die auf der öffentlichen Website stehen, bleiben dort natürlich sichtbar.</p>
+    <div class="vis-list">${VISIBILITY.map(([k, l]) => { const v = settings.sicht[k]; const sn = settings.snap['sicht:' + k]; return `
+      <div class="vis-row" data-key="${esc(k)}">
+        <div class="vis-label"><b>${esc(l)}</b>${sn ? `<span class="small muted">geändert ${esc(fmtWhen(sn._createdDate))} von ${esc(sn.von || '–')}</span>` : '<span class="small muted">Standard</span>'}</div>
+        <select class="vis-mode" aria-label="${esc(l)}: wer darf das sehen"><option value="alle" ${v.modus === 'alle' ? 'selected' : ''}>Alle Mitglieder</option><option value="vorstand" ${v.modus === 'vorstand' ? 'selected' : ''}>Nur Vorstand</option><option value="auswahl" ${v.modus === 'auswahl' ? 'selected' : ''}>Vorstand + ausgewählte Personen</option></select>
+        <div class="vis-people" ${v.modus === 'auswahl' ? '' : 'hidden'}>${nonBoard.map(p => `<label class="check"><input type="checkbox" data-member="${esc(p.memberId)}" ${v.ids.has(p.memberId) ? 'checked' : ''}> <span>${esc(p.name)}</span></label>`).join('') || '<span class="small muted">Alle Mitglieder gehören zum Vorstand.</span>'}</div>
+      </div>`; }).join('')}</div>
+    <p class="note" id="vis-msg" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot" type="button" id="vis-save">Speichern</button></div>`;
+  box.addEventListener('change', e => { const sel = e.target.closest('.vis-mode'); if (sel) sel.closest('.vis-row').querySelector('.vis-people').hidden = sel.value !== 'auswahl'; });
+  $('#vis-save').addEventListener('click', async () => {
+    const btn = $('#vis-save'); busy(btn, true); msg($('#vis-msg'), '');
     try {
-      await db.insert('Benachrichtigungen', { title: `WhatsApp-Gruppen: ${gruppen.map(g => g.name).join(', ') || 'keine'}`, thema: 'whatsapp', gruppen, empfaenger: [], von: me.name });
-      await loadSettings(); msg($('#wa-msg'), `Gespeichert (${gruppen.length} Gruppe${gruppen.length === 1 ? '' : 'n'}).`, 'ok');
-    } catch (err) { msg($('#wa-msg'), 'Nicht gespeichert: ' + errText(err)); }
-    busy(btn, false);
+      let n = 0;
+      for (const row of $$('.vis-row', box)) {
+        const k = row.dataset.key, v = settings.sicht[k];
+        const modus = row.querySelector('.vis-mode').value;
+        const ids = modus === 'auswahl' ? $$('input[data-member]', row).filter(c => c.checked).map(c => c.dataset.member) : [];
+        const same = modus === v.modus && ids.length === v.ids.size && ids.every(i => v.ids.has(i));
+        if (same) continue;
+        const label = VISIBILITY.find(x => x[0] === k)[1];
+        await db.insert('Benachrichtigungen', { title: `Sichtbarkeit ${label}: ${modus}${ids.length ? ' (' + ids.map(nameOf).join(', ') + ')' : ''}`, thema: 'sicht:' + k, modus, empfaenger: ids, namen: ids.map(nameOf), von: me.name }); n++;
+      }
+      await loadSettings(); renderVisibility();
+      msg($('#vis-msg'), n ? 'Gespeichert – gilt sofort für alle beim nächsten Öffnen.' : 'Nichts geändert.', 'ok');
+    } catch (err) { msg($('#vis-msg'), 'Speichern fehlgeschlagen: ' + errText(err)); busy(btn, false); }
   });
 }
 async function renderInbox() {
@@ -1001,17 +1052,22 @@ async function renderInbox() {
   try { remote = (await db.list('Eingang', { desc: '_createdDate', limit: 100 })).map(r => ({ id: r.key || r._id, _id: r._id, title: r.title, body: r.body, data: { typ: r.typ, id: r.key, ...(r.payload ? JSON.parse(r.payload) : {}), details: r.details || {} }, receivedAt: new Date(r._createdDate).getTime(), done: r.status && r.status !== 'offen' ? r.status : '', remote: true })); } catch (e) { remote = []; }
   const local = await inboxAll();
   const seen = new Set(remote.map(r => r.id));
-  const list = [...remote, ...local.filter(l => !seen.has(l.id))].sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 50);
-  if (!list.length) { box.innerHTML = '<p class="muted">Noch nichts eingegangen. Anfragen erscheinen hier, sobald sie per Push auf diesem Gerät ankommen.</p>'; return; }
+  const list = [...remote, ...local.filter(l => !seen.has(l.id))].sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 100);
   const LABEL = { registrierung: 'Registrierung', buchung: 'Buchung', anfrage: 'Anfrage' };
-  box.innerHTML = list.map(it => {
+  const TABS = [['registrierung', 'Mitgliederanfragen'], ['buchung', 'Mietanfragen'], ['anfrage', 'Allgemeine Anfragen']];
+  const count = t => list.filter(it => (it.data?.typ || 'anfrage') === t && !it.done).length;
+  const wantedTab = (location.hash.split('/')[1] || '').split('-')[1];
+  const tab = TABS.some(([k]) => k === wantedTab) ? wantedTab : (TABS.find(([k]) => count(k))?.[0] || 'registrierung');
+  const showDone = !!renderInbox.showDone;
+  const shown = list.filter(it => (it.data?.typ || 'anfrage') === tab && (showDone || !it.done));
+  box.innerHTML = `<nav class="inbox-tabs">${TABS.map(([k, l]) => `<a href="#vorstand/eingang-${k}" class="chip" aria-pressed="${k === tab}">${l}${count(k) ? ` <b>${count(k)}</b>` : ''}</a>`).join('')}<label class="check small"><input type="checkbox" id="inbox-done" ${showDone ? 'checked' : ''}> <span>Erledigte anzeigen</span></label></nav>` + (shown.length ? '' : `<p class="muted">${showDone ? 'Nichts in diesem Bereich.' : 'Nichts Offenes in diesem Bereich.'}</p>`) + shown.map(it => {
     const d = it.data || {};
-    const actions = it.done ? `<span class="badge">${esc(it.done)}</span>` : d.typ === 'registrierung'
+    const actions = it.done ? '' : d.typ === 'registrierung'
       ? `<button class="btn btn-rot btn-sm" data-act="mitglied_freigeben">Freischalten</button><button class="btn btn-line btn-sm" data-act="mitglied_ablehnen">Ablehnen</button>`
       : d.typ === 'buchung' ? `<button class="btn btn-rot btn-sm" data-act="buchung_annehmen">Annehmen</button><button class="btn btn-line btn-sm" data-act="buchung_ablehnen">Ablehnen</button>`
         : d.typ === 'anfrage' ? `<button class="btn btn-rot btn-sm" data-act="anfrage_erledigt">Erledigt</button>` : '';
     return `<article class="inbox-item" data-id="${esc(it.id)}">
-      <div><span class="tag ${d.typ === 'buchung' ? 'tag-schwarz' : ''}">${esc(LABEL[d.typ] || d.typ || 'Info')}</span> <span class="small muted">${esc(fmtWhen(it.receivedAt))}</span></div>
+      <div><span class="tag ${d.typ === 'buchung' ? 'tag-schwarz' : ''}">${esc(LABEL[d.typ] || d.typ || 'Info')}</span> <span class="small muted">${esc(fmtWhen(it.receivedAt))}</span>${it.done ? ` <span class="badge">${esc(it.done)}</span>` : ''}</div>
       <h4>${esc(it.title || '')}</h4>
       <p class="small">${nl2br(it.body || '')}</p>
       ${d.details ? `<dl class="inbox-details">${Object.entries(d.details).filter(([, val]) => val).map(([k, val]) => `<dt>${esc(k)}</dt><dd>${/@/.test(val) ? `<a href="mailto:${esc(val)}">${esc(val)}</a>` : /^[\d +\/-]{6,}$/.test(val) ? `<a href="tel:${esc(val)}">${esc(val)}</a>` : nl2br(val)}</dd>`).join('')}</dl>` : ''}
@@ -1019,6 +1075,7 @@ async function renderInbox() {
       <p class="note" hidden></p>
     </article>`;
   }).join('');
+  $('#inbox-done')?.addEventListener('change', e => { renderInbox.showDone = e.target.checked; renderInbox(); });
   box.onclick = async e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const art = b.closest('.inbox-item'); const it = list.find(x => x.id === art.dataset.id); if (!it) return;

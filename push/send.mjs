@@ -10,7 +10,8 @@
 //   node push/send.mjs --dry      nichts senden, nur zeigen, was gesendet würde
 import webpush from 'web-push';
 import { adminClient, memberClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
-import { evaluateSettings } from '../src/lib/rights.mjs';
+import { evaluateSettings, canSee } from '../src/lib/rights.mjs';
+import { eventType, isPublicType } from '../src/lib/wix.mjs';
 
 const DRY = process.argv.includes('--dry');
 const TEST = process.argv.includes('--test');
@@ -81,6 +82,8 @@ async function send(subs, payload, key, logKeys) {
 const byTopic = (subs, topic) => subs.filter(s => (s.themen || []).includes(topic));
 const byMembers = (subs, ids) => subs.filter(s => s.memberId && ids.includes(s.memberId));
 const memberSubs = subs => subs.filter(s => !!s.memberId);
+// nur Geräte von Mitgliedern, die den Bereich/Termintyp laut „Wer sieht was?“ sehen dürfen
+const whoSees = (st, subs, key) => memberSubs(subs).filter(s => canSee(st, s.memberId, key));
 const url = p => (SITE ? SITE : '') + p;
 const INBOX = '/mitglieder/#vorstand/eingang';
 
@@ -327,7 +330,7 @@ async function createBlogPost(p) {
 }
 
 // ---------- Inhalte: Beiträge, Termine, Erinnerungen ----------
-async function contentPushes(subs, logKeys) {
+async function contentPushes(st, subs, logKeys) {
   // Neue Blog-Beiträge (in den letzten 48 Stunden veröffentlicht)
   try {
     const res = await client.posts.queryPosts().descending('firstPublishedDate').limit(10).find();
@@ -348,8 +351,9 @@ async function contentPushes(subs, logKeys) {
       const date = isoDate(start); if (date < today) continue;
       const when = new Date(start).toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       const ort = e.location?.name ? ' · ' + e.location.name : '';
-      const isPublic = !/fraktion|mitglieder|vorstand|intern/i.test(e.title || '');
-      const target = isPublic ? byTopic(subs, 'termine') : byTopic(memberSubs(subs), 'termine');
+      const typ = eventType(e.title, e.shortDescription);
+      // öffentliche Termine an alle Abonnenten des Themas, interne nur an Mitglieder, die diesen Termintyp sehen dürfen
+      const target = byTopic(isPublicType(typ) ? subs : whoSees(st, subs, 'termine:' + typ), 'termine');
       const created = new Date(e._createdDate || 0).getTime();
       const keyNew = 'event:' + e._id;
       if (NOW - created <= 48 * H && !logKeys.has(keyNew)) await send(target, { title: 'Neuer Termin: ' + e.title, body: when + ' Uhr' + ort, tag: keyNew, url: url('/termine/') }, keyNew, logKeys);
@@ -360,21 +364,22 @@ async function contentPushes(subs, logKeys) {
 }
 
 // ---------- Mitglieder-Infos: neue Umfragen, Helferlisten, Dokumente, Ratsvorbereitung ----------
-async function memberPushes(subs, logKeys) {
-  const to = byTopic(memberSubs(subs), 'mitglieder');
+async function memberPushes(st, subs, logKeys) {
+  const to = key => byTopic(whoSees(st, subs, key), 'mitglieder');
   const recent = it => NOW - new Date(it._createdDate || 0).getTime() <= 48 * H;
   const sources = [
-    ['Umfragen', 'umfrage', u => ({ title: 'Neue Umfrage: ' + u.frage, body: (u.beschreibung || 'Jetzt abstimmen im Mitgliederbereich.').slice(0, 140), url: url('/mitglieder/#umfragen') })],
-    ['UmfragenOeffentlich', 'umfrage', u => ({ title: 'Neue Umfrage: ' + u.frage, body: 'Läuft auch öffentlich auf der Startseite – Auswertung intern.', url: url('/mitglieder/#umfragen') })],
+    ['Umfragen', 'umfragen', u => ({ title: 'Neue Umfrage: ' + u.frage, body: (u.beschreibung || 'Jetzt abstimmen im Mitgliederbereich.').slice(0, 140), url: url('/mitglieder/#umfragen') })],
+    ['UmfragenOeffentlich', 'umfragen', u => ({ title: 'Neue Umfrage: ' + u.frage, body: 'Läuft auch öffentlich auf der Startseite – Auswertung intern.', url: url('/mitglieder/#umfragen') })],
     ['Helferlisten', 'helfer', l => ({ title: 'Helfer gesucht: ' + l.titel, body: [l.datum ? fmtDe(l.datum + 'T12:00:00').slice(0, 10) : '', l.ort, (l.schichten || []).map(s => s.zeit).join(', ')].filter(Boolean).join(' · '), url: url('/mitglieder/#termine/helferlisten') })],
-    ['Dokumente', 'dokument', d => ({ title: 'Neues Dokument: ' + d.titel, body: [d.kategorie, d.beschreibung].filter(Boolean).join(' – ').slice(0, 140), url: url('/mitglieder/#dokumente') })],
+    ['Dokumente', 'dokumente', d => ({ title: 'Neues Dokument: ' + d.titel, body: [d.kategorie, d.beschreibung].filter(Boolean).join(' – ').slice(0, 140), url: url('/mitglieder/#dokumente') })],
     ['Ratsvorbereitung', 'rat', r => ({ title: 'Ratsvorbereitung: ' + (r.titel || r.gremium || 'Sitzung'), body: `${r.gremium || ''} am ${r.sitzung ? fmtDe(r.sitzung + 'T12:00:00').slice(0, 10) : ''} – ${(r.tops || []).length} Tagesordnungspunkte mit Einordnung`, url: url('/mitglieder/#rat') })],
   ];
-  for (const [col, prefix, make] of sources) {
+  const PREFIX = { umfragen: 'umfrage', helfer: 'helfer', dokumente: 'dokument', rat: 'rat' };
+  for (const [col, vis, make] of sources) {
     try {
       for (const it of (await queryAll(client, col, q => q.descending('_createdDate'))).filter(recent)) {
-        const key = `${prefix}:${it._id}`; if (logKeys.has(key)) continue;
-        await send(to, { ...make(it), tag: key }, key, logKeys);
+        const key = `${PREFIX[vis]}:${it._id}`; if (logKeys.has(key)) continue;
+        await send(to(vis), { ...make(it), tag: key }, key, logKeys);
       }
     } catch (e) { log(`${col}:`, e.message); }
   }
@@ -465,8 +470,8 @@ async function boardPushes(subs, pending, routing, logKeys) {
   await syncBoardRole(st, approved);
   await moderate(st);
   await processActions(st, subs, logKeys);
-  await contentPushes(subs, logKeys);
-  await memberPushes(subs, logKeys);
+  await contentPushes(st, subs, logKeys);
+  await memberPushes(st, subs, logKeys);
   await boardPushes(subs, pending, st.routing, logKeys);
   log('fertig', stats);
 })().catch(e => { console.error('Push-Dienst abgebrochen:', e.message, e.details ? JSON.stringify(e.details).slice(0, 300) : ''); process.exit(1); });

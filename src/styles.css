@@ -762,8 +762,22 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .mb-nav .chip{white-space:nowrap;flex:0 0 auto}
 .mb-view{min-height:40vh}
 .mb-sub{padding-top:36px;margin-top:36px;border-top:2px solid var(--schwarz)}
-.mb-subnav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
-.mb-subnav a{font:700 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--schwarz);text-decoration:none;border-bottom:2px solid var(--rot);padding-bottom:4px}
+.mb-subnav{display:flex;gap:0;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--linie)}
+.mb-subnav a{font:700 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:10px 14px 8px;margin-bottom:-2px;border-bottom:3px solid transparent;white-space:nowrap}
+.mb-subnav a:hover{color:var(--schwarz)}
+.mb-subnav a[aria-current]{color:var(--schwarz);border-bottom-color:var(--rot)}
+.inbox-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.inbox-tabs .chip{text-decoration:none;font-size:13px;padding:7px 11px}
+.inbox-tabs .chip b{display:inline-block;min-width:18px;padding:2px 5px;margin-left:4px;border-radius:9px;background:var(--rot);color:#fff;font:700 11px/1 var(--display);text-align:center}
+.inbox-tabs .chip[aria-pressed="true"] b{background:#fff;color:var(--schwarz)}
+.inbox-tabs .check{margin-left:auto;gap:6px}
+.vis-list{display:grid;gap:10px;margin:12px 0}
+.vis-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:10px 12px;border:1px solid var(--linie);background:#fff}
+.vis-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vis-mode{padding:8px 10px;border:2px solid var(--schwarz);background:#fff;font:inherit;font-size:14px;max-width:100%}
+.vis-people{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 16px;padding-top:6px;border-top:1px dashed var(--linie)}
+.vis-people .check{gap:6px;font-size:14px}
+@container site (max-width:560px){.vis-row{grid-template-columns:1fr}.inbox-tabs .check{margin-left:0}}
 .start-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 @container site (max-width:760px){.start-grid{grid-template-columns:minmax(0,1fr)}}
 .start-ev{display:flex;gap:8px;align-items:center;flex-wrap:wrap;text-decoration:none;color:var(--ink);padding:8px 0;border-top:1px solid var(--linie);font-size:15px}

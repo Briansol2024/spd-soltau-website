@@ -9,18 +9,18 @@ Der Push-Dienst ist ein kleines Node-Skript (`send.mjs`), das regelmäßig läuf
 | Thema | Wer bekommt es | Auslöser |
 |---|---|---|
 | Aktuelles | alle Geräte mit Thema „Aktuelles“ | neuer Blog-Beitrag bei Wix (in den letzten 48 h veröffentlicht) |
-| Termine | alle Geräte mit Thema „Termine“ (Mitglieder-Termine nur an angemeldete Mitglieder) | neuer Termin bei Wix Events; Erinnerung am Vortag ab 17 Uhr |
+| Termine | alle Geräte mit Thema „Termine“ – öffentliche und Ratstermine an alle, Mitglieder-/Fraktions-/Vorstandstermine nur an Mitglieder, die den Termintyp laut „Wer sieht was?“ sehen dürfen | neuer Termin bei Wix Events; Erinnerung am Vortag ab 17 Uhr |
 | Registrierungsanfrage | Vorstand laut „Wer wird benachrichtigt?“ | neues Mitglied wartet auf Freigabe |
 | Buchungsanfrage | Vorstand laut „Wer wird benachrichtigt?“ | neue Anfrage über `/roter-bahnhof/` (Sammlung Buchungen, Status „offen“) |
 | Zu-/Absage | Vorstand laut „Wer wird benachrichtigt?“ | Mitglied hat in der App zu- oder abgesagt |
 | Kontakt-/Mitgliedsanfrage | Vorstand laut „Wer wird benachrichtigt?“ | Formular auf der Website abgeschickt (Sammlung Anfragen) |
 | Geburtstag / Jubiläum | Vorstand laut „Wer wird benachrichtigt?“ | morgens ab 8 Uhr, aus den freiwilligen Profilangaben (Geburtstag freigegeben, Eintrittsjahr) |
-| Mitglieder-Infos | angemeldete Mitglieder mit Thema „Mitglieder-Infos“ | neue Umfrage, Helferliste, Dokument, Ratsvorbereitung |
+| Mitglieder-Infos | angemeldete Mitglieder mit Thema „Mitglieder-Infos“, die den Bereich laut „Wer sieht was?“ sehen dürfen | neue Umfrage, Helferliste, Dokument, Ratsvorbereitung |
 | Nachricht | alle Mitglieder oder alle Abonnent*innen | Vorstand schreibt in der App unter „Nachricht an alle“ |
 
 Aktionen aus der App, die der Dienst bei Wix ausführt (nur mit dem jeweiligen Recht): Registrierung freischalten/ablehnen, Buchung annehmen/ablehnen, Anfrage erledigen, Nachricht senden, **Termin anlegen/absagen (Wix Events)**, **Beitrag anlegen/veröffentlichen (Wix Blog, Titelbild in die Medienverwaltung)**, Vorstand ↔ Wix-Rolle abgleichen.
 
-Jede Nachricht wird in **PushLog** vermerkt – nichts geht doppelt raus. Einstellungen aus „Wer wird benachrichtigt?“ und „Wer darf was?“ zählen nur, wenn sie jemand mit dem Recht „Verwaltung“ gespeichert hat (Standard: Vorstand, Wix-Rolle „Vorstandsmitglied“). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht. Der Dienst prüft außerdem die Rechte: Umfragen, Helferlisten, Dokumente und Ratsvorbereitungen von Mitgliedern ohne das jeweilige Recht werden entfernt, Aktionen ohne Recht abgelehnt.
+Jede Nachricht wird in **PushLog** vermerkt – nichts geht doppelt raus. Einstellungen aus „Wer wird benachrichtigt?“, „Wer darf was?“ und „Wer sieht was?“ zählen nur, wenn sie jemand mit dem Recht „Verwaltung“ gespeichert hat (Standard: Vorstand, Wix-Rolle „Vorstandsmitglied“). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht. Der Dienst prüft außerdem die Rechte: Umfragen, Helferlisten, Dokumente und Ratsvorbereitungen von Mitgliedern ohne das jeweilige Recht werden entfernt, Aktionen ohne Recht abgelehnt.
 
 ## Einrichtung (einmalig)
 

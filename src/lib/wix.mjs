@@ -148,11 +148,16 @@ export async function fetchNews(client) {
   return out;
 }
 
-// Terminart aus Titel und Kurzbeschreibung (App-Termine tragen dort z. B. „Nur für Mitglieder“)
-function eventType(title = '', info = '') {
+// Terminarten: Öffentlich und Rat sind für alle da, Mitglieder/Fraktion/Vorstand intern.
+// Erkennung aus Titel und Kurzbeschreibung (App-Termine tragen dort z. B. „Nur für Mitglieder“).
+export const EVENT_TYPES = ['Öffentlich', 'Rat', 'Mitglieder', 'Fraktion', 'Vorstand'];
+export const isPublicType = t => t === 'Öffentlich' || t === 'Rat';
+export function eventType(title = '', info = '') {
   const t = `${title} ${info}`;
+  if (/vorstand/i.test(t)) return 'Vorstand';
   if (/fraktion/i.test(t)) return 'Fraktion';
-  if (/vorstand|mitglieder|klausur/i.test(t)) return 'Mitglieder';
+  if (/mitglieder|klausur|intern/i.test(t)) return 'Mitglieder';
+  if (/stadtrat|ratssitzung|rat|ausschuss|VA/i.test(t)) return 'Rat';
   return 'Öffentlich';
 }
 

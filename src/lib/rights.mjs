@@ -32,8 +32,25 @@ export const BOARD_TOPICS = [
   ['geburtstag', 'Geburtstage und Jubiläen', 'Ein Mitglied hat heute Geburtstag oder ein rundes Mitgliedsjubiläum.'],
 ];
 
+// Sichtbarkeit: was ein Mitglied im Mitgliederbereich zu sehen bekommt (Standard: alle Mitglieder, Vorstandstermine nur Vorstand).
+// Modus je Schlüssel: 'alle' | 'vorstand' | 'auswahl' (dann gilt die Liste empfaenger). Vorstand und Verwalter sehen immer alles.
+export const VISIBILITY = [
+  ['termine:Öffentlich', 'Öffentliche Termine'],
+  ['termine:Rat', 'Ratstermine (Rat, Ausschüsse)'],
+  ['termine:Mitglieder', 'Mitgliedertermine'],
+  ['termine:Fraktion', 'Fraktionstermine'],
+  ['termine:Vorstand', 'Vorstandstermine'],
+  ['helfer', 'Helferlisten'],
+  ['umfragen', 'Umfragen'],
+  ['dokumente', 'Dokumente'],
+  ['rat', 'Ratsvorbereitung'],
+  ['mitglieder', 'Mitgliederverzeichnis'],
+];
+export const VISIBILITY_DEFAULT = { 'termine:Vorstand': 'vorstand' };
+
 export const RIGHT_KEYS = RIGHTS.map(r => r[0]);
 export const TOPIC_KEYS = BOARD_TOPICS.map(t => t[0]);
+export const VIS_KEYS = VISIBILITY.map(v => v[0]);
 
 // snaps: alle Schnappschüsse, neueste zuerst (_createdDate absteigend); people: AppMitglieder (memberId, vorstand = Wix-Rolle)
 // Ergebnis: { board:Set (wirksamer Vorstand), wixBoard:Set, rights:{key:Set}, routing:{topic:string[]}, snap:{thema:item} }
@@ -64,8 +81,24 @@ export function evaluateSettings(snaps, people) {
   }
   const routing = {};
   for (const k of TOPIC_KEYS) { const s = l3.get(k); routing[k] = s ? clean(s.empfaenger) : [...board]; }
+  const sicht = {};
+  for (const k of VIS_KEYS) {
+    const s = l3.get('sicht:' + k);
+    const modus = s ? (s.modus || 'alle') : (VISIBILITY_DEFAULT[k] || 'alle');
+    sicht[k] = { modus, ids: new Set(modus === 'auswahl' ? clean(s ? s.empfaenger : []) : []) };
+  }
   const snap = {}; for (const [k, v] of l3) snap[k] = v;
-  return { board, wixBoard, rights, routing, snap, trusted };
+  return { board, wixBoard, rights, routing, sicht, snap, trusted };
 }
 
 export const can = (settings, memberId, right) => !!(settings && settings.rights[right] && settings.rights[right].has(memberId));
+// Darf dieses Mitglied den Bereich/Termintyp sehen? Vorstand und Verwalter sehen immer alles.
+export function canSee(settings, memberId, key) {
+  if (!settings) return true;
+  if (settings.board.has(memberId) || settings.rights.verwaltung?.has(memberId)) return true;
+  const v = settings.sicht[key];
+  if (!v) return true;
+  if (v.modus === 'alle') return true;
+  if (v.modus === 'vorstand') return false;
+  return v.ids.has(memberId);
+}

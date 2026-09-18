@@ -23,6 +23,7 @@ export function makeDemoClient(SPD) {
     Benachrichtigungen: [
       { _id: uid(), _owner: ME, _createdDate: daysAgo(3), thema: 'registrierung', empfaenger: [ME, ids[1]], namen: ['Brian Weber', people[1].name], von: 'Brian Weber' },
       { _id: uid(), _owner: ME, _createdDate: daysAgo(3), thema: 'recht:umfragen', empfaenger: [ME, ids[1], ids[2]], namen: ['Brian Weber', people[1].name, people[2].name], von: 'Brian Weber' },
+      { _id: uid(), _owner: ME, _createdDate: daysAgo(2), thema: 'sicht:rat', modus: 'auswahl', empfaenger: ids.slice(5, 11), namen: people.slice(5, 11).map(p => p.name), von: 'Brian Weber' },
       { _id: uid(), _owner: ME, _createdDate: daysAgo(3), thema: 'whatsapp', empfaenger: [], gruppen: [{ name: 'SPD Soltau – Mitglieder', url: 'https://chat.whatsapp.com/BEISPIEL1' }, { name: 'Ratsfraktion', url: 'https://chat.whatsapp.com/BEISPIEL2' }], von: 'Brian Weber' },
     ],
     Zusagen: [
@@ -113,6 +114,7 @@ export function makeDemoClient(SPD) {
   const inbox = [
     { id: 'demo-in-1', title: 'Neue Registrierungsanfrage', body: 'Nina Beispiel (nina@example.com) möchte in den Mitgliederbereich.', receivedAt: Date.now() - 3600e3, done: '', data: { typ: 'registrierung', id: 'demo-in-1', memberId: 'demo-neu', name: 'Nina Beispiel', details: { Name: 'Nina Beispiel', 'E-Mail': 'nina@example.com', Registriert: 'heute, 09:12 Uhr' } } },
     { id: 'demo-in-2', title: 'Buchungsanfrage Roter Bahnhof', body: 'TSV Soltau (Jugendabteilung): 10.10.2026 18:00–21:00 Uhr – Elternabend', receivedAt: Date.now() - 7200e3, done: '', data: { typ: 'buchung', id: 'demo-in-2', buchungId: 'demo-b1', details: { Name: 'Petra Muster', 'Verein/Gruppe': 'TSV Soltau', Wann: '10.10.2026 18:00–21:00 Uhr', Anlass: 'Elternabend', Personen: '25', 'E-Mail': 'petra@example.com', Telefon: '05191 000000' } } },
+    { id: 'demo-in-4', title: 'Mitgliedsantrag über die Website', body: 'Lea Neumann möchte SPD-Mitglied werden.', receivedAt: Date.now() - 5400e3, done: '', data: { typ: 'anfrage', id: 'demo-in-4', anfrageId: 'demo-a2', details: { Art: 'Mitglied werden', Name: 'Lea Neumann', 'E-Mail': 'lea@example.com', Telefon: '0170 0000000', Nachricht: 'Ich bin neu in Soltau und möchte mich einbringen – gern beim nächsten Stammtisch kennenlernen.' } } },
     { id: 'demo-in-3', title: 'Anfrage über die Website', body: 'Max Mustermann: Wann wird der Radweg nach Harber saniert?', receivedAt: Date.now() - 86400e3, done: 'Erledigt', data: { typ: 'anfrage', id: 'demo-in-3', anfrageId: 'demo-a1', details: { Art: 'Kontakt', Thema: 'Verkehr', Name: 'Max Mustermann', 'E-Mail': 'max@example.com', Nachricht: 'Wann wird der Radweg nach Harber saniert?' } } },
   ];
   return { items, members, auth, demo: true, inbox, ME };

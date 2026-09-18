@@ -64,19 +64,26 @@ und der Push-Dienst (`push/README.md`).
 **Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
 Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·
-Vorstand (Eingang, Wer wird benachrichtigt?, Wer darf was?, Nachricht an alle, WhatsApp-Gruppen).
+Vorstand (Reiter: Eingang, Benachrichtigen, Rechte, Sichtbarkeit, Nachricht, WhatsApp).
 
 **Rechte:** Standard = der gesamte Vorstand darf alles. Unter Vorstand → „Wer darf was?“ legt man fest, **wer zum Vorstand gehört** und wer je Recht
 (Beiträge schreiben, Termine anlegen, Umfragen, Helferlisten, Dokumente, Ratsvorbereitung, Nachrichten, Eingang, Verwaltung) etwas darf – alles in der App,
 nichts im Wix-Dashboard. Der Push-Dienst spiegelt den Vorstand in die Wix-Rolle „Vorstandsmitglied“ und prüft die Rechte ebenfalls (Einträge ohne Recht werden
 entfernt). Startvorstand beim allerersten Lauf: `VORSTAND_EMAILS` in `.env` (wird automatisch freigeschaltet und als Vorstand gesetzt). Logik: `src/lib/rights.mjs`.
 
+**Sichtbarkeit („Wer sieht was?“):** Unter Vorstand → Sichtbarkeit legt man je Bereich fest, was normale Mitglieder in der App sehen: Termine getrennt nach
+Typ (Öffentlich, Rat, Mitglieder, Fraktion, Vorstand – der Typ ergibt sich aus Titel/Beschreibung des Wix-Termins bzw. der Auswahl beim Anlegen in der App),
+Helferlisten, Umfragen, Dokumente, Ratsvorbereitung, Mitgliederverzeichnis. Je Bereich: *Alle Mitglieder*, *Nur Vorstand* oder *Vorstand + ausgewählte Personen*.
+Standard: alles für alle, Vorstandstermine nur Vorstand. Vorstand und Verwalter sehen immer alles; der Push-Dienst richtet sich bei „Neuer Termin“ und
+„Mitglieder-Infos“ nach derselben Einstellung. Öffentliche Website und ICS-Feed zeigen weiterhin nur öffentliche Termine (Öffentlich, Rat).
+
 **Beiträge und Termine aus der App:** Wer das Recht hat, schreibt unter „Beiträge“ einen Beitrag (Überschrift, Anriss, Text, Kategorie, Titelbild) oder legt unter
 „Termine“ einen Termin an bzw. sagt einen ab. Der Push-Dienst trägt das innerhalb weniger Minuten bei Wix Blog bzw. Wix Events ein; die Website übernimmt es beim
 nächsten Bau (alle 30 Minuten).
 
 **Eingang:** Registrierungs-, Buchungs- und Kontaktanfragen landen als persönliche Kopie bei jeder zuständigen Person (Sammlung `Eingang`, nur die jeweilige
-Person kann ihre Einträge lesen) – zusätzlich zur Push-Nachricht. Freischalten/Annehmen/Erledigen direkt dort.
+Person kann ihre Einträge lesen) – zusätzlich zur Push-Nachricht. Drei Reiter: **Mitgliederanfragen** (Registrierungen), **Mietanfragen** (Roter Bahnhof),
+**Allgemeine Anfragen** (Kontakt-/Mitmachen-Formular), jeweils mit Zähler der offenen Vorgänge; Erledigtes lässt sich einblenden.
 
 **WhatsApp:** In Gruppen posten kann die App nicht automatisch (WhatsApp hat dafür keine Schnittstelle). Stattdessen: „WhatsApp“-Knopf an Terminen, Helferlisten,
 Umfragen, Dokumenten und Nachrichten – öffnet WhatsApp mit dem fertigen Text, Gruppe auswählen, abschicken. Einladungslinks der Gruppen pflegt der Vorstand
