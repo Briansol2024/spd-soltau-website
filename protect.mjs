@@ -5,12 +5,18 @@
 
 import { spawnSync } from 'node:child_process';
 import { cp, rm, mkdir } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(__dirname, 'dist');
 const OUT = path.join(__dirname, 'dist-protected');
+// Passwort aus .env, falls nicht als Umgebungsvariable gesetzt
+if (!process.env.PREVIEW_PASSWORD && existsSync(path.join(__dirname, '.env'))) {
+  const m = readFileSync(path.join(__dirname, '.env'), 'utf8').match(/^\s*PREVIEW_PASSWORD\s*=\s*(.*?)\s*$/m);
+  if (m) process.env.PREVIEW_PASSWORD = m[1].replace(/^"(.*)"$/, '$1');
+}
 const pw = process.env.PREVIEW_PASSWORD;
 
 await rm(OUT, { recursive: true, force: true });

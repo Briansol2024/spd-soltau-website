@@ -204,3 +204,43 @@ document.addEventListener('click', e => {
   const t = document.querySelector(a.getAttribute('href')); if (!t) return;
   e.preventDefault(); t.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
 });
+
+// ---------- App: Service Worker (installierbar, offline, Push) ----------
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register(new URL(`${SPD.base || '.'}/sw.js`, location.href)).catch(() => { /* z. B. http ohne localhost */ });
+  });
+}
+
+// ---------- Formulare, die direkt in eine Wix-Sammlung schreiben (Buchungsanfrage) ----------
+// Kleiner Direktzugriff auf die Wix-Daten-API mit Besucher-Token – ohne das große SDK-Bundle.
+async function wixVisitorToken() {
+  try { const t = JSON.parse(sessionStorage.getItem('spd-vt') || 'null'); if (t && t.exp > Date.now() + 60000) return t.v; } catch (e) { /* neu holen */ }
+  const r = await fetch('https://www.wixapis.com/oauth2/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: SPD.app?.clientId, grantType: 'anonymous' }) });
+  if (!r.ok) throw new Error('Kein Zugang zur Wix-API (' + r.status + ')');
+  const j = await r.json();
+  try { sessionStorage.setItem('spd-vt', JSON.stringify({ v: j.access_token, exp: Date.now() + (j.expires_in || 3600) * 1000 })); } catch (e) { /* ohne Speicher */ }
+  return j.access_token;
+}
+export async function wixInsert(collection, data) {
+  const token = await wixVisitorToken();
+  const r = await fetch('https://www.wixapis.com/wix-data/v2/items', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token }, body: JSON.stringify({ dataCollectionId: collection, dataItem: { data } }) });
+  if (!r.ok) throw new Error('Speichern fehlgeschlagen (' + r.status + ')');
+  return (await r.json()).dataItem;
+}
+$$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const btn = f.querySelector('[type=submit]'), note = f.querySelector('.note');
+  btn.disabled = true; if (note) note.hidden = true;
+  const data = { status: 'offen' };
+  new FormData(f).forEach((v, k) => { data[k] = String(v).trim(); });
+  data.title = `${data.name || ''} – ${data.datum || ''} ${data.von || ''}`.trim();
+  try {
+    await wixInsert(f.dataset.collection, data);
+    f.querySelector('.form-fields').hidden = true; f.querySelector('.form-ok').hidden = false;
+  } catch (err) {
+    if (note) { note.hidden = false; note.className = 'note note-err'; note.textContent = 'Die Anfrage konnte nicht gesendet werden (' + err.message + '). Bitte später noch einmal versuchen oder über die Kontaktseite schreiben.'; }
+    btn.disabled = false;
+  }
+}));

@@ -1,0 +1,37 @@
+# Push-Dienst der SPD-Soltau-App: verschickt Benachrichtigungen und führt Vorstands-Aktionen aus (siehe push/README.md).
+# Läuft alle 5 Minuten (GitHub verzögert Cron-Läufe manchmal um einige Minuten) und manuell.
+#
+# Secrets:   WIX_API_KEY, VAPID_PRIVATE_KEY
+# Variables: WIX_SITE_ID, VAPID_PUBLIC_KEY, VAPID_SUBJECT, PUSH_SITE_URL
+name: Push-Dienst
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node push/send.mjs
+        env:
+          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          WIX_SITE_ID: ${{ vars.WIX_SITE_ID }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+          PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}

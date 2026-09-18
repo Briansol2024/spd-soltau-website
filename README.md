@@ -16,6 +16,8 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Instagram-Kacheln | Zwischenspeicher der Wix-Instagram-App (`@vanyadoing/instagram/ig-media`) – Bilder werden beim Bauen auf den eigenen Host kopiert | Instagram posten, Wix-App bleibt verbunden |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
 | Wahlergebnis 2026 (Seite „Unsere 11 im Stadtrat“), Stichwahl-Aufruf | `src/data-wahl2026.mjs` – Fotos/Berufe kommen automatisch aus der Kandidat*innen-Sammlung | hier im Projekt |
+| Mitgliederbereich (`/mitglieder/`): Konten, Zu-/Absagen, Push-Abos, „Wer wird benachrichtigt?“ | Wix-Mitglieder + CMS-Sammlungen `Zusagen`, `PushSubscriptions`, `Benachrichtigungen`, `Aktionen`, `AppMitglieder` | Dashboard → Kunden & Leads bzw. CMS; Freigaben direkt in der App |
+| Buchungsanfragen Roter Bahnhof (`/roter-bahnhof/`) | CMS-Sammlung `Buchungen` | Push an den Vorstand, Annehmen/Ablehnen in der App |
 
 Die Seite wird **alle 30 Minuten** automatisch neu gebaut (GitHub Actions). Neue Beiträge oder Termine
 erscheinen also spätestens nach einer halben Stunde – oder sofort, wenn man den Workflow von Hand startet.
@@ -39,8 +41,21 @@ src/fonts/           SPD-Hausschrift TheSans SPD (Regular, Bold, Extrabold, Vers
 src/images/          Logo (rot und weiß) – Hero-Standbild und Instagram-Bilder werden beim Bauen erzeugt
 src/data-fallback.mjs  Beispiel-/Ersatzinhalte und feste Texte (10-Punkte-Plan, Themenreihenfolge)
 src/lib/wix.mjs      Anbindung an Wix (Blog, Events, CMS) inkl. Rich-Text- und Bild-Umwandlung
+src/members.js       Mitgliederbereich (Anmeldung/Registrierung über Wix, Zu-/Absagen, Push, Vorstands-Werkzeuge) → gebündelt nach assets/mitglieder.js
+src/sw.js            Service Worker (App-Installation, Offline-Grundgerüst, Push-Anzeige, Eingang für den Vorstand)
+push/                Push-Dienst: send.mjs (Versand + Vorstands-Aktionen), setup.mjs (Einrichtung), Aufgabenplanung – siehe push/README.md
 .github/workflows/deploy.yml   Automatischer Bau + Veröffentlichung auf GitHub Pages
+.github/workflows/push.yml     Push-Dienst alle 5 Minuten (sobald das Projekt auf GitHub liegt)
 ```
+
+## App und Mitgliederbereich
+
+Die Website ist eine **installierbare App** (PWA): „Zum Home-Bildschirm“ auf dem iPhone bzw. „App installieren“ in Chrome/Android.
+Unter `/mitglieder/` melden sich Mitglieder mit ihrem Wix-Mitgliederkonto an (Registrierung mit E-Mail-Bestätigung, Freigabe durch den Vorstand),
+sagen zu Terminen zu oder ab (mit Grund), aktivieren Push-Benachrichtigungen (Aktuelles, Termine, Mitglieder-Infos) und der Vorstand
+legt fest, **wer über Registrierungs- und Buchungsanfragen benachrichtigt wird**, bearbeitet Anfragen im „Eingang“ und schickt Nachrichten an alle.
+Alle Daten bleiben bei Wix. Voraussetzungen: Wix → Headless-Einstellungen → erlaubte Umleitungs-URIs (`…/mitglieder/` je Adresse, ist eingetragen)
+und der Push-Dienst (`push/README.md`).
 
 ## Vorschau über Tailscale (Testphase)
 
@@ -80,6 +95,9 @@ npm run serve:protected      # http://localhost:8081
 | `SITE_EMAIL` | Variable | Kontaktadresse für Impressum/Kontakt |
 | `NOINDEX` | Variable | `1` in der Testphase (Suchmaschinen aussperren), sonst leer |
 | `PREVIEW_PASSWORD` | Secret | Gesetzt = Seite ist passwortgeschützt (Testphase). Löschen = Seite ist offen. |
+| `VAPID_PUBLIC_KEY` | Variable | Öffentlicher Push-Schlüssel (aus `.env`, von `push/setup.mjs` erzeugt) |
+| `VAPID_PRIVATE_KEY`, `WIX_API_KEY` | Secret | Für den Push-Dienst (`push.yml`) |
+| `WIX_SITE_ID`, `PUSH_SITE_URL` | Variable | Für den Push-Dienst |
 
 ## Go-live (wenn ihr zufrieden seid)
 
@@ -97,7 +115,8 @@ Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wi
 
 ## Noch offen (bewusst für später)
 
-- Formulare senden noch nicht (zeigen nur die Bestätigung). Geplant: Übergabe an Wix Forms/Posteingang.
+- Kontakt- und Mitmachen-Formular senden noch nicht (zeigen nur die Bestätigung). Die Buchungsanfrage funktioniert bereits (CMS `Buchungen`); Kontakt/Mitmachen können genauso angeschlossen werden.
+- Antwort an Anfragende (Buchung bestätigt/abgelehnt) schickt der Vorstand noch selbst – automatische E-Mails wären über Wix „Ausgelöste E-Mails“ möglich.
 - Umfrage zählt nur lokal im Browser. Geplant: Zählung über eine CMS-Sammlung.
 - Impressum/Datenschutz mit den Mustern des SPD-Landesverbands abgleichen.
 - „Soltau in Zahlen“ (Startseite) prüfen/aktualisieren: Werte stehen in `build.mjs` unter `facts`.

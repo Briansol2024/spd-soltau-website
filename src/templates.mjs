@@ -25,6 +25,12 @@ ${canonical ? `<meta property="og:url" content="${esc(canonical)}">` : ''}
 ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <meta name="theme-color" content="#E3000F">
 <link rel="icon" href="${url('/assets/favicon.svg')}" type="image/svg+xml">
+<link rel="manifest" href="${url('/manifest.webmanifest')}">
+<link rel="apple-touch-icon" href="${url('/assets/icons/apple-touch-icon.png')}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SPD Soltau">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="${url('/assets/fonts.css')}">
 <link rel="stylesheet" href="${url('/assets/styles.css')}">
 <script>window.SPD=${JSON.stringify({ base: url(''), ...clientData }).replace(/</g, '\\u003c')};</script>
@@ -37,8 +43,10 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
     <span class="slogan">Aus Liebe<br>zu Soltau</span>
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
       ${NAV.map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
+      <a class="nav-member" href="${url('/mitglieder/')}"${path.startsWith('/mitglieder/') ? ' aria-current="page"' : ''}>Mitgliederbereich</a>
     </nav>
     <a class="btn btn-schwarz cta" href="${url('/mitmachen/')}">Mitglied werden</a>
+    <a class="member-link${path.startsWith('/mitglieder/') ? ' active' : ''}" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Anmelden" title="Mitgliederbereich"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
     <button class="burger" id="burger" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
     </button>
@@ -60,7 +68,7 @@ ${content}
         <p style="margin-top:12px"><a href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Instagram @spd_soltau</a></p>
       </div>
       <div><h4>Politik</h4><ul><li><a href="${url('/aktuelles/')}">Aktuelles</a></li><li><a href="${url('/fraktion/')}">Ratsfraktion</a></li><li><a href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a></li><li><a href="${url('/ziele/')}">10-Punkte-Plan</a></li><li><a href="${url('/termine/')}">Termine</a></li></ul></div>
-      <div><h4>Ortsverein</h4><ul><li><a href="${url('/ortsverein/')}">Wer wir sind</a></li><li><a href="${url('/mitmachen/')}">Mitglied werden</a></li><li><a href="${url('/kontakt/')}">Kontakt</a></li></ul></div>
+      <div><h4>Ortsverein</h4><ul><li><a href="${url('/ortsverein/')}">Wer wir sind</a></li><li><a href="${url('/mitmachen/')}">Mitglied werden</a></li><li><a href="${url('/roter-bahnhof/')}">Roter Bahnhof buchen</a></li><li><a href="${url('/kontakt/')}">Kontakt</a></li><li><a href="${url('/mitglieder/')}">Mitgliederbereich &amp; App</a></li></ul></div>
       <div><h4>SPD</h4><ul><li><a href="https://www.spd.de" target="_blank" rel="noopener">SPD Deutschland</a></li><li><a href="https://www.spd-niedersachsen.de" target="_blank" rel="noopener">SPD Niedersachsen</a></li></ul></div>
     </div>
     <div class="bottom">
@@ -209,7 +217,7 @@ export function startPage(d) {
       <div class="box">
         <h3>Roter Bahnhof buchen</h3>
         <p class="small">Unser Treffpunkt am Bahnhof steht auch Vereinen und Gruppen offen. Termin anfragen – wir melden uns.</p>
-        <a class="btn btn-schwarz" href="${esc(d.site.bookingUrl)}" target="_blank" rel="noopener" style="justify-self:start">Anfrage stellen</a>
+        <a class="btn btn-schwarz" href="${url('/roter-bahnhof/')}" style="justify-self:start">Anfrage stellen</a>
       </div>
     </div>
   </div>
@@ -371,7 +379,7 @@ export function ortsvereinPage(d) {
         <h3>Roter Bahnhof</h3>
         <p>Unser Treffpunkt am Bahnhof: Hier tagt der Vorstand, hier planen wir Infostände, hier sind Gäste willkommen. Vereine und Gruppen können den Roten Bahnhof anfragen.</p>
         <p><b>Am Bahnhof 1t, 29614 Soltau</b></p>
-        <a class="btn btn-rot" href="${esc(d.site.bookingUrl)}" target="_blank" rel="noopener" style="justify-self:start">Roter Bahnhof buchen</a>
+        <a class="btn btn-rot" href="${url('/roter-bahnhof/')}" style="justify-self:start">Roter Bahnhof buchen</a>
       </div>
       <div class="col">
         <h3>Mitglied werden</h3>
@@ -423,7 +431,7 @@ export function mitmachenPage(d) {
           <select id="m-interesse" name="interesse"><option>Mitglied werden</option><option>Erst einmal reinschnuppern</option><option>Beim Infostand helfen</option><option>Thema einbringen</option></select>
         </div>
         <div class="field"><label for="m-msg">Nachricht (optional)</label><textarea id="m-msg" name="nachricht"></textarea></div>
-        <label class="check"><input type="checkbox" id="m-ds" required> Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</label>
+        <label class="check"><input type="checkbox" id="m-ds" required> <span>Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</span></label>
         <button class="btn btn-rot" type="submit" style="justify-self:start">Absenden</button>
       </div>
       <p class="form-ok" hidden>Danke! Wir melden uns in den nächsten Tagen bei Ihnen.</p>
@@ -469,7 +477,7 @@ export function kontaktPage(d) {
         </div>
         <div class="field"><label for="k-ort">Straße / Ortschaft (optional)</label><input id="k-ort" name="ort" type="text" placeholder="z. B. Walsroder Straße"></div>
         <div class="field"><label for="k-msg">Ihr Anliegen</label><textarea id="k-msg" name="nachricht" required></textarea></div>
-        <label class="check"><input type="checkbox" id="k-ds" required> Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</label>
+        <label class="check"><input type="checkbox" id="k-ds" required> <span>Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</span></label>
         <button class="btn btn-rot" type="submit" style="justify-self:start">Anliegen senden</button>
       </div>
       <p class="form-ok" hidden>Danke! Ihr Anliegen ist angekommen. Wir melden uns – in der Regel innerhalb einer Woche.</p>
@@ -600,6 +608,80 @@ export function stadtratPage(d) {
       <thead><tr><th>Platz</th><th>Name</th><th>Liste</th><th>Stimmen</th><th></th></tr></thead>
       <tbody>${w.alle.map(([name, st, lp], i) => { const g = w.gewaehlt.find(x => x.name === name); return `<tr class="${g ? 'gewaehlt' : ''}"><td>${i + 1}</td><td>${esc(name)}</td><td>${lp}</td><td>${st.toLocaleString('de-DE')}</td><td>${g ? `<span class="badge badge-mit">${g.art === 'direkt' ? 'gewählt' : 'gewählt (Liste)'}</span>` : ''}</td></tr>`; }).join('')}</tbody>
     </table></div>
+  </div>
+</section>`;
+}
+
+// ---------- Mitgliederbereich (App) ----------
+export function mitgliederPage(d) {
+  return `
+<section>
+  ${pageHead('Mitgliederbereich', 'Für Mitglieder<br>der SPD Soltau', 'Anmelden, Termine zu- oder absagen, Benachrichtigungen aufs Handy – und die SPD Soltau als App auf dem Home-Bildschirm.')}
+  <div class="wrap section mb-wrap">
+    <div id="mitglieder-app" class="mb-app"><p class="muted">Lade Mitgliederbereich …</p></div>
+    <noscript><p class="note note-err">Für den Mitgliederbereich muss JavaScript aktiviert sein.</p></noscript>
+  </div>
+</section>
+<script type="module" src="${url('/assets/mitglieder.js')}"></script>`;
+}
+
+// ---------- Roter Bahnhof: Buchungsanfrage ----------
+export function roterBahnhofPage(d) {
+  return `
+<section>
+  ${pageHead('Roter Bahnhof', 'Unseren Treffpunkt<br>anfragen', 'Am Bahnhof 1t, 29614 Soltau. Vereine, Initiativen und Gruppen können den Roten Bahnhof für Treffen und kleine Veranstaltungen anfragen.')}
+  <div class="wrap section split">
+    <form class="form wix-form" id="form-buchung" data-collection="Buchungen" novalidate>
+      <div class="form-fields" style="display:grid;gap:18px">
+        <h2 class="title" style="font-size:40px">Buchungsanfrage</h2>
+        <p class="small muted">Wir melden uns so schnell wie möglich per E-Mail oder Telefon und bestätigen den Termin. Die Anfrage ist unverbindlich.</p>
+        <div class="mb-2">
+          <div class="field"><label for="b-name">Name</label><input id="b-name" name="name" type="text" required autocomplete="name"></div>
+          <div class="field"><label for="b-org">Verein / Gruppe (optional)</label><input id="b-org" name="organisation" type="text" autocomplete="organization"></div>
+        </div>
+        <div class="mb-2">
+          <div class="field"><label for="b-mail">E-Mail</label><input id="b-mail" name="email" type="email" required autocomplete="email"></div>
+          <div class="field"><label for="b-tel">Telefon (für Rückfragen)</label><input id="b-tel" name="telefon" type="tel" autocomplete="tel"></div>
+        </div>
+        <div class="mb-3">
+          <div class="field"><label for="b-datum">Datum</label><input id="b-datum" name="datum" type="date" required></div>
+          <div class="field"><label for="b-von">Von</label><input id="b-von" name="von" type="time" required></div>
+          <div class="field"><label for="b-bis">Bis</label><input id="b-bis" name="bis" type="time" required></div>
+        </div>
+        <div class="mb-2">
+          <div class="field"><label for="b-zweck">Anlass</label><input id="b-zweck" name="zweck" type="text" required placeholder="z. B. Vereinssitzung, Vortrag, Geburtstag"></div>
+          <div class="field"><label for="b-personen">Personen (ca.)</label><input id="b-personen" name="personen" type="number" min="1" max="80" inputmode="numeric"></div>
+        </div>
+        <div class="field"><label for="b-msg">Nachricht (optional)</label><textarea id="b-msg" name="nachricht" placeholder="Besondere Wünsche, Bestuhlung, Technik …"></textarea></div>
+        <label class="check"><input type="checkbox" id="b-ds" required> <span>Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen. Meine Angaben werden zur Bearbeitung der Anfrage gespeichert.</span></label>
+        <p class="note" hidden></p>
+        <button class="btn btn-rot" type="submit" style="justify-self:start">Anfrage senden</button>
+      </div>
+      <p class="form-ok" hidden>Danke! Ihre Anfrage ist bei uns eingegangen. Der Vorstand meldet sich in Kürze.</p>
+    </form>
+    <div style="display:grid;gap:20px">
+      <div class="box box-schwarz">
+        <h3>Der Rote Bahnhof</h3>
+        <dl>
+          <dt>Adresse</dt><dd>Am Bahnhof 1t, 29614 Soltau</dd>
+          <dt>Platz</dt><dd>Für Sitzungen, Vorträge und kleine Feiern</dd>
+          <dt>Ausstattung</dt><dd>Tische, Stühle, Beamer, Küche</dd>
+          <dt>Kosten</dt><dd>Nach Absprache – für Vereine und Initiativen in der Regel kostenfrei</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h3>So läuft es</h3>
+        <ul class="list">
+          <li><b>1. Anfragen</b><span class="small muted">Formular ausfüllen – der Vorstand wird sofort benachrichtigt</span></li>
+          <li><b>2. Bestätigung</b><span class="small muted">Wir melden uns per E-Mail oder Telefon</span></li>
+          <li><b>3. Schlüssel</b><span class="small muted">Übergabe nach Absprache</span></li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Lieber direkt sprechen?</h3>
+        <p class="small">Schreiben Sie uns über die <a href="${url('/kontakt/')}">Kontaktseite</a> – oder sprechen Sie uns beim nächsten Infostand an.</p>
+      </div>
+    </div>
   </div>
 </section>`;
 }

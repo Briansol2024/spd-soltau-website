@@ -7,6 +7,7 @@
 //   NOINDEX=1       Suchmaschinen aussperren (Testphase)
 //   HERO_IMAGE      URL des Hero-Fotos, SITE_EMAIL Kontaktadresse, PROGRAMM_PDF Link zum Wahlprogramm
 //   CNAME           eigene Domain für GitHub Pages (schreibt dist/CNAME)
+//   VAPID_PUBLIC_KEY öffentlicher Schlüssel für Push-Benachrichtigungen (siehe push/setup.mjs)
 
 import { mkdir, writeFile, copyFile, readFile, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -16,9 +17,17 @@ import * as fallback from './src/data-fallback.mjs';
 import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
+import esbuild from 'esbuild';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, 'dist');
+// .env einlesen (gesetzte Umgebungsvariablen haben Vorrang)
+if (existsSync(path.join(__dirname, '.env'))) {
+  for (const line of (await readFile(path.join(__dirname, '.env'), 'utf8')).split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m && !line.trim().startsWith('#') && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^"(.*)"$/, '$1');
+  }
+}
 const env = process.env;
 const BASE = (env.BASE_PATH || '').replace(/\/$/, '');
 setBase(BASE);
@@ -131,6 +140,49 @@ async function copyFonts() {
   await writeFile(path.join(OUT, 'assets', 'fonts.css'), css, 'utf8');
 }
 
+// ---------- App: Mitgliederbereich-Bundle, Service Worker, Manifest, Icons ----------
+async function buildApp() {
+  const buildId = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+  // Mitgliederbereich: Wix-SDK + eigene Logik als ein Modul gebündelt
+  await esbuild.build({
+    entryPoints: [path.join(__dirname, 'src', 'members.js')], outfile: path.join(OUT, 'assets', 'mitglieder.js'),
+    bundle: true, minify: true, format: 'esm', platform: 'browser', target: ['es2020', 'safari15'], logLevel: 'warning',
+    define: { 'process.env.NODE_ENV': '"production"' }, banner: { js: `/* SPD Soltau – Mitgliederbereich, Build ${buildId} */` },
+  });
+  const sw = await readFile(path.join(__dirname, 'src', 'sw.js'), 'utf8');
+  await writeFile(path.join(OUT, 'sw.js'), sw.replace('__BUILD__', buildId), 'utf8');
+  await writeFile(path.join(OUT, 'offline.html'), `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline – SPD Soltau</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#E3000F;color:#fff;font-family:'TheSans SPD','Segoe UI',Arial,sans-serif;text-align:center;padding:24px}h1{font-size:40px;margin:0 0 12px;text-transform:uppercase}a{color:#fff}</style></head><body><div><h1>Gerade offline</h1><p>Diese Seite ist noch nicht gespeichert. Sobald wieder Netz da ist, klappt es.</p><p><a href="./">Zur Startseite</a></p></div></body></html>`, 'utf8');
+  const manifest = {
+    id: './', name: 'SPD Soltau', short_name: 'SPD Soltau', description: site.description, lang: 'de', dir: 'ltr',
+    start_url: './index.html', scope: './', display: 'standalone', orientation: 'portrait', background_color: '#E3000F', theme_color: '#E3000F',
+    icons: [
+      { src: 'assets/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: 'assets/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: 'assets/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    shortcuts: [
+      { name: 'Termine', url: './termine/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Mitgliederbereich', url: './mitglieder/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Aktuelles', url: './aktuelles/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
+    ],
+  };
+  await writeFile(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2), 'utf8');
+  // Icons aus dem weißen Logo auf SPD-Rot (maskable: Logo kleiner, damit runde Masken nichts abschneiden)
+  const { default: sharp } = await import('sharp');
+  const logo = path.join(__dirname, 'src', 'images', 'logo-spd-soltau-weiss.png');
+  const iconDir = path.join(OUT, 'assets', 'icons');
+  await mkdir(iconDir, { recursive: true });
+  const icon = async (size, file, inner, bg = { r: 227, g: 0, b: 15, alpha: 1 }) => {
+    const l = await sharp(logo).resize(Math.round(size * inner), Math.round(size * inner), { fit: 'inside' }).png().toBuffer();
+    await sharp({ create: { width: size, height: size, channels: 4, background: bg } }).composite([{ input: l, gravity: 'centre' }]).png().toFile(path.join(iconDir, file));
+  };
+  await icon(192, 'icon-192.png', 0.78);
+  await icon(512, 'icon-512.png', 0.78);
+  await icon(512, 'maskable-512.png', 0.6);
+  await icon(180, 'apple-touch-icon.png', 0.78);
+  await icon(96, 'badge-96.png', 0.9, { r: 0, g: 0, b: 0, alpha: 0 });
+}
+
 const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#E3000F"/><text x="32" y="44" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="30" fill="#fff" text-anchor="middle">SPD</text></svg>`;
 
 async function main() {
@@ -187,6 +239,7 @@ async function main() {
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
+    app: { clientId: env.WIX_CLIENT_ID || '', vapid: env.VAPID_PUBLIC_KEY || '' },
   };
   const page = (rel, pth, title, description, content, extra = {}) =>
     write(rel, T.layout({ site, path: pth, title, description, content, clientData, noindex, ...extra }));
@@ -201,6 +254,8 @@ async function main() {
     ['ziele/index.html', '/ziele/', 'Unsere Ziele', 'Der 10-Punkte-Plan der SPD Soltau für die Wahlperiode 2026 bis 2031.', T.zielePage(d)],
     ['mitmachen/index.html', '/mitmachen/', 'Mitmachen', 'Mitglied werden, Newsletter oder ein Nachmittag am Infostand – so können Sie Soltau mitgestalten.', T.mitmachenPage(d)],
     ['kontakt/index.html', '/kontakt/', 'Kontakt', 'Ihr Anliegen an die SPD Soltau: Schlagloch, Kita-Platz, Ratsbeschluss – wir antworten.', T.kontaktPage(d)],
+    ['roter-bahnhof/index.html', '/roter-bahnhof/', 'Roter Bahnhof', 'Den Roten Bahnhof in Soltau für Treffen, Vorträge und kleine Veranstaltungen anfragen.', T.roterBahnhofPage(d)],
+    ['mitglieder/index.html', '/mitglieder/', 'Mitgliederbereich', 'Mitgliederbereich der SPD Soltau: Anmelden, Termine zusagen, Benachrichtigungen, App.', T.mitgliederPage(d)],
     ['impressum/index.html', '/impressum/', 'Impressum', 'Impressum des SPD Ortsvereins Soltau.', T.impressumPage(d)],
     ['datenschutz/index.html', '/datenschutz/', 'Datenschutz', 'Datenschutzhinweise der Website des SPD Ortsvereins Soltau.', T.datenschutzPage(d)],
     ['transparenz/index.html', '/transparenz/', 'Transparenz', 'Transparenzbekanntmachung zur Kommunalwahl 2026.', T.transparenzPage(d)],
@@ -215,6 +270,7 @@ async function main() {
   await copyFile(path.join(__dirname, 'src', 'render.mjs'), path.join(OUT, 'assets', 'render.mjs'));
   await writeFile(path.join(OUT, 'assets', 'favicon.svg'), FAVICON, 'utf8');
   await copyFonts();
+  await buildApp();
   const imgDir = path.join(__dirname, 'src', 'images');
   if (existsSync(imgDir)) {
     await mkdir(path.join(OUT, 'assets', 'images'), { recursive: true });
