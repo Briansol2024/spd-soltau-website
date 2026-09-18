@@ -2,7 +2,7 @@
 import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards, zielBlocks, zielJump } from './render.mjs';
 
 const NAV = [
-  ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Ortsverein'],
+  ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'],
   ['/ziele/', 'Ziele'], ['/mitmachen/', 'Mitmachen'], ['/kontakt/', 'Kontakt'],
 ];
 
@@ -79,7 +79,7 @@ ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new D
         <p style="margin-top:12px"><a href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Instagram @spd_soltau</a></p>
       </div>
       <div><h4>Politik</h4><ul><li><a href="${url('/aktuelles/')}">Aktuelles</a></li><li><a href="${url('/fraktion/')}">Ratsfraktion</a></li><li><a href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a></li><li><a href="${url('/ziele/')}">10-Punkte-Plan</a></li><li><a href="${url('/termine/')}">Termine</a></li></ul></div>
-      <div><h4>Ortsverein</h4><ul><li><a href="${url('/ortsverein/')}">Wer wir sind</a></li><li><a href="${url('/mitmachen/')}">Mitglied werden</a></li><li><a href="${url('/roter-bahnhof/')}">Roter Bahnhof buchen</a></li><li><a href="${url('/kontakt/')}">Kontakt</a></li><li><a href="${url('/mitglieder/')}">Mitgliederbereich &amp; App</a></li></ul></div>
+      <div><h4>Ortsverein</h4><ul><li><a href="${url('/ortsverein/')}">Vorstand</a></li><li><a href="${url('/mitmachen/')}">Mitglied werden</a></li><li><a href="${url('/roter-bahnhof/')}">Roter Bahnhof buchen</a></li><li><a href="${url('/kontakt/')}">Kontakt</a></li><li><a href="${url('/mitglieder/')}">Mitgliederbereich &amp; App</a></li></ul></div>
       <div><h4>SPD</h4><ul><li><a href="https://www.spd.de" target="_blank" rel="noopener">SPD Deutschland</a></li><li><a href="https://www.spd-niedersachsen.de" target="_blank" rel="noopener">SPD Niedersachsen</a></li></ul></div>
     </div>
     <div class="bottom">
@@ -377,7 +377,7 @@ export function ortsvereinPage(d) {
   const people = d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, photo: v.photo, text: '' }));
   const chairs = byRole(people).filter(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
   return teamPage({
-    tag: 'SPD Ortsverein Soltau', h1: 'Wer wir sind',
+    tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand',
     lead: 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.',
     stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], ['16 + 1', 'Ortschaften und Kernstadt'], ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(d.people.length), 'Kandidatinnen und Kandidaten 2026']],
     people, teamTitle: 'Vorstand', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
@@ -607,7 +607,7 @@ export function stadtratPage(d) {
     </div>
   </div></div>
   <div class="wrap section">
-    <div class="section-head"><h2 class="title">Alle 27 Kandidatinnen<br>und Kandidaten</h2><a class="more" href="${url('/ortsverein/')}">Das ganze Team</a></div>
+    <div class="section-head"><h2 class="title">Alle 27 Kandidatinnen<br>und Kandidaten</h2><a class="more" href="${url('/ortsverein/')}">Zum Vorstand</a></div>
     <div class="ergebnis-tabelle"><table>
       <thead><tr><th>Platz</th><th>Name</th><th>Liste</th><th>Stimmen</th><th></th></tr></thead>
       <tbody>${w.alle.map(([name, st, lp], i) => { const g = w.gewaehlt.find(x => x.name === name); return `<tr class="${g ? 'gewaehlt' : ''}"><td>${i + 1}</td><td>${esc(name)}</td><td>${lp}</td><td>${st.toLocaleString('de-DE')}</td><td>${g ? `<span class="badge badge-mit">${g.art === 'direkt' ? 'gewählt' : 'gewählt (Liste)'}</span>` : ''}</td></tr>`; }).join('')}</tbody>
