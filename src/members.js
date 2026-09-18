@@ -398,8 +398,9 @@ async function secTermine(v) {
   orteList();
   v.innerHTML = `
   ${sectionHead('Termine – kommst du?', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
-  <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
-  ${me.can('termine') ? `<details class="mb-details" id="ev-new"><summary>Termin anlegen (wird bei Wix Events eingetragen)</summary>
+  ${me.can('termine') || (me.can('helfer') && me.sees('helfer')) ? `<div class="mb-create">
+  ${me.can('termine') ? `<details class="mb-details" id="ev-new"><summary>Termin anlegen</summary>
+    <p class="small muted">Wird bei Wix Events eingetragen und erscheint je nach Typ auf der Website und im Kalender-Abo.</p>
     <form class="form mb-form" id="f-event" novalidate>
       <div class="field"><label for="ev-titel">Titel</label><input id="ev-titel" name="titel" type="text" required maxlength="80" placeholder="z. B. Fraktionssitzung"></div>
       <div class="mb-3">
@@ -415,10 +416,12 @@ async function secTermine(v) {
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Termin eintragen</button></div>
     </form></details>` : ''}
+  ${me.can('helfer') && me.sees('helfer') ? `<details class="mb-details" id="hl-new"><summary>Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
+  </div>` : ''}
+  <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
   ${me.sees('helfer') ? `<section class="mb-sub" id="helferlisten">
     ${sectionHead('Helferlisten', me.can('helfer') ? 'Du darfst Listen anlegen' : '')}
     <div id="hl-list">${listen.filter(l => !l.datum || l.datum >= today).map(l => helperList(l, helfer, events)).join('') || '<p class="muted small">Gerade werden keine Helfer*innen gesucht.</p>'}</div>
-    ${me.can('helfer') ? `<details class="mb-details" id="hl-new"><summary>Neue Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
   </section>` : ''}
   <section class="mb-sub" id="kalender">
     ${sectionHead('Kalender abonnieren', 'Termine automatisch im Handy-Kalender')}
@@ -602,7 +605,7 @@ async function secUmfragen(v) {
   const open = all.filter(u => u.offen && (!u.endetAm || u.endetAm >= today)), closed = all.filter(u => !open.includes(u));
   v.innerHTML = `
   ${sectionHead('Umfragen', me.can('umfragen') ? 'Du darfst Umfragen anlegen' : 'Umfragen legt der Vorstand an')}
-  ${me.can('umfragen') ? `<details class="mb-details" id="u-new"><summary>Neue Umfrage anlegen</summary>
+  ${me.can('umfragen') ? `<div class="mb-create"><details class="mb-details" id="u-new"><summary>Umfrage anlegen</summary>
     <form class="form mb-form" id="f-umfrage" novalidate>
       <div class="field"><label for="u-frage">Frage</label><input id="u-frage" name="frage" type="text" required maxlength="140" placeholder="z. B. Sommerfest am 12. oder 19. Juli?"></div>
       <div class="field"><label for="u-text">Erläuterung (optional)</label><textarea id="u-text" name="beschreibung" rows="2"></textarea></div>
@@ -612,7 +615,7 @@ async function secUmfragen(v) {
       <label class="check"><input type="checkbox" name="oeffentlich"> <span>Öffentlich auf der Startseite („Umfrage der Woche“) – die Auswertung bleibt intern</span></label>
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Umfrage starten</button></div>
-    </form></details>` : ''}
+    </form></details></div>` : ''}
   <div class="poll-list">${open.length ? open.map(u => pollCard(u, stimmen, true)).join('') : '<p class="muted">Gerade läuft keine Umfrage.</p>'}</div>
   ${closed.length ? `<section class="mb-sub">${sectionHead('Abgeschlossen')}<div class="poll-list">${closed.slice(0, 10).map(u => pollCard(u, stimmen, false)).join('')}</div></section>` : ''}`;
   wirePolls(v, all, stimmen);
@@ -678,7 +681,7 @@ async function secDokumente(v) {
   const groups = new Map(); for (const d of docs) { const k = d.kategorie || 'Sonstiges'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(d); }
   v.innerHTML = `
   ${sectionHead('Dokumente', 'Protokolle, Anträge, Vorlagen – nur für Mitglieder')}
-  ${me.can('dokumente') ? `<details class="mb-details" id="d-new"><summary>Dokument einstellen</summary>
+  ${me.can('dokumente') ? `<div class="mb-create"><details class="mb-details" id="d-new"><summary>Dokument einstellen</summary>
     <form class="form mb-form" id="f-doc" novalidate>
       <div class="mb-2">
         <div class="field"><label for="d-titel">Titel</label><input id="d-titel" name="titel" type="text" required placeholder="z. B. Protokoll Vorstandssitzung 10/2026"></div>
@@ -692,7 +695,7 @@ async function secDokumente(v) {
       <p class="small muted">Datei vorher hochladen – z. B. in der Wix-Medienverwaltung oder Dateifreigabe (Link kopieren) oder in einer Cloud (OneDrive, Google Drive, Nextcloud) mit Freigabelink.</p>
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Speichern</button></div>
-    </form></details>` : ''}
+    </form></details></div>` : ''}
   ${docs.length ? [...groups].map(([k, list]) => `<section class="mb-sub"><h4 class="doc-cat">${esc(k)}</h4><div class="doc-list">${list.map(d => `<article class="doc" data-id="${esc(d._id)}"><div class="doc-body"><a class="doc-title" href="${esc(linkOf(d) || '#')}" target="_blank" rel="noopener">📄 ${esc(d.titel)}</a><p class="small muted">${esc(fmtDate(d.datum))} · ${esc(d.von || '–')}</p>${d.beschreibung ? `<p class="small">${nl2br(d.beschreibung)}</p>` : ''}</div><div class="mb-actions">${linkOf(d) ? waBtn(`📄 ${d.titel}${d.kategorie ? ' (' + d.kategorie + ')' : ''}\n${linkOf(d)}`) : ''}${d._owner === me.id || me.can('dokumente') ? '<button type="button" class="linkbtn" data-del-doc>löschen</button>' : ''}</div></article>`).join('')}</div></section>`).join('') : '<p class="muted">Noch keine Dokumente eingestellt.</p>'}`;
   $('#f-doc')?.addEventListener('submit', async e => {
     const f = e.target; e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
@@ -715,7 +718,7 @@ async function secRat(v, editId = null) {
   const editing = editId ? all.find(r => r._id === editId) : null;
   v.innerHTML = `
   ${sectionHead('Ratsvorbereitung', 'Tagesordnung mit der Einordnung der Fraktion – nur intern')}
-  ${me.can('rat') ? `<details class="mb-details" id="r-new" ${editing ? 'open' : ''}><summary>${editing ? 'Sitzung bearbeiten' : 'Sitzung anlegen'}</summary>${ratForm(editing)}</details>` : ''}
+  ${me.can('rat') ? `<div class="mb-create"><details class="mb-details" id="r-new" ${editing ? 'open' : ''}><summary>${editing ? 'Sitzung bearbeiten' : 'Sitzung anlegen'}</summary>${ratForm(editing)}</details></div>` : ''}
   <div class="rat-list">${next.length ? next.map(r => ratCard(r)).join('') : '<p class="muted">Keine kommende Sitzung eingetragen.</p>'}</div>
   ${past.length ? `<section class="mb-sub"><h4 class="doc-cat">Vergangene Sitzungen</h4><div class="rat-list">${past.slice(0, 6).map(r => ratCard(r)).join('')}</div></section>` : ''}`;
   wireRat(v, all);

@@ -795,6 +795,14 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .mb-details[open]>summary::after{content:"–"}
 .mb-details>summary::-webkit-details-marker{display:none}
 .mb-details>*:not(summary){margin-bottom:16px}
+.mb-create{display:grid;gap:8px;margin:0 0 22px}
+.mb-create .mb-details{margin:0;border-color:var(--rot)}
+.mb-create .mb-details>summary{color:var(--rot)}
+.mb-create .mb-details>summary::before{content:"+";font-size:22px;line-height:1;margin-right:10px}
+.mb-create .mb-details[open]>summary::before{content:"–"}
+.mb-create .mb-details>summary::after,.mb-create .mb-details[open]>summary::after{content:none}
+.mb-create .mb-details>summary{justify-content:flex-start}
+.mb-create .mb-details[open]>summary{color:var(--schwarz);border-bottom:1px solid var(--linie);margin-bottom:12px}
 .rides .ride-list{display:grid;gap:6px;margin-bottom:12px}
 .ride-form.mb-form{gap:10px}
 .tight{gap:8px}
