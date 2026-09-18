@@ -972,13 +972,14 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .end-boxes a.box:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.14)}
 .end-boxes .box .tag{justify-self:start}
 .end-boxes .box .btn{justify-self:start;margin-top:auto}
-.end-boxes .box-schwarz{color:#D8D2D0}
+.end-boxes .box-schwarz{color:#EDE9E7}
+.end-boxes .box-schwarz p,.end-boxes .box-schwarz .small{color:#EDE9E7}
 .end-boxes .box-rot .small{color:#fff}
-.page-end{padding-top:0}
+.page-end{padding-top:56px}
 /* Team-Seiten: schlichte quadratische Fotos, große Namen */
 .team{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 18px}
 @container site (max-width:900px){.team{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@container site (max-width:600px){.team{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}}
+@container site (max-width:600px){.team{grid-template-columns:minmax(0,1fr);gap:22px}.tm{grid-template-columns:120px minmax(0,1fr);grid-template-areas:'photo name' 'photo role' 'photo job';column-gap:16px;row-gap:4px;align-items:start}.tm-photo{grid-area:photo;width:120px}.tm-name{grid-area:name;margin-top:6px}.tm-role{grid-area:role}.tm-job{grid-area:job}}
 .tm{display:grid;gap:8px;text-align:left;background:none;border:0;padding:0;color:inherit;cursor:pointer;align-content:start}
 .tm-photo{aspect-ratio:1/1;overflow:hidden;background:#2B2727;display:grid;place-items:center;font:800 36px/1 var(--display);color:rgba(255,255,255,.45);border-bottom:4px solid var(--rot);transition:border-color .15s}
 .tm-photo img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;filter:saturate(.9);transition:transform .3s var(--ease)}
