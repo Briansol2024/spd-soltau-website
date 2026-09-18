@@ -1,5 +1,5 @@
 // Client-Skript: Interaktion + Bewegung (nach Referenz-Entwurf D). Inhalte kommen aus window.SPD (im Build eingebettet).
-import { setBase, newsCard, eventsGrouped, personCard, pollButtons, esc } from './render.mjs';
+import { setBase, url, newsCard, eventsGrouped, personCard, pollButtons, esc } from './render.mjs';
 
 const SPD = window.SPD || {};
 setBase(SPD.base || '');
@@ -83,6 +83,48 @@ document.addEventListener('click', e => {
 $('#dlg-close')?.addEventListener('click', () => dlg.close());
 dlg?.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
 dlg?.querySelector('a')?.addEventListener('click', () => dlg.close());
+
+// ---------- Instagram-Fenster: Bilder-Karussell, Text, Likes – alles auf der eigenen Seite ----------
+const idlg = $('#insta-dialog');
+if (idlg && SPD.insta && SPD.insta.length) {
+  const track = $('#insta-track'), dots = $('#insta-dots');
+  let post = 0, slide = 0;
+  const fmtDate = s => { const d = new Date(s + 'T00:00:00'); return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }); };
+  const linkify = t => esc(t).replace(/(#[\wäöüÄÖÜß]+)/g, '<span class="hashtag">$1</span>').replace(/\n/g, '<br>');
+  const showSlide = i => {
+    const p = SPD.insta[post]; slide = (i + p.images.length) % p.images.length;
+    track.style.transform = `translateX(-${slide * 100}%)`;
+    $$('.insta-dots i').forEach((d, k) => d.classList.toggle('on', k === slide));
+  };
+  const showPost = k => {
+    post = (k + SPD.insta.length) % SPD.insta.length; const p = SPD.insta[post];
+    track.innerHTML = p.images.map(src => `<div class="insta-slide"><img src="${esc(src.startsWith('/') ? url(src) : src)}" alt="" decoding="async"></div>`).join('');
+    dots.innerHTML = p.images.length > 1 ? p.images.map(() => '<i></i>').join('') : '';
+    idlg.classList.toggle('single', p.images.length < 2);
+    $('#insta-date').textContent = fmtDate(p.date);
+    $('#insta-caption').innerHTML = linkify(p.caption || '');
+    $('#insta-likes').textContent = p.likes != null ? `♥ ${p.likes}` : '';
+    $('#insta-comments').textContent = p.comments != null ? `${p.comments} Kommentare` : '';
+    $('#insta-link').href = p.url;
+    $('#insta-caption').scrollTop = 0;
+    showSlide(0);
+  };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-insta]'); if (!b) return;
+    showPost(+b.dataset.insta); idlg.showModal();
+  });
+  $('#insta-prev').addEventListener('click', () => showSlide(slide - 1));
+  $('#insta-next').addEventListener('click', () => showSlide(slide + 1));
+  $('#insta-prevpost').addEventListener('click', () => showPost(post - 1));
+  $('#insta-nextpost').addEventListener('click', () => showPost(post + 1));
+  $('#insta-close').addEventListener('click', () => idlg.close());
+  idlg.addEventListener('click', e => { if (e.target === idlg) idlg.close(); });
+  idlg.addEventListener('keydown', e => { if (e.key === 'ArrowRight') showSlide(slide + 1); if (e.key === 'ArrowLeft') showSlide(slide - 1); });
+  // Wischen auf dem Handy
+  let x0 = null;
+  track.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+  track.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) showSlide(slide + (dx < 0 ? 1 : -1)); x0 = null; });
+}
 
 // ---------- Formulare (Testphase: keine Übertragung, nur Bestätigung) ----------
 $$('form.mock').forEach(f => f.addEventListener('submit', e => {

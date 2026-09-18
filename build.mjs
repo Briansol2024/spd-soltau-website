@@ -142,18 +142,27 @@ async function main() {
   // Instagram-Bilder auf den eigenen Host holen (Besucher haben so keinen Kontakt zu Instagram-Servern)
   if (d.source.insta === 'wix') {
     await mkdir(path.join(OUT, 'assets', 'insta'), { recursive: true });
+    const { default: sharp } = await import('sharp');
     for (const it of d.insta) {
-      try {
-        const res = await fetch(it.img);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const file = `${it.id}.jpg`;
-        const buf = Buffer.from(await res.arrayBuffer());
-        // auf Kachelgröße verkleinern (quadratisch, 720 px) – spart bis zu 90 % Datenvolumen
-        const { default: sharp } = await import('sharp');
-        const small = await sharp(buf).resize(720, 720, { fit: 'cover', position: 'attention' }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
-        await writeFile(path.join(OUT, 'assets', 'insta', file), small);
-        it.img = `${BASE}/assets/insta/${file}`;
-      } catch (e) { console.log('[build] Instagram-Bild nicht ladbar:', it.id, e.message); it.img = null; }
+      const local = [];
+      for (const [k, src] of (it.images || [it.img]).entries()) {
+        try {
+          const res = await fetch(src);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const buf = Buffer.from(await res.arrayBuffer());
+          const file = `${it.id}-${k + 1}.jpg`;
+          // Ansichtsgröße (max. 1080 px Kante), Kachel nutzt das erste Bild
+          const img = await sharp(buf).resize(1080, 1080, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+          await writeFile(path.join(OUT, 'assets', 'insta', file), img);
+          if (k === 0) {
+            const thumb = await sharp(buf).resize(720, 720, { fit: 'cover', position: 'attention' }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+            await writeFile(path.join(OUT, 'assets', 'insta', `${it.id}.jpg`), thumb);
+          }
+          local.push(`${BASE}/assets/insta/${file}`);
+        } catch (e) { console.log('[build] Instagram-Bild nicht ladbar:', it.id, k + 1, e.message); }
+      }
+      it.images = local;
+      it.img = local.length ? `${BASE}/assets/insta/${it.id}.jpg` : null;
     }
   }
   // Standbild des Hero-Videos lokal ablegen (schneller erster Eindruck, Fallback bei „Bewegung reduzieren“)
@@ -176,6 +185,7 @@ async function main() {
     themen: d.themen,
     events: d.events,
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
+    insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
   };
   const page = (rel, pth, title, description, content, extra = {}) =>

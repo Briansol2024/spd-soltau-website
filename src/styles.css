@@ -655,3 +655,38 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 
 /* Startseite: am Desktop fünf Beiträge (großer Aufmacher + vier), auf dem Handy bleiben drei in der Wischreihe */
 @container site (max-width:600px){#start-news .card:nth-child(n+4){display:none}}
+
+/* ===== Instagram-Kacheln als Buttons + Übersichtsfenster ===== */
+.insta button.ph{border:0;padding:8px 10px;cursor:pointer;font:inherit;text-align:left;color:#fff}
+.insta .ph .multi{position:absolute;top:10px;right:10px;width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.insta-dialog{max-width:min(1040px,calc(100% - 32px));width:100%;padding:0;border:0;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.insta-dialog::backdrop{background:rgba(15,15,15,.82)}
+.insta-box{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);max-height:min(90vh,900px)}
+.insta-dialog .close{position:absolute;top:8px;right:10px;z-index:5;background:#fff;border:0;width:40px;height:40px;font-size:26px;line-height:1;cursor:pointer;color:var(--ink)}
+.insta-stage{position:relative;background:#0F0F0F;overflow:hidden;aspect-ratio:1/1;max-height:min(90vh,900px)}
+.insta-track{display:flex;height:100%;transition:transform .35s var(--ease)}
+.insta-slide{flex:0 0 100%;height:100%;display:grid;place-items:center}
+.insta-slide img{width:100%;height:100%;object-fit:contain;display:block}
+.insta-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;background:rgba(255,255,255,.92);color:var(--ink);font:700 30px/1 var(--display);cursor:pointer;display:grid;place-items:center}
+.insta-nav.prev{left:10px}.insta-nav.next{right:10px}
+.insta-nav:hover{background:var(--rot);color:#fff}
+.insta-dots{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.insta-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5)}
+.insta-dots i.on{background:#fff}
+.insta-dialog.single .insta-nav,.insta-dialog.single .insta-dots{display:none}
+.insta-body{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:14px;padding:24px 24px 20px;min-height:0}
+.insta-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-right:40px}
+.insta-head b{font:800 20px/1 var(--display);text-transform:uppercase;color:var(--rot)}
+#insta-caption{overflow:auto;font-size:15.5px;line-height:1.55;padding-right:6px}
+#insta-caption .hashtag{color:var(--rot);font-weight:600}
+.insta-meta{display:flex;gap:16px;font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.insta-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.insta-actions .btn{padding:10px 14px;font-size:13px}
+/* Das Fenster liegt außerhalb des Seiten-Containers → echte Media-Query statt Container-Abfrage */
+@media (max-width:900px){
+  .insta-dialog{max-width:calc(100% - 20px);max-height:92vh;max-height:92svh}
+  .insta-box{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:92vh;height:92svh;max-height:none}
+  .insta-stage{aspect-ratio:auto;height:min(56vh,100vw);max-height:none}
+  .insta-body{padding:14px 16px 14px;gap:10px}
+  .insta-actions .btn{padding:9px 12px;font-size:12px}
+}

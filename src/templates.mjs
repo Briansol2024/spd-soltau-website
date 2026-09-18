@@ -83,6 +83,28 @@ ${content}
   </div>
 </dialog>
 
+<dialog id="insta-dialog" class="insta-dialog" aria-label="Instagram-Beitrag">
+  <div class="insta-box">
+    <button class="close" type="button" aria-label="Schließen" id="insta-close">×</button>
+    <div class="insta-stage">
+      <div class="insta-track" id="insta-track"></div>
+      <button class="insta-nav prev" type="button" id="insta-prev" aria-label="Vorheriges Bild">‹</button>
+      <button class="insta-nav next" type="button" id="insta-next" aria-label="Nächstes Bild">›</button>
+      <div class="insta-dots" id="insta-dots"></div>
+    </div>
+    <div class="insta-body">
+      <div class="insta-head"><b>@spd_soltau</b><span class="date" id="insta-date"></span></div>
+      <p id="insta-caption"></p>
+      <div class="insta-meta"><span id="insta-likes"></span><span id="insta-comments"></span></div>
+      <div class="insta-actions">
+        <button class="btn btn-line" type="button" id="insta-prevpost">‹ Neuer</button>
+        <a class="btn btn-rot" id="insta-link" href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Auf Instagram ansehen</a>
+        <button class="btn btn-line" type="button" id="insta-nextpost">Älter ›</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
 <div class="progress" id="progress" aria-hidden="true"></div>
 <button class="totop" id="totop" type="button" aria-label="Nach oben"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
 <script type="module" src="${url('/assets/site.js')}"></script>

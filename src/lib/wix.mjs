@@ -221,16 +221,20 @@ export async function fetchVorstand(client, collectionId = 'Team') {
 // Instagram: Die Wix-Instagram-App hält die letzten Beiträge in einer App-Sammlung vor (Bild, Text, Link, Likes).
 export async function fetchInstagram(client, collectionId = '@vanyadoing/instagram/ig-media') {
   const list = await fetchCollection(client, collectionId);
+  const ts = d => new Date(d.timestamp || d._createdDate || 0).getTime();
   return list
     .filter(d => d.mediaUrl && d.mediaType !== 'VIDEO')
-    .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
+    .sort((a, b) => ts(b) - ts(a))
     .slice(0, 6)
     .map(d => ({
       id: d.shortcode || d.igMediaId,
       url: d.permalink || 'https://www.instagram.com/spd_soltau/',
       img: d.mediaUrl,
+      // Mehrfach-Posts: alle Bilder (erstes = Titelbild)
+      images: (Array.isArray(d.children) && d.children.length ? d.children.map(ch => ch.mediaUrl || ch.imageUrl).filter(Boolean) : [d.mediaUrl]),
       caption: d.caption || '',
       date: isoDateBerlin(d.timestamp || Date.now()),
       likes: d.metrics?.likes ?? null,
+      comments: d.metrics?.comments ?? null,
     }));
 }
