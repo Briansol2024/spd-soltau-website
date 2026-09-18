@@ -395,6 +395,8 @@ async function secTermine(v) {
   const [zusagen, listen, helfer, fahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => [])]);
   const today = todayIso();
   const ics = CFG.ics || {};
+  // Listen, die an einem angezeigten Termin hängen, stehen direkt im Termin – der Rest unten
+  const loseListen = listen.filter(l => (!l.datum || l.datum >= today) && !events.some(e => e.id === l.eventId));
   orteList();
   v.innerHTML = `
   ${sectionHead('Termine – kommst du?', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
@@ -418,10 +420,10 @@ async function secTermine(v) {
     </form></details>` : ''}
   ${me.can('helfer') && me.sees('helfer') ? `<details class="mb-details" id="hl-new"><summary>Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
   </div>` : ''}
-  <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
-  ${me.sees('helfer') ? `<section class="mb-sub" id="helferlisten">
-    ${sectionHead('Helferlisten', me.can('helfer') ? 'Du darfst Listen anlegen' : '')}
-    <div id="hl-list">${listen.filter(l => !l.datum || l.datum >= today).map(l => helperList(l, helfer, events)).join('') || '<p class="muted small">Gerade werden keine Helfer*innen gesucht.</p>'}</div>
+  <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, events)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
+  ${me.sees('helfer') && loseListen.length ? `<section class="mb-sub" id="helferlisten">
+    ${sectionHead('Weitere Helferlisten', 'Ohne festen Termin')}
+    <div id="hl-list">${loseListen.map(l => helperList(l, helfer, events)).join('')}</div>
   </section>` : ''}
   <section class="mb-sub" id="kalender">
     ${sectionHead('Kalender abonnieren', 'Termine automatisch im Handy-Kalender')}
@@ -436,7 +438,7 @@ async function secTermine(v) {
 }
 const absUrl = rel => new URL(rel, location.href).href;
 const webcal = rel => absUrl(rel).replace(/^https?:/, 'webcal:');
-function eventCard(ev, zusagen, listen, helfer, fahrten) {
+function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
   const list = zusagen.filter(z => z.eventId === ev.id);
   const mine = list.find(z => z.memberId === me.id);
   const ja = list.filter(z => z.status === 'zusage'), nein = list.filter(z => z.status === 'absage');
@@ -458,7 +460,7 @@ function eventCard(ev, zusagen, listen, helfer, fahrten) {
         <button type="button" class="btn btn-schwarz btn-sm" data-save-grund>Speichern</button>
       </div>
       <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
-      ${me.sees('helfer') ? myLists.map(l => `<p class="small">🙋 <a href="#termine/hl-${esc(l._id)}">Helfer gesucht: ${esc(l.titel)}</a></p>`).join('') : ''}
+      ${me.sees('helfer') ? myLists.map(l => helperList(l, helfer, events, true)).join('') : ''}
       ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
       <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
         <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} Platz${(r.plaetze || 1) === 1 ? '' : 'e'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
@@ -476,10 +478,11 @@ function eventCard(ev, zusagen, listen, helfer, fahrten) {
     </div>
   </article>`;
 }
-function helperList(l, helfer, events) {
+// embedded = innerhalb der Terminkarte (kompakter, ohne Termin-Hinweis)
+function helperList(l, helfer, events, embedded = false) {
   const ev = events.find(e => e.id === l.eventId);
-  return `<article class="mb-card hl" id="hl-${esc(l._id)}" data-id="${esc(l._id)}">
-    <div class="hl-head"><div><h4>${esc(l.titel)}</h4><p class="small muted">${esc(fmtDate(l.datum))}${l.ort ? ' · ' + esc(l.ort) : ''}${ev ? ' · Termin: ' + esc(ev.title) : ''} · angelegt von ${esc(l.von || '–')}</p></div><div class="mb-actions">${waBtn(`🙋 Helfer gesucht: ${l.titel} – ${fmtDate(l.datum)}${l.ort ? ', ' + l.ort : ''}\n${(l.schichten || []).map(s => s.zeit + ' (' + (s.plaetze || 0) + ' Plätze)').join(', ')}\nEintragen: ${appLink('#termine/hl-' + l._id)}`)}${l._owner === me.id || me.can('helfer') ? '<button type="button" class="linkbtn" data-del-list>Liste löschen</button>' : ''}</div></div>
+  return `<article class="${embedded ? 'hl hl-embed' : 'mb-card hl'}" id="hl-${esc(l._id)}" data-id="${esc(l._id)}">
+    <div class="hl-head"><div><h4>${embedded ? '🙋 ' : ''}${esc(embedded ? 'Helfer gesucht: ' + l.titel : l.titel)}</h4><p class="small muted">${esc(fmtDate(l.datum))}${l.ort ? ' · ' + esc(l.ort) : ''}${ev && !embedded ? ' · Termin: ' + esc(ev.title) : ''} · angelegt von ${esc(l.von || '–')}</p></div><div class="mb-actions">${waBtn(`🙋 Helfer gesucht: ${l.titel} – ${fmtDate(l.datum)}${l.ort ? ', ' + l.ort : ''}\n${(l.schichten || []).map(s => s.zeit + ' (' + (s.plaetze || 0) + ' Plätze)').join(', ')}\nEintragen: ${appLink('#termine/hl-' + l._id)}`)}${l._owner === me.id || me.can('helfer') ? '<button type="button" class="linkbtn" data-del-list>Liste löschen</button>' : ''}</div></div>
     ${l.beschreibung ? `<p class="small">${nl2br(l.beschreibung)}</p>` : ''}
     <div class="shifts">${(l.schichten || []).map(s => {
       const who = helfer.filter(h => h.listeId === l._id && h.schichtId === s.id); const mine = who.some(h => h.memberId === me.id); const free = Math.max(0, (s.plaetze || 0) - who.length);
@@ -580,8 +583,9 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
       const schichten = $$('#hl-shifts .row').map((r, i) => ({ id: 's' + (i + 1), zeit: r.children[0].value.trim(), plaetze: +r.children[1].value || 1 })).filter(s => s.zeit || s.plaetze);
       try {
         const fd = new FormData(f); const ev = events.find(x => x.id === fd.get('eventId'));
-        await db.insert('Helferlisten', { titel: fd.get('titel').trim(), title: fd.get('titel').trim(), eventId: fd.get('eventId') || '', eventTitel: ev?.title || '', datum: fd.get('datum'), ort: fd.get('ort').trim(), beschreibung: fd.get('beschreibung').trim(), schichten, von: me.name });
-        location.hash = '#termine/helferlisten'; route();
+        const neu = await db.insert('Helferlisten', { titel: fd.get('titel').trim(), title: fd.get('titel').trim(), eventId: fd.get('eventId') || '', eventTitel: ev?.title || '', datum: fd.get('datum'), ort: fd.get('ort').trim(), beschreibung: fd.get('beschreibung').trim(), schichten, von: me.name });
+        const id = neu?._id || neu?.dataItem?._id;
+        location.hash = id ? '#termine/hl-' + id : ev ? '#termine/ev-' + ev.id : '#termine/helferlisten'; route();
       } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
     });
   }

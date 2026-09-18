@@ -814,6 +814,9 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 @container site (max-width:600px){.top-row{grid-template-columns:70px minmax(0,1fr)}.top-row select{grid-column:1/-1}}
 .hl-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
 .hl h4,.poll h4,.rat h4{font:700 24px/1 var(--display);text-transform:uppercase;margin-top:6px}
+.hl-embed{margin:12px 0;padding:12px 14px;border:1px solid var(--linie);border-left:4px solid var(--rot);background:var(--grau);display:grid;gap:10px}
+.hl-embed h4{font-size:17px;margin-top:0;letter-spacing:.04em}
+.hl-embed .shift{border-left:0;padding:8px 10px}
 .shifts{display:grid;gap:8px}
 .shift{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;background:#fff;border-left:4px solid var(--rot)}
 .shift.full{border-left-color:var(--muted)}
