@@ -1,5 +1,6 @@
 // Seitenvorlagen – 1:1 nach Referenz-Entwurf D, mit echten Links und Inhalten aus dem Build.
 import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards, zielBlocks, zielJump, zielAccordionFotos } from './render.mjs';
+import { stadtKacheln } from './lib/stadt.mjs';
 
 const NAV = [
   ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'],
@@ -224,7 +225,9 @@ export function startPage(d) {
     </div>
   </div></div>` : ''}
 
-  <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px">
+  ${rathausKacheln(d)}
+
+  <div class="wrap${d.stichwahl || d.stadt ? '' : ' section'}" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
     <div class="quick quick-2">
       <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</small></a>
@@ -268,6 +271,60 @@ export function startPage(d) {
   </div>
 
   <div id="umfrage-box" class="umfrage-box" hidden></div>
+</section>`;
+}
+
+// ---------- Aus Rat & Rathaus: automatisch aus den öffentlichen Quellen der Stadt (src/lib/stadt.mjs) ----------
+const RR_ICON = {
+  mitreden: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.4A8 8 0 1 1 21 12z"/></svg>',
+  sitzung: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg>',
+  amtsblatt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.3 7.2 16.9l.9-5.4L4.2 7.7l5.4-.8z"/></svg>',
+  rathaus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>',
+  baustelle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M9 21l2.5-16h1L15 21M6.5 15h11M7.8 9h8.4"/></svg>',
+};
+const standText = iso => new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace('.,', ',') + ' Uhr';
+const kurzText = (t, n = 90) => { t = String(t || '').split(';')[0].trim(); return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + ' …' : t; };
+export function rathausKacheln(d) {
+  const k = stadtKacheln(d.stadt, 4);
+  if (!k.length) return '';
+  return `
+  <div class="wrap rr" aria-label="Aus Rat und Rathaus">
+    <div class="rr-head"><h2 class="rr-title">Aus Rat &amp; Rathaus</h2><span class="rr-stand">automatisch · Stand ${esc(standText(d.stadt.stand))}</span><a class="rr-more" href="${url('/rat-und-rathaus/')}">Alle Meldungen →</a></div>
+    <div class="rr-row">${k.map(t => `<a class="rr-tile${t.dunkel ? ' dunkel' : ''}" href="${esc(t.url)}" target="_blank" rel="noopener"><span class="rr-kicker">${RR_ICON[t.art] || ''}${esc(t.kicker)}</span><b>${esc(kurzText(t.titel, 80))}</b><small>${esc(kurzText(t.sub, 90))}</small></a>`).join('')}</div>
+  </div>`;
+}
+export function ratRathausPage(d) {
+  const s = d.stadt || { sitzungen: [], rathaus: [], amtsblatt: [], mitreden: [], baustellen: [], quellen: {}, stand: new Date().toISOString() };
+  const tag = iso => iso ? `${['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(iso + 'T12:00:00').getDay()]} ${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '';
+  const kurz = iso => iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.` : '';
+  const rathaus = s.rathaus.filter(r => r.relevant).slice(0, 8);
+  const leer = t => `<p class="muted small">${t}</p>`;
+  return `
+<section>
+  ${pageHead('Automatisch aktuell', 'Aus Rat &amp;<br>Rathaus', 'Was die Stadt Soltau öffentlich bekannt gibt – Sitzungen, Amtsblatt, Meldungen aus dem Rathaus und Verfahren, bei denen Sie mitreden können. Gesammelt an einem Ort, alle 30 Minuten neu.')}
+  <div class="wrap section rr-page">
+    ${s.mitreden.length ? `<div class="rr-mitreden">${RR_ICON.mitreden}<div><span class="tag">Jetzt mitreden</span>${s.mitreden.map(m => `<p><b>${esc(m.titel)}</b> – ${esc(m.text)}${m.bis ? ` <a class="rr-frist" href="${esc(m.url)}" target="_blank" rel="noopener">Stellung nehmen · bis ${esc(kurz(m.bis))}</a>` : ''}</p>`).join('')}</div></div>` : ''}
+    <div class="rr-cols">
+      <div class="rr-card">
+        <h3>${RR_ICON.sitzung}Nächste Sitzungen</h3>
+        ${s.sitzungen.length ? s.sitzungen.slice(0, 8).map(x => `<a class="rr-item" href="${esc(x.url)}" target="_blank" rel="noopener"><span class="rr-when">${esc(tag(x.datum))}<br><span>${esc(x.zeit)} Uhr</span></span><span><b>${esc(x.gremiumLang)}</b><br><small>${esc(x.ort)} · öffentlich${x.tagesordnung ? ' · Tagesordnung' : ''}</small></span></a>`).join('') : leer('Keine kommenden Sitzungen gemeldet.')}
+        <p class="rr-quelle">Quelle: <a href="https://ris.stadt-soltau.de/bi/infobi.asp" target="_blank" rel="noopener">Bürgerinformationssystem der Stadt Soltau</a></p>
+      </div>
+      <div class="rr-card">
+        <h3>${RR_ICON.rathaus}Aus dem Rathaus</h3>
+        ${rathaus.length ? rathaus.map(r => `<a class="rr-item" href="${esc(r.url)}" target="_blank" rel="noopener"><span><small>${esc(kurz(r.datum))}</small><br><b>${esc(r.titel)}</b>${r.teaser ? `<br><span class="rr-teaser">${esc(r.teaser)}</span>` : ''}</span></a>`).join('') : leer('Keine Meldungen.')}
+        <p class="rr-quelle">Quelle: <a href="https://www.soltau.de/home/aktuelles/neuigkeiten.aspx" target="_blank" rel="noopener">soltau.de – Neuigkeiten</a> (Überschrift und Anriss, der Text steht bei der Stadt)</p>
+      </div>
+      <div class="rr-card">
+        <h3>${RR_ICON.amtsblatt}Amtsblatt</h3>
+        ${s.amtsblatt.length ? s.amtsblatt.slice(0, 8).map(a => `<a class="rr-item" href="${esc(a.url)}" target="_blank" rel="noopener"><span><small>${esc(kurz(a.datum))} · Amtsblatt ${esc(a.nummer)} · PDF</small><br><b>${esc(a.thema || 'Amtliche Bekanntmachungen')}</b></span></a>`).join('') : leer('Keine Ausgaben gefunden.')}
+        ${s.baustellen.length ? `<h4 class="rr-sub">${RR_ICON.baustelle}Baustellen &amp; Sperrungen</h4>${s.baustellen.map(b => `<a class="rr-item" href="${esc(b.url)}" target="_blank" rel="noopener"><span><small>${esc(kurz(b.datum))}</small><br><b>${esc(b.titel)}</b></span></a>`).join('')}` : ''}
+        <p class="rr-quelle">Quelle: <a href="https://www.soltau.de/home/aktuelles/bekanntmachungen_der_stadt_soltau.aspx" target="_blank" rel="noopener">Amtsblatt der Stadt Soltau</a> (amtliche Bekanntmachungen)</p>
+      </div>
+    </div>
+    <div class="rr-meinung"><b>Unsere Meinung dazu?</b><span>Zu den Themen aus Rat und Rathaus schreibt die Fraktion unter „Aktuelles“.</span><a class="btn btn-rot" href="${url('/aktuelles/')}">Aktuelles lesen</a></div>
+    <p class="small muted">Stand ${esc(standText(s.stand))}. Diese Seite füllt sich automatisch aus den öffentlichen Seiten der Stadt Soltau; wir zeigen Überschriften, Termine und Links – die Inhalte selbst liegen bei der Stadt.</p>
+  </div>
 </section>`;
 }
 

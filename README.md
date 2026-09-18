@@ -75,8 +75,16 @@ Mitgliederbereich (einmal je Sitzung). Besucher ohne Konto sehen in der App einf
 Zum Ausprobieren im Browser: `?app=1`.
 
 **Website-Struktur (Wünsche Vorsitz, 18.09.2026):** Startseite = Hero („Aus Liebe zu Soltau“, „Moin!“, Textbox mit „Unsere 11 Gewählten“) →
-Laufband (bis zur Stichwahl „Am 27.09. Zinke zum Landrat wählen!“, danach Termine; langsam) → Stichwahl-Abschnitt mit Foto (bis 27.09.) → „Was können
-wir für Sie tun?“ → Soltau in Zahlen → Aktuelles → Instagram → Termine (schlank, nur öffentliche). **Jede Website-Seite endet gleich** (`pageEnd()` im
+Laufband (bis zur Stichwahl „Am 27.09. Zinke zum Landrat wählen!“, danach Termine; langsam) → Stichwahl-Abschnitt mit Foto (bis 27.09.) → **Aus Rat & Rathaus**
+(Kachelreihe, s. u.) → „Was können wir für Sie tun?“ → Soltau in Zahlen → Aktuelles → Instagram → Termine (schlank, nur öffentliche).
+
+**Aus Rat & Rathaus (automatisch, `src/lib/stadt.mjs`):** Beim Bau (alle 30 Minuten) liest der Build die öffentlichen Seiten der Stadt Soltau – Bürgerinformationssystem
+(nächste Sitzungen von Rat und Ausschüssen mit Ort/Uhrzeit; Link zur Tagesordnung, sobald sie im Monatskalender veröffentlicht ist), soltau.de-Neuigkeiten (Titel, Datum,
+Anrisssatz, Link; Stichwortfilter gegen Feste/Kino), Amtsblatt (Nummer, Datum, Themen, PDF), laufende Bauleitplanverfahren („Jetzt mitreden … bis <Frist>“) und Baustellen.
+Keine KI, keine Schlüssel, keine Kosten – reiner Mustervergleich; amtliche Bekanntmachungen sind gemeinfrei, von Meldungen nur Überschrift + Anriss. Auf der Startseite eine
+Kachelreihe (Variante K2: höchstens vier Kacheln – Mitreden zuerst (schwarz), nächste Sitzung, Amtsblatt, Rathaus; am Handy wischbar) mit „Stand …“ und „Alle Meldungen →“
+zur Seite `/rat-und-rathaus/` (Mitreden-Streifen, drei Spalten Sitzungen / Rathaus / Amtsblatt + Baustellen, Quellenangaben). Fällt eine Quelle aus, fehlt nur ihre Kachel;
+sind alle Quellen weg, entfällt der Block (`d.stadt = null`). Der Stichwahl-Abschnitt bleibt bis zum 27.09. darüber („Wahl geht vor“). **Jede Website-Seite endet gleich** (`pageEnd()` im
 Layout): drei Kästen Vorstand · Ratsfraktion · Roter Bahnhof buchen, dann „Nichts verpassen“. Ortsverein und Fraktion nutzen dieselbe Vorlage
 (`teamPage()`): Kopf → Zahlenband → Team nach Funktion sortiert (`byRole`, große Namen, quadratische Fotos) → zwei Kästen → Beiträge. Ziele als Karten mit
 Piktogrammen (`zielCards`). Alle 27 Kandidat*innen stehen weiterhin unter „Unsere 11 im Stadtrat“.
