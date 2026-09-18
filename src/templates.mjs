@@ -225,15 +225,15 @@ export function startPage(d) {
     </div>
   </div></div>` : ''}
 
-  ${rathausKacheln(d)}
-
-  <div class="wrap${d.stichwahl || d.stadt ? '' : ' section'}" style="padding-block:56px">
+  <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px${d.stadt ? ' 0' : ''}">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
     <div class="quick quick-2">
       <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</small></a>
       <a href="${url('/mitmachen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg><b>Ich will vorbeikommen oder mitmachen</b><small>Ratssitzungen sind öffentlich, der Rote Bahnhof steht offen – als Gast, Helferin oder Mitglied.</small></a>
     </div>
   </div>
+
+  ${rathausKacheln(d)}
 
   <div class="band-rot">
     <div class="wrap" style="padding-block:40px">
