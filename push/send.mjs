@@ -61,7 +61,7 @@ async function logKey(key, info = {}) {
 
 // ---------- Senden ----------
 async function send(subs, payload, key, logKeys) {
-  if (!subs.length) { log(`  ${key}: keine Empfänger`); if (logKeys) { logKeys.add(key); await logKey(key, { empfaenger: 0 }); } return; }
+  if (!subs.length) { log(`  ${key}: keine Empfänger (wird beim nächsten Lauf erneut versucht)`); return; }
   log(`  ${key}: „${payload.title}“ → ${subs.length} Gerät(e)${DRY ? ' (Trockenlauf)' : ''}`);
   if (DRY) return;
   const body = JSON.stringify(payload);
@@ -383,9 +383,10 @@ async function memberPushes(subs, logKeys) {
 // ---------- Vorstand: Registrierungen, Buchungen, Anfragen, Zu-/Absagen, Geburtstage ----------
 async function boardPushes(subs, pending, routing, logKeys) {
   for (const m of pending) {
-    const key = 'registrierung:' + m.memberId; if (logKeys.has(key)) continue;
+    const key = 'registrierung:' + m.memberId;
     const entry = { key, typ: 'registrierung', title: 'Neue Registrierungsanfrage', body: `${m.name} (${m.email}) möchte in den Mitgliederbereich.`, details: { Name: m.name, 'E-Mail': m.email, Registriert: fmtDe(m.registriert) }, payload: { memberId: m.memberId, name: m.name } };
     await inbox(routing.registrierung, entry);
+    if (logKeys.has(key)) continue;
     await send(byMembers(subs, routing.registrierung), {
       title: entry.title, body: entry.body + ' Freischalten oder ablehnen im Eingang.', tag: key, url: url(INBOX),
       data: { typ: 'registrierung', id: key, memberId: m.memberId, name: m.name, details: entry.details },
@@ -395,12 +396,13 @@ async function boardPushes(subs, pending, routing, logKeys) {
   try {
     const open = await queryAll(client, 'Anfragen', q => q.eq('status', 'offen').descending('_createdDate'));
     for (const a of open) {
-      const key = 'anfrage:' + a._id; if (logKeys.has(key)) continue;
+      const key = 'anfrage:' + a._id;
       if (NOW - new Date(a._createdDate).getTime() > 14 * 24 * H) continue;
       const art = a.typ === 'mitglied' ? 'Mitgliedsanfrage' : 'Kontaktanfrage';
       const text = a.nachricht || a.interesse || '';
       const details = { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '' };
       await inbox(routing.anfrage, { key, typ: 'anfrage', title: art + (a.thema ? ': ' + a.thema : ''), body: `${a.name || '?'}: ${text}`.slice(0, 180), details, payload: { anfrageId: a._id } });
+      if (logKeys.has(key)) continue;
       await send(byMembers(subs, routing.anfrage), {
         title: art + (a.thema ? ': ' + a.thema : ''), body: `${a.name || '?'}: ${text}`.slice(0, 180), tag: key, url: url(INBOX),
         data: { typ: 'anfrage', id: key, anfrageId: a._id, details },
@@ -427,10 +429,11 @@ async function boardPushes(subs, pending, routing, logKeys) {
   try {
     const open = await queryAll(client, 'Buchungen', q => q.eq('status', 'offen').descending('_createdDate'));
     for (const b of open) {
-      const key = 'buchung:' + b._id; if (logKeys.has(key)) continue;
+      const key = 'buchung:' + b._id;
       if (NOW - new Date(b._createdDate).getTime() > 14 * 24 * H) continue;
       const zeit = [b.datum, b.von && b.bis ? `${b.von}–${b.bis} Uhr` : ''].filter(Boolean).join(' ');
       await inbox(routing.buchung, { key, typ: 'buchung', title: 'Buchungsanfrage Roter Bahnhof', body: `${b.name || '?'}${b.organisation ? ' (' + b.organisation + ')' : ''}: ${zeit} – ${b.zweck || ''}`, details: { Name: b.name || '', 'Verein/Gruppe': b.organisation || '', Wann: zeit, Anlass: b.zweck || '', Personen: b.personen || '', 'E-Mail': b.email || '', Telefon: b.telefon || '', Nachricht: b.nachricht || '' }, payload: { buchungId: b._id } });
+      if (logKeys.has(key)) continue;
       await send(byMembers(subs, routing.buchung), {
         title: 'Buchungsanfrage Roter Bahnhof', body: `${b.name || '?'}${b.organisation ? ' (' + b.organisation + ')' : ''}: ${zeit} – ${b.zweck || ''}`, tag: key, url: url(INBOX),
         data: { typ: 'buchung', id: key, buchungId: b._id, details: { Name: b.name || '', 'Verein/Gruppe': b.organisation || '', Wann: zeit, Anlass: b.zweck || '', Personen: b.personen || '', 'E-Mail': b.email || '', Telefon: b.telefon || '', Nachricht: b.nachricht || '' } },

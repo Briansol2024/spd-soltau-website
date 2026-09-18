@@ -39,6 +39,7 @@ const memberClients = new Map();
 export async function memberClient(memberId) {
   if (memberClients.has(memberId)) return memberClients.get(memberId);
   const base = createClient({ modules: { items }, auth: OAuthStrategy({ clientId: env.WIX_CLIENT_ID }) });
+  base.auth.setTokens(await base.auth.generateVisitorTokens()); // Besucher-Token wird für den Tausch gebraucht
   const tokens = await base.auth.getMemberTokensForExternalLogin(memberId, env.WIX_API_KEY);
   const c = createClient({ modules: { items }, auth: OAuthStrategy({ clientId: env.WIX_CLIENT_ID, tokens }) });
   memberClients.set(memberId, c);
