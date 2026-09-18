@@ -652,3 +652,6 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .btn-stichwahl b{font:800 28px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
 .btn-stichwahl:hover{transform:translate(-3px,-3px);box-shadow:6px 6px 0 #fff;background:var(--rot)}
 @container site (max-width:600px){.btn-stichwahl{width:100%;justify-items:center;text-align:center;padding:16px 14px}.btn-stichwahl b{font-size:25px}}
+
+/* Startseite: am Desktop fünf Beiträge (großer Aufmacher + vier), auf dem Handy bleiben drei in der Wischreihe */
+@container site (max-width:600px){#start-news .card:nth-child(n+4){display:none}}

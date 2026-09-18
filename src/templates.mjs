@@ -144,7 +144,7 @@ export function startPage(d) {
       <h2 class="title">Aktuelles</h2>
       <a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a>
     </div>
-    <div class="news" id="start-news">${d.news.slice(0, 3).map(newsCard).join('')}</div>
+    <div class="news" id="start-news">${d.news.slice(0, 5).map(newsCard).join('')}</div>
   </div>
 
   <div class="band-rot">
