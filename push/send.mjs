@@ -177,6 +177,9 @@ async function loadSettings(approved) {
     if (!DRY) await client.items.remove('Benachrichtigungen', sn._id).catch(() => {});
   }
   for (const [t, ids] of Object.entries(st.routing)) log(`  ${t}: ${ids.length} Empfänger${st.snap[t] ? '' : ' (Standard: gesamter Vorstand)'}`);
+  log(`  Gruppen: Vorstand ${st.groups.vorstand.size}, Rat ${st.groups.rat.size}, Fraktion ${st.groups.fraktion.size}`);
+  const eingeschraenkt = Object.entries(st.sicht).filter(([, v]) => v.modus !== 'alle').map(([k, v]) => `${k} → Vorstand${[...v.gruppen].map(g => ' + ' + g).join('')}${v.ids.size ? ' + ' + v.ids.size + ' Person(en)' : ''}`);
+  if (eingeschraenkt.length) log('  Sichtbarkeit eingeschränkt: ' + eingeschraenkt.join('; '));
   return st;
 }
 const hasRight = (st, memberId, right) => !!st.rights[right]?.has(memberId);

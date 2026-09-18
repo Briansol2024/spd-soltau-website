@@ -64,17 +64,22 @@ und der Push-Dienst (`push/README.md`).
 **Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
 Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·
-Vorstand (Reiter: Eingang, Benachrichtigen, Rechte, Sichtbarkeit, Nachricht, WhatsApp).
+Vorstand (Reiter: Eingang, Benachrichtigen, Gruppen, Rechte, Sichtbarkeit, Nachricht, WhatsApp).
 
-**Rechte:** Standard = der gesamte Vorstand darf alles. Unter Vorstand → „Wer darf was?“ legt man fest, **wer zum Vorstand gehört** und wer je Recht
+**Gruppen („Wer gehört wozu?“):** Unter Vorstand → Gruppen hakt man je Person **Vorstand**, **Rat** (gewählte Ratsmitglieder) und **Fraktion**
+(alle, die in der Ratsfraktion mitarbeiten – Ratsmitglieder zählen automatisch dazu, hinzugewählte Ausschussmitglieder werden extra angehakt) an. Mitglied ist
+jede freigeschaltete Person. Die Gruppen erscheinen im Mitgliederverzeichnis und steuern die Sichtbarkeit. Schnappschüsse `vorstand`, `gruppe:rat`, `gruppe:fraktion`.
+
+**Rechte:** Standard = der gesamte Vorstand darf alles. Unter Vorstand → „Wer darf was?“ legt man fest, wer je Recht
 (Beiträge schreiben, Termine anlegen, Umfragen, Helferlisten, Dokumente, Ratsvorbereitung, Nachrichten, Eingang, Verwaltung) etwas darf – alles in der App,
 nichts im Wix-Dashboard. Der Push-Dienst spiegelt den Vorstand in die Wix-Rolle „Vorstandsmitglied“ und prüft die Rechte ebenfalls (Einträge ohne Recht werden
 entfernt). Startvorstand beim allerersten Lauf: `VORSTAND_EMAILS` in `.env` (wird automatisch freigeschaltet und als Vorstand gesetzt). Logik: `src/lib/rights.mjs`.
 
 **Sichtbarkeit („Wer sieht was?“):** Unter Vorstand → Sichtbarkeit legt man je Bereich fest, was normale Mitglieder in der App sehen: Termine getrennt nach
 Typ (Öffentlich, Rat, Mitglieder, Fraktion, Vorstand – der Typ ergibt sich aus Titel/Beschreibung des Wix-Termins bzw. der Auswahl beim Anlegen in der App),
-Helferlisten, Umfragen, Dokumente, Ratsvorbereitung, Mitgliederverzeichnis. Je Bereich: *Alle Mitglieder*, *Nur Vorstand* oder *Vorstand + ausgewählte Personen*.
-Standard: alles für alle, Vorstandstermine nur Vorstand. Vorstand und Verwalter sehen immer alles; der Push-Dienst richtet sich bei „Neuer Termin“ und
+Helferlisten, Umfragen, Dokumente, Ratsvorbereitung, Mitgliederverzeichnis. Je Bereich: *Alle Mitglieder* oder *Nur Vorstand + Auswahl* – dann beliebig
+kombinierbar aus den Gruppen Rat und Fraktion plus einzelnen Personen (z. B. Vorstand + Rat, Vorstand + Fraktion + zwei Gäste).
+Standard: alles für alle, Fraktionstermine nur Vorstand + Fraktion, Vorstandstermine nur Vorstand. Vorstand und Verwalter sehen immer alles; der Push-Dienst richtet sich bei „Neuer Termin“ und
 „Mitglieder-Infos“ nach derselben Einstellung. Öffentliche Website und ICS-Feed zeigen weiterhin nur öffentliche Termine (Öffentlich, Rat).
 
 **Beiträge und Termine aus der App:** Wer das Recht hat, schreibt unter „Beiträge“ einen Beitrag (Überschrift, Anriss, Text, Kategorie, Titelbild) oder legt unter

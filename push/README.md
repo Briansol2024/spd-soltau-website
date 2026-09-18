@@ -49,7 +49,7 @@ Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml
 |---|---|---|
 | `Zusagen` | Zu-/Absagen zu Terminen mit Grund | Mitglieder lesen + anlegen, eigene ändern |
 | `PushSubscriptions` | Push-Abonnements der Geräte | jeder darf anlegen, lesen nur Admin/Push-Dienst |
-| `Benachrichtigungen` | „Wer wird benachrichtigt?“ (je Speichern ein Eintrag, der neueste gilt) | Mitglieder lesen + anlegen |
+| `Benachrichtigungen` | Einstellungen der App: „Wer wird benachrichtigt?“, Gruppen (Vorstand/Rat/Fraktion), Rechte, Sichtbarkeit, WhatsApp-Gruppen (je Speichern ein Eintrag, der neueste gilt) | Mitglieder lesen + anlegen |
 | `Aktionen` | Aufträge des Vorstands an den Push-Dienst | Mitglieder anlegen, eigene lesen |
 | `AppMitglieder` | Name, Rollen, Push-Status je Mitglied (vom Dienst gepflegt) | Mitglieder lesen |
 | `Buchungen` | Buchungsanfragen Roter Bahnhof | jeder darf anlegen, lesen nur Admin/Push-Dienst |

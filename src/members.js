@@ -8,7 +8,7 @@ import { createClient, OAuthStrategy } from '@wix/sdk';
 import * as items from '@wix/wix-data-items-sdk';
 import * as members from '@wix/auto_sdk_members_members';
 import { esc, D, WD, MONS, MONL } from './render.mjs';
-import { RIGHTS, BOARD_TOPICS, VISIBILITY, evaluateSettings, canSee } from './lib/rights.mjs';
+import { RIGHTS, BOARD_TOPICS, GROUPS, VISIBILITY, evaluateSettings, canSee, groupLabels } from './lib/rights.mjs';
 import { makeDemoClient } from './demo.js';
 
 const SPD = window.SPD || {};
@@ -92,6 +92,7 @@ const fmtDate = s => { if (!s) return ''; const x = D(s); return `${WD[x.getDay(
 const fmtShort = s => { if (!s) return ''; const x = D(s); return `${WD[x.getDay()]} ${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.`; };
 const fmtWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr'; };
 const nameOf = id => people.find(p => p.memberId === id)?.name || '–';
+const rolesOf = p => { const g = groupLabels(settings, p.memberId); return (g.length ? g : (p.rollen || []).filter(r => !/^(mitglied|member)$/i.test(r))).join(', ') || 'Mitglied'; };
 const dateBox = s => { const x = D(s); return `<div class="event-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div>`; };
 const badge = t => `<span class="badge ${t === 'Öffentlich' || t === 'Rat' ? 'badge-off' : t === 'Mitglieder' || t === 'Vorstand' ? 'badge-mit' : ''}">${esc(t)}</span>`;
 const nl2br = t => esc(t).replace(/\n/g, '<br>');
@@ -316,7 +317,7 @@ function renderShell() {
   view(`
   ${DEMO ? '<p class="note note-info demo-note"><b>Vorschau mit Beispieldaten.</b> So sieht der Mitgliederbereich nach der Anmeldung aus – Änderungen werden hier nicht gespeichert. <a href="./">Zur echten Anmeldung</a></p>' : ''}
   <div class="mb-head">
-    <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)}${me.vorstand ? ' · Vorstand' : ''}${me.rollen.length && !me.vorstand ? ' · ' + esc(me.rollen.join(', ')) : ''}</p></div>
+    <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)} · ${esc(rolesOf({ memberId: me.id, rollen: me.rollen }))}</p></div>
     <button class="btn btn-line" type="button" id="logout">Abmelden</button>
   </div>
   <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => secVisible(k)).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
@@ -831,7 +832,7 @@ async function secMitglieder(v) {
   v.innerHTML = `
   ${sectionHead('Mitglieder', `${people.length} im Mitgliederbereich`)}
   <p class="small muted">Kontaktdaten sieht man nur, wenn das Mitglied sie im Profil freigegeben hat. Deine eigenen Angaben änderst du unter <a href="#profil">Profil</a>.</p>
-  <div class="people-list">${people.map(p => { const pr = byId.get(p.memberId) || {}; return `<div class="member"><b>${esc(p.name)}</b><span class="small muted">${esc((p.rollen || []).join(', ') || 'Mitglied')}${pr.ort ? ' · ' + esc(pr.ort) : ''}</span>${pr.telefonSichtbar && pr.telefon ? `<a class="small" href="tel:${esc(pr.telefon)}">📞 ${esc(pr.telefon)}</a>` : ''}${pr.emailSichtbar && pr.email ? `<a class="small" href="mailto:${esc(pr.email)}">✉️ ${esc(pr.email)}</a>` : ''}</div>`; }).join('') || '<p class="muted">Die Liste wird vom Push-Dienst aus den Wix-Mitgliedern befüllt.</p>'}</div>
+  <div class="people-list">${people.map(p => { const pr = byId.get(p.memberId) || {}; return `<div class="member"><b>${esc(p.name)}</b><span class="small muted">${esc(rolesOf(p))}${pr.ort ? ' · ' + esc(pr.ort) : ''}</span>${pr.telefonSichtbar && pr.telefon ? `<a class="small" href="tel:${esc(pr.telefon)}">📞 ${esc(pr.telefon)}</a>` : ''}${pr.emailSichtbar && pr.email ? `<a class="small" href="mailto:${esc(pr.email)}">✉️ ${esc(pr.email)}</a>` : ''}</div>`; }).join('') || '<p class="muted">Die Liste wird vom Push-Dienst aus den Wix-Mitgliedern befüllt.</p>'}</div>
   <div class="mb-grid" style="margin-top:28px">
     <div class="mb-card"><h3>Geburtstage (60 Tage)</h3>${bdays.length ? bdays.map(b => `<p class="small">🎂 <b>${esc(b.name)}</b> – ${esc(b.text)}</p>`).join('') : '<p class="small muted">Keine eingetragen.</p>'}</div>
     <div class="mb-card"><h3>Jubiläen ${year}</h3>${jub.length ? jub.map(j => `<p class="small">🌹 <b>${esc(j.name)}</b> – ${j.jahre} Jahre in der SPD</p>`).join('') : '<p class="small muted">Keine runden Jubiläen eingetragen (Eintrittsjahr im Profil).</p>'}</div>
@@ -964,6 +965,7 @@ async function secVorstand(v) {
   const panels = [
     me.can('freigaben') && ['eingang', 'Eingang'],
     me.can('verwaltung') && ['wer', 'Benachrichtigen'],
+    me.can('verwaltung') && ['gruppen', 'Gruppen'],
     me.can('verwaltung') && ['rechte', 'Rechte'],
     me.can('verwaltung') && ['sicht', 'Sichtbarkeit'],
     me.can('nachrichten') && ['nachricht', 'Nachricht'],
@@ -977,7 +979,8 @@ async function secVorstand(v) {
   const panel = $('#vs-panel');
   if (cur === 'eingang') { panel.innerHTML = `${sectionHead('Eingang', 'Anfragen an den Vorstand – persönlich für dich abgelegt')}<div id="inbox"><p class="muted">Lade …</p></div>`; renderInbox(); }
   if (cur === 'wer') { panel.innerHTML = `${sectionHead('Wer wird benachrichtigt?', 'Push-Nachrichten an den Vorstand')}<div id="routing"></div>`; renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät und den Vorgang in ihren Eingang (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.'); }
-  if (cur === 'rechte') { panel.innerHTML = `${sectionHead('Wer darf was?', 'Vorstand und Rechte im Mitgliederbereich')}<div id="rights"></div>`; renderMatrix('rights', [['vorstand', 'Vorstand', 'Wer zum Vorstand gehört. Der Push-Dienst setzt die Wix-Rolle „Vorstandsmitglied“ entsprechend.'], ...RIGHTS.map(([k, l]) => [k, l, ''])], k => k === 'vorstand' ? [...settings.board] : [...settings.rights[k]], k => k === 'vorstand' ? 'vorstand' : 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand. Vorstand und das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.'); }
+  if (cur === 'gruppen') { panel.innerHTML = `${sectionHead('Wer gehört wozu?', 'Vorstand, Rat und Fraktion')}<div id="groups"></div>`; renderMatrix('groups', GROUPS.map(([k, l, i]) => [k, l, i, k === 'vorstand' ? '(Standard: Wix-Rolle „Vorstandsmitglied“)' : '(noch niemand eingetragen)']), k => [...settings.groups[k]], k => k === 'vorstand' ? 'vorstand' : 'gruppe:' + k, 'Häkchen = gehört dazu. Mitglied ist jede freigeschaltete Person. Ratsmitglieder zählen automatisch zur Fraktion. Die Gruppen steuern die Sichtbarkeit (Vorstand → Sichtbarkeit) und stehen im Mitgliederverzeichnis; den Vorstand können nur Vorstandsmitglieder oder Verwalter ändern.'); }
+  if (cur === 'rechte') { panel.innerHTML = `${sectionHead('Wer darf was?', 'Rechte im Mitgliederbereich')}<div id="rights"></div>`; renderMatrix('rights', RIGHTS.map(([k, l]) => [k, l, '']), k => [...settings.rights[k]], k => 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand (Vorstand → Gruppen). Das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.'); }
   if (cur === 'sicht') { panel.innerHTML = `${sectionHead('Wer sieht was?', 'Sichtbarkeit im Mitgliederbereich')}<div id="visibility"></div>`; renderVisibility(); }
   if (cur === 'nachricht') {
     panel.innerHTML = `${sectionHead('Nachricht an alle', 'Push an alle, die Benachrichtigungen aktiviert haben')}
@@ -1010,22 +1013,30 @@ async function secVorstand(v) {
     });
   }
 }
-// Sichtbarkeit: je Bereich/Termintyp „alle Mitglieder“, „nur Vorstand“ oder eine Auswahl von Personen
+// Sichtbarkeit: je Bereich/Termintyp „alle Mitglieder“ oder eine Kombination aus Gruppen (Rat, Fraktion) und einzelnen Personen
 function renderVisibility() {
   const box = $('#visibility'); if (!box) return;
   if (!people.length) { box.innerHTML = '<p class="note note-info">Die Mitgliederliste ist noch leer – sie wird vom Push-Dienst automatisch aus den Wix-Mitgliedern befüllt.</p>'; return; }
   const nonBoard = people.filter(p => !settings.board.has(p.memberId));
+  const GRP = GROUPS.filter(([k]) => k !== 'vorstand');
+  const describe = v => v.modus === 'alle' ? 'Alle Mitglieder' : ['Vorstand', ...GRP.filter(([k]) => v.gruppen.has(k)).map(([, l]) => l), ...[...v.ids].map(nameOf)].join(' + ');
   box.innerHTML = `
-    <p class="small muted">Legt fest, was Mitglieder in der App angezeigt bekommen. Vorstand und Verwalter sehen immer alles. Hinweis: Das ist eine Anzeige-Einstellung in der App – Termine, die auf der öffentlichen Website stehen, bleiben dort natürlich sichtbar.</p>
-    <div class="vis-list">${VISIBILITY.map(([k, l]) => { const v = settings.sicht[k]; const sn = settings.snap['sicht:' + k]; return `
+    <p class="small muted">Legt fest, was Mitglieder in der App angezeigt bekommen. Vorstand und Verwalter sehen immer alles; wer zu Rat und Fraktion gehört, steht unter „Gruppen“. Hinweis: Das ist eine Anzeige-Einstellung in der App – Termine, die auf der öffentlichen Website stehen, bleiben dort natürlich sichtbar.</p>
+    <div class="vis-list">${VISIBILITY.map(([k, l]) => { const v = settings.sicht[k]; const sn = settings.snap['sicht:' + k]; const restricted = v.modus !== 'alle'; return `
       <div class="vis-row" data-key="${esc(k)}">
-        <div class="vis-label"><b>${esc(l)}</b>${sn ? `<span class="small muted">geändert ${esc(fmtWhen(sn._createdDate))} von ${esc(sn.von || '–')}</span>` : '<span class="small muted">Standard</span>'}</div>
-        <select class="vis-mode" aria-label="${esc(l)}: wer darf das sehen"><option value="alle" ${v.modus === 'alle' ? 'selected' : ''}>Alle Mitglieder</option><option value="vorstand" ${v.modus === 'vorstand' ? 'selected' : ''}>Nur Vorstand</option><option value="auswahl" ${v.modus === 'auswahl' ? 'selected' : ''}>Vorstand + ausgewählte Personen</option></select>
-        <div class="vis-people" ${v.modus === 'auswahl' ? '' : 'hidden'}>${nonBoard.map(p => `<label class="check"><input type="checkbox" data-member="${esc(p.memberId)}" ${v.ids.has(p.memberId) ? 'checked' : ''}> <span>${esc(p.name)}</span></label>`).join('') || '<span class="small muted">Alle Mitglieder gehören zum Vorstand.</span>'}</div>
+        <div class="vis-label"><b>${esc(l)}</b><span class="small muted">${esc(describe(v))}${sn ? ` · geändert ${esc(fmtWhen(sn._createdDate))} von ${esc(sn.von || '–')}` : ' (Standard)'}</span></div>
+        <select class="vis-mode" aria-label="${esc(l)}: wer darf das sehen"><option value="alle" ${restricted ? '' : 'selected'}>Alle Mitglieder</option><option value="gruppen" ${restricted ? 'selected' : ''}>Nur Vorstand + Auswahl</option></select>
+        <div class="vis-people" ${restricted ? '' : 'hidden'}>
+          <span class="vis-fixed">✔ Vorstand</span>
+          ${GRP.map(([g, gl]) => `<label class="check"><input type="checkbox" data-group="${g}" ${v.gruppen.has(g) ? 'checked' : ''}> <span><b>${esc(gl)}</b> <span class="muted">(${settings.groups[g].size})</span></span></label>`).join('')}
+          <details class="vis-persons" ${v.ids.size ? 'open' : ''}><summary>Einzelne Personen${v.ids.size ? ` (${v.ids.size})` : ''}</summary>
+            <div class="vis-persons-list">${nonBoard.map(p => `<label class="check"><input type="checkbox" data-member="${esc(p.memberId)}" ${v.ids.has(p.memberId) ? 'checked' : ''}> <span>${esc(p.name)}</span></label>`).join('') || '<span class="small muted">Alle Mitglieder gehören zum Vorstand.</span>'}</div>
+          </details>
+        </div>
       </div>`; }).join('')}</div>
     <p class="note" id="vis-msg" hidden></p>
     <div class="mb-actions"><button class="btn btn-rot" type="button" id="vis-save">Speichern</button></div>`;
-  box.addEventListener('change', e => { const sel = e.target.closest('.vis-mode'); if (sel) sel.closest('.vis-row').querySelector('.vis-people').hidden = sel.value !== 'auswahl'; });
+  box.addEventListener('change', e => { const sel = e.target.closest('.vis-mode'); if (sel) sel.closest('.vis-row').querySelector('.vis-people').hidden = sel.value !== 'gruppen'; });
   $('#vis-save').addEventListener('click', async () => {
     const btn = $('#vis-save'); busy(btn, true); msg($('#vis-msg'), '');
     try {
@@ -1033,11 +1044,13 @@ function renderVisibility() {
       for (const row of $$('.vis-row', box)) {
         const k = row.dataset.key, v = settings.sicht[k];
         const modus = row.querySelector('.vis-mode').value;
-        const ids = modus === 'auswahl' ? $$('input[data-member]', row).filter(c => c.checked).map(c => c.dataset.member) : [];
-        const same = modus === v.modus && ids.length === v.ids.size && ids.every(i => v.ids.has(i));
-        if (same) continue;
+        const gruppen = modus === 'gruppen' ? $$('input[data-group]', row).filter(c => c.checked).map(c => c.dataset.group) : [];
+        const ids = modus === 'gruppen' ? $$('input[data-member]', row).filter(c => c.checked).map(c => c.dataset.member) : [];
+        const sameSet = (arr, set) => arr.length === set.size && arr.every(i => set.has(i));
+        if (modus === v.modus && sameSet(gruppen, v.gruppen) && sameSet(ids, v.ids)) continue;
         const label = VISIBILITY.find(x => x[0] === k)[1];
-        await db.insert('Benachrichtigungen', { title: `Sichtbarkeit ${label}: ${modus}${ids.length ? ' (' + ids.map(nameOf).join(', ') + ')' : ''}`, thema: 'sicht:' + k, modus, empfaenger: ids, namen: ids.map(nameOf), von: me.name }); n++;
+        const namen = ids.map(nameOf);
+        await db.insert('Benachrichtigungen', { title: `Sichtbarkeit ${label}: ${describe({ modus, gruppen: new Set(gruppen), ids: new Set(ids) })}`, thema: 'sicht:' + k, modus, gruppen, empfaenger: ids, namen, von: me.name }); n++;
       }
       await loadSettings(); renderVisibility();
       msg($('#vis-msg'), n ? 'Gespeichert – gilt sofort für alle beim nächsten Öffnen.' : 'Nichts geändert.', 'ok');
@@ -1097,9 +1110,9 @@ function renderMatrix(boxId, rows, current, themaOf, hint) {
     <p class="small muted">${esc(hint)}</p>
     <div class="routing-table"><table>
       <thead><tr><th>Mitglied</th>${rows.map(([k, l]) => `<th><span>${esc(l)}</span></th>`).join('')}</tr></thead>
-      <tbody>${people.map(p => `<tr><td><b>${esc(p.name)}</b>${p.pushAktiv ? ' 📱' : ''}<br><span class="small muted">${esc((p.rollen || []).join(', ') || 'Mitglied')}</span></td>${rows.map(([k]) => `<td><input type="checkbox" data-thema="${esc(themaOf(k))}" data-member="${esc(p.memberId)}" ${(current(k) || []).includes(p.memberId) ? 'checked' : ''} aria-label="${esc(p.name)}: ${esc(k)}"></td>`).join('')}</tr>`).join('')}</tbody>
+      <tbody>${people.map(p => `<tr><td><b>${esc(p.name)}</b>${p.pushAktiv ? ' 📱' : ''}<br><span class="small muted">${esc(rolesOf(p))}</span></td>${rows.map(([k]) => `<td><input type="checkbox" data-thema="${esc(themaOf(k))}" data-member="${esc(p.memberId)}" ${(current(k) || []).includes(p.memberId) ? 'checked' : ''} aria-label="${esc(p.name)}: ${esc(k)}"></td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>
-    <div class="routing-info">${rows.map(([k, l, i]) => { const s = settings.snap[themaOf(k)]; return `<p class="small"><b>${esc(l)}:</b> ${esc(i || '')} ${s ? `<span class="muted">(zuletzt geändert ${esc(fmtWhen(s._createdDate))} von ${esc(s.von || '–')})</span>` : '<span class="muted">(Standard: gesamter Vorstand)</span>'}</p>`; }).join('')}</div>
+    <div class="routing-info">${rows.map(([k, l, i, d]) => { const s = settings.snap[themaOf(k)]; return `<p class="small"><b>${esc(l)}:</b> ${esc(i || '')} ${s ? `<span class="muted">(zuletzt geändert ${esc(fmtWhen(s._createdDate))} von ${esc(s.von || '–')})</span>` : `<span class="muted">${esc(d || '(Standard: gesamter Vorstand)')}</span>`}</p>`; }).join('')}</div>
     <p class="note" id="${boxId}-msg" hidden></p>
     <div class="mb-actions"><button class="btn btn-rot" type="button" id="${boxId}-save">Speichern</button></div>`;
   $(`#${boxId}-save`).addEventListener('click', async () => {

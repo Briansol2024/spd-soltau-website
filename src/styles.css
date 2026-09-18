@@ -777,6 +777,10 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .vis-mode{padding:8px 10px;border:2px solid var(--schwarz);background:#fff;font:inherit;font-size:14px;max-width:100%}
 .vis-people{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 16px;padding-top:6px;border-top:1px dashed var(--linie)}
 .vis-people .check{gap:6px;font-size:14px}
+.vis-fixed{font-size:14px;font-weight:700;color:var(--muted)}
+.vis-persons{flex-basis:100%;font-size:14px}
+.vis-persons summary{cursor:pointer;font-weight:700;color:var(--rot)}
+.vis-persons-list{display:flex;flex-wrap:wrap;gap:6px 16px;padding-top:8px}
 @container site (max-width:560px){.vis-row{grid-template-columns:1fr}.inbox-tabs .check{margin-left:0}}
 .start-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 @container site (max-width:760px){.start-grid{grid-template-columns:minmax(0,1fr)}}
