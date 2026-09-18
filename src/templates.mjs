@@ -400,7 +400,6 @@ export function zielePage(d) {
   return `
 <section>
   ${pageHead('Unsere Ziele', 'Der 10-Punkte-<br>Plan', 'Soltau kann mehr. Dafür braucht es klare Prioritäten, verlässliche Entscheidungen und den Mut, wichtige Projekte endlich umzusetzen.')}
-  <div class="wrap zj-wrap">${zielJump(d.ziele)}</div>
   <div class="wrap section za-list" id="ziele-list">${zielAccordionFotos(d.ziele)}</div>
   <div class="band-rot"><div class="wrap section versprechen">
     <div>
