@@ -75,7 +75,7 @@ Mitgliederbereich (einmal je Sitzung). Besucher ohne Konto sehen in der App einf
 Zum Ausprobieren im Browser: `?app=1`.
 
 **Hilfe & Anleitungen (`#hilfe`):** 13 nummerierte Themen für alle Mitglieder (01 Registrieren und Anmelden … 13 Zur Website und zurück), je Thema
-ein kurzes Video für Android, iPhone/iPad, Windows und Mac – ohne Sprecherstimme, alle Schritte als Untertitel, mit ruhiger Hintergrundmusik –
+ein kurzes Video für Android, iPhone/iPad, Windows und Mac – ohne Sprecherstimme, alle Schritte als Untertitel, mit fröhlicher, leichter Hintergrundmusik –
 und darunter dieselben Schritte als Text. Erreichbar über „Mehr“ bzw. die Seitenleiste und ohne Anmeldung vom Anmeldebildschirm aus.
 Vorstands-Werkzeuge (Termine anlegen, Rechte, Eingang …) sind bewusst nicht Teil der Videos. Quelle der Themen und Schritte: `src/lib/hilfe.mjs`;
 Videos und Cover liegen in `src/hilfe/` (→ `assets/hilfe/`) und entstehen mit `video/hilfe/` (siehe dort: `record.mjs`, `compose.py`, `posters.py`, `music.py`).
