@@ -904,6 +904,29 @@ html.from-app .app-return{display:flex;align-items:center;gap:12px;position:stic
 .app-return span{margin-left:auto;font-size:12px;color:#C9C4C2;white-space:nowrap}
 html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .member-link b{font:700 13px/1 var(--body)}
+/* Hilfe & Anleitungen */
+.help-platforms{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.help-platforms .chip{font-size:13px;padding:8px 12px}
+.help-group{padding-top:24px;margin-top:24px}
+.help-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.help-card{display:grid;background:var(--grau);color:var(--schwarz);text-decoration:none;border-left:4px solid var(--rot);transition:transform .15s,box-shadow .15s}
+.help-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+.help-card img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:var(--rot)}
+.help-card-body{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:12px 14px 14px;align-items:baseline}
+.help-card-body b{font:800 34px/1 var(--display);color:var(--rot);grid-row:span 2}
+.help-card-body span{font:700 19px/1.1 var(--display);text-transform:uppercase}
+.help-card-body small{font-size:13px;color:var(--muted);grid-column:2}
+.help-player{margin:6px 0 18px;background:var(--schwarz);display:flex;justify-content:center}
+.help-video{display:block;max-width:100%;max-height:78vh;background:#000}
+.help-video.landscape{width:100%;aspect-ratio:16/9}
+.help-video.portrait{aspect-ratio:9/16;max-height:78vh;width:auto}
+.help-steps{padding-left:0;margin:0 0 20px;list-style:none;counter-reset:s;display:grid;gap:10px}
+.help-steps li{counter-increment:s;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start;padding:12px 14px;background:var(--grau);border-left:4px solid var(--rot);font-size:16px}
+.help-steps li::before{content:counter(s,decimal-leading-zero);font:800 26px/1 var(--display);color:var(--rot)}
+.help-nav{justify-content:space-between}
+.help-share{margin:-6px 0 18px}
+.help-share .btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.help-share .note{flex-basis:100%}
 /* Umfrage der Woche (Startseite) */
 .umfrage-box{background:var(--rot);color:#fff;margin:56px 0 0}
 .umfrage{padding:40px 0;display:grid;gap:14px}

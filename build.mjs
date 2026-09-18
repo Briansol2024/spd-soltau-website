@@ -302,6 +302,12 @@ async function main() {
   await copyFile(path.join(__dirname, 'src', 'render.mjs'), path.join(OUT, 'assets', 'render.mjs'));
   await writeFile(path.join(OUT, 'assets', 'favicon.svg'), FAVICON, 'utf8');
   await copyFonts();
+  // Hilfevideos und Poster (src/hilfe → assets/hilfe), sofern vorhanden
+  const helpDir = path.join(__dirname, 'src', 'hilfe');
+  if (existsSync(helpDir)) {
+    await mkdir(path.join(OUT, 'assets', 'hilfe'), { recursive: true });
+    for (const f of await readdir(helpDir)) if (/\.(mp4|jpg|webp|vtt)$/.test(f)) await copyFile(path.join(helpDir, f), path.join(OUT, 'assets', 'hilfe', f));
+  }
   await buildApp();
   const imgDir = path.join(__dirname, 'src', 'images');
   if (existsSync(imgDir)) {

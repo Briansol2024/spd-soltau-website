@@ -74,6 +74,13 @@ Mitgliederbereich“ (Klasse `from-app`, gemerkt in `sessionStorage`; in der ins
 Mitgliederbereich (einmal je Sitzung). Besucher ohne Konto sehen in der App einfach die Website und kommen über das Personen-Symbol zur Anmeldung.
 Zum Ausprobieren im Browser: `?app=1`.
 
+**Hilfe & Anleitungen (`#hilfe`):** 13 nummerierte Themen für alle Mitglieder (01 Registrieren und Anmelden … 13 Zur Website und zurück), je Thema
+ein kurzes Video für Android, iPhone/iPad, Windows und Mac – ohne Sprecherstimme, alle Schritte als Untertitel, mit ruhiger Hintergrundmusik –
+und darunter dieselben Schritte als Text. Erreichbar über „Mehr“ bzw. die Seitenleiste und ohne Anmeldung vom Anmeldebildschirm aus.
+Vorstands-Werkzeuge (Termine anlegen, Rechte, Eingang …) sind bewusst nicht Teil der Videos. Quelle der Themen und Schritte: `src/lib/hilfe.mjs`;
+Videos und Cover liegen in `src/hilfe/` (→ `assets/hilfe/`) und entstehen mit `video/hilfe/` (siehe dort: `record.mjs`, `compose.py`, `posters.py`, `music.py`).
+Die Demo (`?demo`) heißt jetzt Max Mustermann; `?demo&mitglied` zeigt die Sicht eines normalen Mitglieds, `?demo&video` dasselbe ohne Vorschau-Hinweis (für die Aufnahmen).
+
 **Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
 Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·

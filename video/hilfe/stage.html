@@ -1,0 +1,219 @@
+<!doctype html>
+<!-- Bühne für die Hilfevideos: Geräterahmen (Android / iPhone / Windows / Mac), Untertitel, Titel- und Schlusskarte,
+     Tipp-/Maus-Anzeige und nachgebaute System-Dialoge. Die App läuft im iframe (localhost). Gesteuert von record.mjs. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Hilfevideo – Bühne</title>
+<link rel="stylesheet" href="http://localhost:8080/assets/fonts.css">
+<style>
+:root{--rot:#E3000F;--schwarz:#0F0F0F;--grau:#EFEDEC;--linie:#DAD5D3;--muted:#6E6868;--display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;--body:'Barlow','Segoe UI',Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--rot);font-family:var(--body);color:var(--schwarz);overflow:hidden;width:100%;height:100%}
+body{position:relative}
+#stage{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 0%,#F21A28 0%,#C4000D 100%)}
+/* Kopfzeile */
+#top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:14px;padding:22px 32px;color:#fff}
+#top img{height:52px}
+#top .t{font:700 20px/1 var(--display);letter-spacing:.12em;text-transform:uppercase}
+#top .badge{margin-left:auto;background:#fff;color:var(--rot);font:700 16px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;padding:9px 12px 8px}
+/* Gerät */
+#device{position:absolute;background:#0b0b0b;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+#screen{position:absolute;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+#status{display:none;flex-shrink:0;align-items:center;justify-content:space-between;padding:0 22px;background:#fff;color:#0b0b0b;font:600 15px/1 var(--body)}
+#status .r{display:flex;gap:6px;align-items:center}
+#browser{display:none;flex-shrink:0;align-items:center;gap:8px;padding:6px 10px;background:#E9E9EB;border-bottom:1px solid #D0D0D3;font:500 15px var(--body);color:#333}
+#browser .url{flex:1;display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;background:#fff;border-radius:17px}
+#browser .dots{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+#browser .ic{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:#444}
+#browser .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#browser.ios{order:3;padding:8px 14px 6px;background:#F7F7F8;border-top:1px solid #D0D0D3;border-bottom:0;flex-direction:column;gap:10px}
+#browser.ios .row{display:flex;justify-content:space-around;width:100%;color:#0A84FF;font-size:22px}
+#browser.ios .url{justify-content:center;font-size:15px}
+#homebar{order:4}
+#app{flex:1;border:0;width:100%;display:block;background:#fff}
+#homebar{display:none;flex-shrink:0;align-items:center;justify-content:center;background:#fff}
+#homebar i{display:block;width:134px;height:5px;border-radius:3px;background:#0b0b0b}
+/* Phone-Details */
+.mode-phone #device{border-radius:46px;padding:12px}
+.mode-phone #screen{inset:12px;border-radius:36px}
+.plat-android #device{border-radius:34px}
+.plat-android #screen{border-radius:26px}
+.mode-phone #status{display:flex;height:40px}
+.mode-phone #homebar{display:flex;height:26px}
+.plat-ios #island{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:110px;height:30px;border-radius:15px;background:#0b0b0b;z-index:5}
+.plat-android #cam{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;background:#0b0b0b;z-index:5}
+/* Desktop-Fenster */
+.mode-desktop #device{border-radius:10px;overflow:hidden;padding:0}
+.mode-desktop #screen{position:absolute;inset:0;border-radius:10px}
+#titlebar{display:none;flex-shrink:0;align-items:center;height:36px;padding:0 12px;background:#F3F3F3;border-bottom:1px solid #D9D9D9;font:500 13px var(--body);color:#333;position:relative}
+.mode-desktop #titlebar{display:flex}
+#titlebar .win{display:flex;align-items:center;gap:10px}
+#titlebar .win img{width:16px;height:16px}
+#titlebar .winbtns{margin-left:auto;display:flex;gap:26px;font-size:14px;color:#333}
+#titlebar .lights{display:flex;gap:8px}
+#titlebar .lights i{width:12px;height:12px;border-radius:50%;display:block}
+#titlebar .center{position:absolute;left:50%;transform:translateX(-50%)}
+.plat-windows #titlebar .lights,.plat-windows #titlebar .center{display:none}
+.plat-macos #titlebar .win,.plat-macos #titlebar .winbtns{display:none}
+/* Untertitel */
+#caption{position:absolute;display:flex;gap:18px;align-items:flex-start;background:#fff;color:var(--schwarz);padding:22px 26px;box-shadow:0 18px 40px rgba(0,0,0,.25);opacity:0;transition:opacity .25s}
+#caption.on{opacity:1}
+#cap-num{flex-shrink:0;width:54px;height:54px;border-radius:50%;background:var(--rot);color:#fff;font:800 28px/54px var(--display);text-align:center}
+#cap-text{font:500 27px/1.3 var(--body)}
+.mode-desktop #cap-text{font-size:25px}
+/* Titel- und Schlusskarte */
+.card{position:absolute;inset:0;background:var(--rot);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:70px;z-index:50;opacity:0;pointer-events:none;transition:opacity .35s}
+.card.on{opacity:1}
+.card .num{font:800 300px/1 var(--display);letter-spacing:-.02em}
+.mode-desktop .card .num{font-size:220px}
+.card .ttl{background:var(--schwarz);padding:22px 28px;font:800 54px/1.05 var(--display);text-transform:uppercase;align-self:flex-start;max-width:100%}
+.mode-desktop .card .ttl{font-size:48px}
+.card .sub{margin-top:26px;font:600 26px/1.3 var(--body);opacity:.95}
+.card .logo{position:absolute;left:70px;top:60px;height:70px}
+.card .plat{position:absolute;right:70px;top:66px;background:#fff;color:var(--rot);font:700 22px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;padding:12px 14px 10px}
+#end{background:var(--schwarz)}
+#end .big{font:800 96px/1 var(--display);text-transform:uppercase}
+.mode-desktop #end .big{font-size:80px}
+#end .adr{margin-top:30px;background:var(--rot);padding:18px 26px;font:700 40px/1 var(--display);align-self:flex-start}
+/* Tipp und Maus */
+#tap{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:4px solid var(--rot);background:rgba(227,0,15,.25);opacity:0;pointer-events:none;z-index:40}
+#tap.on{animation:tap .55s ease-out}
+@keyframes tap{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(.9)}100%{opacity:0;transform:scale(1.6)}}
+#cursor{position:absolute;width:26px;height:36px;pointer-events:none;z-index:41;transition:left .5s cubic-bezier(.4,0,.2,1),top .5s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));opacity:0}
+.mode-desktop #cursor{opacity:1}
+#ring{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid var(--rot);opacity:0;pointer-events:none;z-index:40}
+#ring.on{animation:ring .5s ease-out}
+@keyframes ring{0%{opacity:1;transform:scale(.3)}100%{opacity:0;transform:scale(1.4)}}
+/* Nachgebaute System-Oberflächen (schematisch) */
+#overlay{position:absolute;inset:0;pointer-events:none;z-index:30}
+.ov-dim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.ov{position:absolute;background:#fff;color:#111;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.4);font:500 19px/1.3 var(--body);overflow:hidden}
+.ov .hd{padding:14px 18px;border-bottom:1px solid #E5E5E5;font-weight:700}
+.ov .it{padding:13px 18px;border-bottom:1px solid #EEE;display:flex;align-items:center;gap:12px}
+.ov .it:last-child{border-bottom:0}
+.ov .it.hl{outline:3px solid var(--rot);outline-offset:-3px;background:#FFF1F2}
+.ov .it .ic{width:24px;height:24px;flex-shrink:0;color:#555;display:flex;align-items:center;justify-content:center}
+.ov .it .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ov .txt{padding:16px 18px;color:#444}
+.ov .btns{display:flex;justify-content:flex-end;gap:10px;padding:12px 16px 16px}
+.ov .btn{padding:10px 18px;border-radius:8px;border:1px solid #CCC;background:#fff;font:600 17px var(--body)}
+.ov .btn.p{background:#1A73E8;color:#fff;border-color:#1A73E8}
+.ov .btn.hl{outline:3px solid var(--rot);outline-offset:2px}
+.ov.ios{border-radius:18px;font-size:20px}
+.ov.ios .btn{border:0;font-weight:600;color:#0A84FF;background:transparent}
+.ov.ios .btn.p{color:#0A84FF}
+.ov.ios .btns{border-top:1px solid #E5E5E5;justify-content:space-around;padding:12px}
+.ov.mac .btn{border-radius:6px}
+.ov.mac .btn.p{background:#0A60FF;border-color:#0A60FF}
+.ov.win .btn{border-radius:4px}
+.ov.win .btn.p{background:#0067C0;border-color:#0067C0}
+.ov.win .hd{font-size:20px}
+.ov.sheet{border-radius:22px 22px 0 0;left:0;right:0;bottom:0}
+.ov.sheet .grab{width:44px;height:5px;border-radius:3px;background:#CCC;margin:10px auto 6px}
+.ov.sheet .apps{display:flex;gap:18px;padding:12px 18px 18px;border-bottom:1px solid #EEE}
+.ov.sheet .apps i{width:60px;height:60px;border-radius:14px;background:#E9E9EB;display:block}
+.home{position:absolute;inset:0;background:linear-gradient(180deg,#1f3b57,#0d1b2a);display:grid;grid-template-columns:repeat(4,1fr);gap:22px 10px;padding:70px 26px;align-content:start;pointer-events:none}
+.home .ap{display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;font:500 13px var(--body)}
+.home .ap i{width:62px;height:62px;border-radius:16px;background:#8A8F98;display:block}
+.home .ap.spd i{background:var(--rot) url(http://localhost:8080/assets/icons/icon-192.png) center/cover;outline:4px solid #fff;outline-offset:3px}
+.menubar{position:absolute;left:0;right:0;top:0;height:28px;background:#F5F5F7;border-bottom:1px solid #D9D9D9;display:flex;align-items:center;gap:18px;padding:0 14px;font:500 14px var(--body);color:#111}
+.menubar b{font-weight:700}
+.menubar .hl{background:#0A60FF;color:#fff;padding:3px 8px;border-radius:5px}
+.toast{position:absolute;left:50%;transform:translateX(-50%);background:#fff;color:#111;border-radius:14px;padding:14px 18px;box-shadow:0 14px 40px rgba(0,0,0,.35);font:500 18px/1.3 var(--body);display:flex;gap:12px;align-items:center;max-width:90%}
+.toast img{width:40px;height:40px;border-radius:9px}
+.toast b{display:block}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="top"><img src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt=""><span class="t">Hilfe &amp; Anleitungen</span><span class="badge" id="top-badge"></span></div>
+  <div id="device">
+    <div id="cam"></div><div id="island"></div>
+    <div id="screen">
+      <div id="titlebar">
+        <div class="win"><img src="http://localhost:8080/assets/icons/icon-192.png" alt=""><span>SPD Soltau</span></div>
+        <div class="lights"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+        <div class="center">SPD Soltau</div>
+        <div class="winbtns"><span>&#8212;</span><span>&#9744;</span><span>&#10005;</span></div>
+      </div>
+      <div id="status"><span id="clock">9:41</span><span class="r"><span>▲</span><span>▮▮▮</span></span></div>
+      <div id="browser"><span>&#8592;</span><div class="url"><span>&#128274;</span><span id="url">spd-soltau.de/mitglieder</span></div><span class="dots" id="dots">&#8942;</span></div>
+      <iframe id="app" title="SPD Soltau App" src="about:blank"></iframe>
+      <div id="homebar"><i></i></div>
+      <div id="overlay"></div>
+    </div>
+  </div>
+  <div id="caption"><span id="cap-num">1</span><span id="cap-text"></span></div>
+  <div id="tap"></div><div id="ring"></div>
+  <svg id="cursor" viewBox="0 0 26 36"><path d="M2 2l20 16-9 1 5 12-4 2-5-12-7 6z" fill="#fff" stroke="#000" stroke-width="2" stroke-linejoin="round"/></svg>
+  <div class="card" id="title"><img class="logo" src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt=""><span class="plat" id="title-plat"></span><div class="num" id="title-num"></div><div class="ttl" id="title-ttl"></div><div class="sub">Schritt für Schritt – ohne Ton, einfach mitlesen.</div></div>
+  <div class="card" id="end"><img class="logo" src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt=""><div class="big">Fragen?<br>Der Vorstand hilft.</div><div class="adr">spd-soltau.de/mitglieder</div></div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const PLAT = { android: 'Android', ios: 'iPhone / iPad', windows: 'Windows', macos: 'Mac' };
+let cfg = null;
+window.setup = function (c) {
+  cfg = c;
+  document.body.className = `plat-${c.plat} mode-${c.mobile ? 'phone' : 'desktop'}`;
+  $('#top-badge').textContent = PLAT[c.plat];
+  $('#title-plat').textContent = PLAT[c.plat];
+  $('#title-num').textContent = c.n; $('#title-ttl').textContent = c.title;
+  const d = $('#device'), s = $('#screen'), cap = $('#caption');
+  if (c.mobile) {
+    const sw = c.screenW, sh = c.screenH, x = (c.W - sw) / 2 - 12, y = c.deviceTop;
+    Object.assign(d.style, { left: x + 'px', top: y + 'px', width: (sw + 24) + 'px', height: (sh + 24) + 'px' });
+    Object.assign(cap.style, { left: '40px', right: '40px', top: (y + sh + 24 + 30) + 'px', minHeight: '150px' });
+    $('#app').style.height = (sh - 40 - 26) + 'px';
+  } else {
+    const x = (c.W - c.screenW) / 2, y = c.deviceTop;
+    Object.assign(d.style, { left: x + 'px', top: y + 'px', width: c.screenW + 'px', height: c.screenH + 'px' });
+    Object.assign(cap.style, { left: '40px', right: '40px', top: (y + c.screenH + 22) + 'px', minHeight: '96px', padding: '16px 22px' });
+    $('#app').style.height = (c.screenH - 36) + 'px';
+  }
+  $('#clock').textContent = c.plat === 'ios' ? '9:41' : '10:08';
+};
+window.loadApp = url => { $('#app').src = url; };
+window.setBrowser = (on, url) => {
+  const b = $('#browser'); b.style.display = on ? 'flex' : 'none'; if (!on) return;
+  const u = url || 'spd-soltau.de/mitglieder';
+  const install = '<span class="ic" id="dots" title="Installieren"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M12 7v6M9.5 10.5L12 13l2.5-2.5"/></svg></span>';
+  if (cfg.plat === 'ios') { b.className = 'ios'; b.innerHTML = `<div class="url"><span>AA</span><span id="url">&#128274; ${u}</span><span>&#8635;</span></div><div class="row"><span>&#9664;</span><span>&#9654;</span><span class="ic" id="dots" style="color:#0A84FF"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 12v8h14v-8"/></svg></span><span>&#128214;</span><span>&#10697;</span></div>`; }
+  else if (cfg.mobile) { b.className = ''; b.innerHTML = `<span>&#8592;</span><div class="url"><span>&#128274;</span><span id="url">${u}</span></div><span class="dots" id="dots">&#8942;</span>`; }
+  else { b.className = ''; b.innerHTML = `<span>&#8592;</span><span>&#8594;</span><span>&#8635;</span><div class="url"><span>&#128274;</span><span id="url" style="flex:1">${u}</span>${install}</div><span class="dots">&#8942;</span>`; }
+};
+window.showTitle = on => $('#title').classList.toggle('on', on);
+window.showEnd = on => $('#end').classList.toggle('on', on);
+window.caption = (i, text) => { const c = $('#caption'); if (!text) { c.classList.remove('on'); return; } $('#cap-num').textContent = i; $('#cap-text').textContent = text; c.classList.add('on'); };
+window.tapAt = (x, y) => { const t = $('#tap'); t.style.left = x + 'px'; t.style.top = y + 'px'; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); };
+window.cursorTo = (x, y) => { const c = $('#cursor'); c.style.left = (x - 2) + 'px'; c.style.top = (y - 2) + 'px'; };
+window.ringAt = (x, y) => { const r = $('#ring'); r.style.left = x + 'px'; r.style.top = y + 'px'; r.classList.remove('on'); void r.offsetWidth; r.classList.add('on'); };
+window.overlayOff = () => { $('#overlay').innerHTML = ''; };
+// Rechteck des hervorgehobenen Elements (für Tipp/Maus), in Bühnen-Koordinaten
+window.overlayTarget = () => { const el = $('#overlay .hl'); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+const ICONS = { install: '<svg viewBox="0 0 24 24"><path d="M12 3v12M6 9l6 6 6-6M4 21h16"/></svg>', share: '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 12v8h14v-8"/></svg>', plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>', star: '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>', book: '<svg viewBox="0 0 24 24"><path d="M4 4h12a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3z"/></svg>', copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>', search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>', print: '<svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>', home: '<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>', bell: '<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>', cal: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>', link: '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>' };
+const item = (it, i, hl) => `<div class="it ${i === hl ? 'hl' : ''}">${it.icon ? `<span class="ic">${ICONS[it.icon] || ''}</span>` : ''}<span>${it.label}</span></div>`;
+// spec: { kind:'dropdown'|'sheet'|'dialog'|'home'|'menubar'|'toast', ... }
+window.overlay = spec => {
+  const o = $('#overlay'); o.innerHTML = '';
+  const skin = cfg.plat === 'ios' ? 'ios' : cfg.plat === 'macos' ? 'mac' : cfg.plat === 'windows' ? 'win' : '';
+  const dim = spec.dim === false ? '' : '<div class="ov-dim"></div>';
+  if (spec.kind === 'dropdown') {
+    o.innerHTML = `${dim}<div class="ov ${skin}" style="right:${spec.right ?? 10}px;top:${spec.top ?? 54}px;width:${spec.width || 300}px;left:${spec.left ?? 'auto'}">${spec.title ? `<div class="hd">${spec.title}</div>` : ''}${spec.items.map((it, i) => item(it, i, spec.highlight)).join('')}</div>`;
+  } else if (spec.kind === 'sheet') {
+    o.innerHTML = `${dim}<div class="ov ${skin} sheet"><div class="grab"></div>${spec.title ? `<div class="hd">${spec.title}</div>` : ''}${spec.apps ? '<div class="apps"><i></i><i></i><i></i><i></i></div>' : ''}${spec.items.map((it, i) => item(it, i, spec.highlight)).join('')}</div>`;
+  } else if (spec.kind === 'dialog') {
+    o.innerHTML = `${dim}<div class="ov ${skin}" style="left:50%;top:${spec.top ?? '38%'};transform:translate(-50%,-50%);width:${spec.width || 360}px">${spec.icon ? `<div style="padding:18px 18px 0;text-align:center"><img src="http://localhost:8080/assets/icons/icon-192.png" style="width:56px;height:56px;border-radius:12px"></div>` : ''}<div class="hd" style="border:0;text-align:${skin === 'ios' ? 'center' : 'left'}">${spec.title}</div>${spec.text ? `<div class="txt" style="padding-top:0">${spec.text}</div>` : ''}<div class="btns">${spec.buttons.map((b, i) => `<button class="btn ${i === spec.primary ? 'p' : ''} ${i === spec.highlight ? 'hl' : ''}">${b}</button>`).join('')}</div></div>`;
+  } else if (spec.kind === 'home') {
+    const apps = ['Telefon', 'Nachrichten', 'Kamera', 'Fotos', 'Kalender', 'Karten', 'Wetter', 'Einstellungen', 'Mail', 'Musik', 'Notizen'];
+    o.innerHTML = `<div class="home">${apps.map(a => `<div class="ap"><i></i>${a}</div>`).join('')}<div class="ap spd hl"><i></i>SPD Soltau</div></div>`;
+  } else if (spec.kind === 'menubar') {
+    o.innerHTML = `<div class="menubar"><b>&#63743;</b><span>Safari</span><span class="${spec.open === 'Ablage' ? 'hl' : ''}">Ablage</span><span>Bearbeiten</span><span>Darstellung</span><span>Verlauf</span><span>Lesezeichen</span><span>Fenster</span><span>Hilfe</span></div>${spec.items ? `<div class="ov mac" style="left:100px;top:30px;width:300px;border-radius:8px">${spec.items.map((it, i) => item(it, i, spec.highlight)).join('')}</div>` : ''}`;
+  } else if (spec.kind === 'toast') {
+    o.innerHTML = `<div class="toast" style="top:${spec.top ?? 18}px"><img src="http://localhost:8080/assets/icons/icon-192.png"><span><b>${spec.title}</b>${spec.text || ''}</span></div>`;
+  }
+};
+</script>
+</body>
+</html>

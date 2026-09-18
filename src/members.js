@@ -9,6 +9,7 @@ import * as items from '@wix/wix-data-items-sdk';
 import * as members from '@wix/auto_sdk_members_members';
 import { esc, D, WD, MONS, MONL } from './render.mjs';
 import { RIGHTS, BOARD_TOPICS, GROUPS, VISIBILITY, evaluateSettings, canSee, groupLabels } from './lib/rights.mjs';
+import { HELP_TOPICS, PLATFORMS, stepsFor, topicById, videoName, posterName, guessPlatform } from './lib/hilfe.mjs';
 import { makeDemoClient } from './demo.js';
 
 const SPD = window.SPD || {};
@@ -18,13 +19,14 @@ if (!app) throw new Error('Mitgliederbereich: Container fehlt');
 const $ = (s, r = app) => r.querySelector(s);
 const $$ = (s, r = app) => [...r.querySelectorAll(s)];
 const DEMO = /[?&]demo\b/.test(location.search);
+const VIDEO = /[?&]video\b/.test(location.search); // Aufnahme der Hilfevideos: ohne Vorschau-Hinweis
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
 const BASE = SPD.base || '.';
 const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Dokumente, Nachrichten)' };
 const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrichseck', 'Harber', 'Hötzingen', 'Leitzingen', 'Marbostel', 'Meinern', 'Mittelstendorf', 'Moide', 'Oeningen', 'Tetendorf', 'Wolterdingen', 'Woltem'];
 const SECTIONS = [
   ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],
-  ['rat', 'Rat'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'],
+  ['rat', 'Rat'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'], ['hilfe', 'Hilfe'],
 ];
 const ORTE_TERMIN = ['Roter Bahnhof, Am Bahnhof 1t', 'Altes Rathaus', 'Alte Reithalle', 'Marktplatz', 'Online'];
 
@@ -54,7 +56,7 @@ async function inboxPut(item) {
 }
 
 // ---------- Wix-Client (oder Vorschau-Attrappe) ----------
-const client = DEMO ? makeDemoClient(SPD) : createClient({
+const client = DEMO ? makeDemoClient(SPD, { mitglied: VIDEO || /[?&]mitglied/.test(location.search) }) : createClient({
   modules: { items, members },
   auth: OAuthStrategy({ clientId: CFG.clientId, tokens: store.get('spd-tokens') || undefined }),
 });
@@ -150,8 +152,9 @@ function renderAuth(tab = 'login', hint = '') {
         <div class="mb-actions"><button class="btn btn-rot" type="submit">Link schicken</button><button class="btn btn-line" type="button" id="p-back">Zurück</button></div>
       </form>
       <p class="small muted">Noch kein Konto und nur mal reinschauen? <a href="?demo">Vorschau mit Beispieldaten öffnen</a></p>
+      <p class="small"><a class="btn btn-line btn-sm" href="#hilfe">Hilfe &amp; Anleitungen (Videos)</a></p>
     </div>
-    <div class="mb-side">
+    <div class="mb-aside">
       ${pushCard(false)}
       ${installCard()}
     </div>
@@ -171,6 +174,7 @@ function renderAuth(tab = 'login', hint = '') {
 async function onLogin(e) {
   e.preventDefault(); const f = e.target; if (!f.checkValidity()) { f.reportValidity(); return; }
   const btn = f.querySelector('[type=submit]'); busy(btn, true); msg($('#l-msg'), '');
+  if (DEMO) { await new Promise(r => setTimeout(r, 600)); location.hash = '#start'; await enterApp(); return; }
   try {
     const res = await client.auth.login({ email: $('#l-mail').value.trim(), password: $('#l-pw').value });
     await handleAuthState(res, 'login');
@@ -181,6 +185,7 @@ async function onRegister(e) {
   e.preventDefault(); const f = e.target; if (!f.checkValidity()) { f.reportValidity(); return; }
   if ($('#r-pw').value !== $('#r-pw2').value) { msg($('#r-msg'), 'Die Passwörter stimmen nicht überein.'); return; }
   const btn = f.querySelector('[type=submit]'); busy(btn, true); msg($('#r-msg'), '');
+  if (DEMO) { await new Promise(r => setTimeout(r, 600)); renderVerify({ demo: true }); return; }
   const vn = $('#r-vn').value.trim(), nn = $('#r-nn').value.trim();
   const params = { email: $('#r-mail').value.trim(), password: $('#r-pw').value, profile: { firstName: vn, lastName: nn, nickname: `${vn} ${nn}`.trim(), privacyStatus: 'PRIVATE' } };
   try {
@@ -252,6 +257,7 @@ function renderVerify(state) {
   $('#v-code').focus();
   $('#f-verify').addEventListener('submit', async e => {
     e.preventDefault(); const btn = e.target.querySelector('[type=submit]'); busy(btn, true); msg($('#v-msg'), '');
+    if (DEMO) { await new Promise(r => setTimeout(r, 600)); renderPending(); return; }
     try { const res = await client.auth.processVerification({ verificationCode: $('#v-code').value.trim() }, state); await handleAuthState(res, 'verify'); }
     catch (err) { msg($('#v-msg'), 'Code nicht akzeptiert: ' + errText(err)); }
     busy(btn, false);
@@ -317,7 +323,7 @@ async function loadSettings() {
 }
 const anyRight = () => RIGHTS.some(([k]) => me.can(k));
 const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitglieder: 'mitglieder' };
-const secVisible = k => (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege')) && (!SEC_VIS[k] || me.sees(SEC_VIS[k]));
+const secVisible = k => k === 'hilfe' || ((k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege')) && (!SEC_VIS[k] || me.sees(SEC_VIS[k])));
 const visibleEvents = () => (SPD.events || []).filter(ev => me.sees('termine:' + (ev.typ || 'Öffentlich')));
 
 const ICON = {
@@ -334,13 +340,16 @@ const ICON = {
   more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></svg>',
   out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
   close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>',
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
 };
 // Gruppierte Bereichsliste – am PC als Seitenleiste, am Handy im „Mehr“-Blatt
 function navGroups() {
   const sec = (k, l, icon) => secVisible(k) ? [k, l, icon] : null;
   return [
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('umfragen', 'Umfragen', ICON.poll), sec('dokumente', 'Dokumente', ICON.doc), sec('rat', 'Ratsvorbereitung', ICON.rat), sec('mitglieder', 'Mitglieder', ICON.users)]],
-    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
+    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('hilfe', 'Hilfe & Anleitungen', ICON.help)]],
     ['Vorstand', [sec('vorstand', 'Vorstand', ICON.inbox)]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
@@ -351,7 +360,7 @@ function navList() {
 function renderShell() {
   const first = me.name.split(' ')[0] || me.name;
   view(`
-  ${DEMO ? '<p class="note note-info demo-note"><b>Vorschau mit Beispieldaten.</b> So sieht der Mitgliederbereich nach der Anmeldung aus – Änderungen werden hier nicht gespeichert. <a href="./">Zur echten Anmeldung</a></p>' : ''}
+  ${DEMO && !VIDEO ? '<p class="note note-info demo-note"><b>Vorschau mit Beispieldaten.</b> So sieht der Mitgliederbereich nach der Anmeldung aus – Änderungen werden hier nicht gespeichert. <a href="./">Zur echten Anmeldung</a></p>' : ''}
   <div class="mb-layout">
     <aside class="mb-side" aria-label="Bereiche">${navList()}</aside>
     <div class="mb-main">
@@ -393,7 +402,7 @@ async function updateBadges() {
   try { const local = await inboxAll(); n += local.filter(l => !l.done).length; } catch (e) { /* egal */ }
   document.querySelectorAll('[data-badge="vorstand"]').forEach(b => { b.textContent = n > 99 ? '99+' : String(n); b.hidden = !n; });
 }
-const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand };
+const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand, hilfe: secHilfe };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
   if (['eingang', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
@@ -402,13 +411,87 @@ async function route() {
   if (!RENDER[key] || !secVisible(key)) key = 'start';
   document.querySelectorAll('.mb-side a[data-sec],.mb-sheet a[data-sec]').forEach(a => { if (a.dataset.sec === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   document.querySelectorAll('.mb-tabbar [data-tab]').forEach(a => { if (a.dataset.tab === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  window.scrollTo({ top: Math.min(window.scrollY, (document.querySelector('.mb-main')?.getBoundingClientRect().top || 0) + window.scrollY - 80), behavior: 'auto' });
+  // Beim Wechsel des Bereichs nach oben zum Inhalt – bei Aktionen innerhalb eines Bereichs (Zusage, Helferliste …) bleibt die Scrollposition
+  if (route.lastKey !== key) window.scrollTo({ top: Math.min(window.scrollY, (document.querySelector('.mb-main')?.getBoundingClientRect().top || 0) + window.scrollY - 80), behavior: 'auto' });
+  route.lastKey = key;
   const v = $('#mb-view'); if (!v) return;
   v.innerHTML = '<p class="muted">Lade …</p>';
   try { await RENDER[key](v); } catch (err) { v.innerHTML = `<p class="note note-err">Das konnte nicht geladen werden: ${esc(errText(err))}</p>`; }
   const sub = location.hash.split('/')[1]; if (sub && key !== 'vorstand') document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 const sectionHead = (title, extra = '') => `<div class="section-head"><h3 class="title">${title}</h3>${extra ? `<span class="muted small">${extra}</span>` : ''}</div>`;
+
+// ---------- Hilfe & Anleitungen: nummerierte Videos je Plattform, dazu die Schritte als Text ----------
+const HELP_DIR = `${BASE}/assets/hilfe/`;
+function secHilfe(v) {
+  const id = (location.hash.split('/')[1] || '');
+  const topic = topicById(id);
+  const chosen = store.get('spd-hilfe-plattform') || guessPlatform();
+  const platTabs = `<div class="help-platforms" role="tablist" aria-label="Gerät">${PLATFORMS.map(([k, l]) => `<button type="button" class="chip" data-plat="${k}" aria-pressed="${k === chosen}">${l}</button>`).join('')}</div>`;
+  if (!topic) {
+    const groups = [...new Set(HELP_TOPICS.map(t => t.group))];
+    v.innerHTML = `
+    ${sectionHead('Hilfe & Anleitungen', 'Kurze Videos – Schritt für Schritt, ohne Ton')}
+    <p class="small muted">Wähle dein Gerät, dann ein Thema. Jedes Video zeigt die Schritte für genau dieses Gerät; darunter stehen sie noch einmal zum Nachlesen.</p>
+    ${platTabs}
+    ${groups.map(g => `<section class="mb-sub help-group"><h4 class="doc-cat">${esc(g)}</h4><div class="help-grid">${HELP_TOPICS.filter(t => t.group === g).map(t => `
+      <a class="help-card" href="#hilfe/${t.id}"><img src="${HELP_DIR}${posterName(t)}.jpg" alt="" loading="lazy" width="640" height="360"><span class="help-card-body"><b>${t.n}</b><span>${esc(t.title)}</span><small>${esc(t.intro)}</small></span></a>`).join('')}</div></section>`).join('')}
+    ${!me ? `<p class="mb-actions" style="margin-top:24px"><a class="btn btn-rot" href="#anmelden">Zur Anmeldung</a></p>` : ''}`;
+  } else {
+    const i = HELP_TOPICS.indexOf(topic), prev = HELP_TOPICS[i - 1], next = HELP_TOPICS[i + 1];
+    v.innerHTML = `
+    <p class="small"><a href="#hilfe">← Alle Anleitungen</a></p>
+    ${sectionHead(`${topic.n} · ${esc(topic.title)}`, esc(topic.group))}
+    <p>${esc(topic.intro)}</p>
+    ${platTabs}
+    <div class="help-player" id="help-player"></div>
+    <div class="mb-actions help-share" id="help-share"></div>
+    <ol class="help-steps" id="help-steps"></ol>
+    <div class="mb-actions help-nav">${prev ? `<a class="btn btn-line btn-sm" href="#hilfe/${prev.id}">← ${prev.n} ${esc(prev.title)}</a>` : ''}${next ? `<a class="btn btn-line btn-sm" href="#hilfe/${next.id}">${next.n} ${esc(next.title)} →</a>` : ''}</div>`;
+    const show = plat => {
+      const name = videoName(topic, plat), portrait = plat === 'android' || plat === 'ios';
+      const src = `${HELP_DIR}${name}.mp4`;
+      $('#help-player').innerHTML = `<video class="help-video ${portrait ? 'portrait' : 'landscape'}" controls playsinline preload="metadata" poster="${HELP_DIR}${posterName(topic, portrait)}.jpg" src="${src}"></video>`;
+      $('#help-steps').innerHTML = stepsFor(topic, plat).map(t => `<li>${esc(t)}</li>`).join('');
+      $('#help-share').innerHTML = `<button class="btn btn-rot btn-sm" type="button" id="help-share-btn">${ICON.share}Video teilen</button><a class="btn btn-line btn-sm" href="${src}" download="SPD-Soltau-Hilfe-${name}.mp4">Herunterladen</a><p class="note" id="help-share-msg" hidden></p>`;
+      $('#help-share-btn').addEventListener('click', () => shareVideo(topic, plat, src));
+    };
+    show(chosen);
+    v.addEventListener('change-platform', e => show(e.detail));
+  }
+  $$('.help-platforms .chip', v).forEach(b => b.addEventListener('click', () => {
+    $$('.help-platforms .chip', v).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    store.set('spd-hilfe-plattform', b.dataset.plat);
+    v.dispatchEvent(new CustomEvent('change-platform', { detail: b.dataset.plat }));
+  }));
+}
+
+// Video teilen: über das System-Menü des Geräts (WhatsApp, SMS, Mail … – was installiert ist). Wenn möglich die Videodatei selbst,
+// sonst der Link zur Anleitung; ohne Teilen-Funktion (mancher PC-Browser) wird der Link kopiert.
+async function shareVideo(topic, plat, src) {
+  const note = $('#help-share-msg'), btn = $('#help-share-btn');
+  const platName = PLATFORMS.find(p => p[0] === plat)?.[1] || plat;
+  const title = `${topic.n} ${topic.title} – SPD Soltau App`;
+  const url = new URL(`${BASE}/mitglieder/#hilfe/${topic.id}`, location.href).href;
+  const text = `Anleitung ${topic.n} „${topic.title}“ für ${platName} – SPD Soltau App`;
+  busy(btn, true); msg(note, '');
+  try {
+    if (navigator.share) {
+      let files = null;
+      try {
+        const blob = await (await fetch(src)).blob();
+        const file = new File([blob], `SPD-Soltau-Hilfe-${videoName(topic, plat)}.mp4`, { type: 'video/mp4' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) files = [file];
+      } catch (e) { files = null; }
+      await navigator.share(files ? { files, title, text } : { title, text, url });
+    } else {
+      await navigator.clipboard.writeText(`${text}
+${url}`);
+      msg(note, 'Dieser Browser hat kein Teilen-Menü – der Link zur Anleitung ist kopiert. Zum Weitergeben der Videodatei: „Herunterladen“.', 'info');
+    }
+  } catch (err) { if (err && err.name !== 'AbortError') msg(note, 'Teilen hat nicht geklappt: ' + errText(err)); }
+  busy(btn, false);
+}
 
 // ---------- Start: Überblick ----------
 async function secStart(v) {
@@ -943,7 +1026,7 @@ async function secProfil(v) {
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Profil speichern</button></div>
     </form>
-    <div class="mb-side">${pushCard(true)}${installCard()}</div>
+    <div class="mb-aside">${pushCard(true)}${installCard()}</div>
   </div>`;
   wirePush(); wireInstall();
   $('#f-profil').addEventListener('submit', async e => {
@@ -1226,11 +1309,22 @@ async function onBroadcast(e) {
 }
 
 // ===== Start =====
+async function enterApp() {
+  try { await loadMe(); saveTokens(); renderShell(); if (!enterApp.wired) { addEventListener('hashchange', route); enterApp.wired = true; } await route(); pushClaim(); }
+  catch (err) { store.del('spd-tokens'); renderAuth('login'); msg($('#l-msg'), 'Sitzung abgelaufen – bitte neu anmelden. (' + errText(err) + ')'); }
+}
+// Hilfe ohne Anmeldung (Registrieren, Installieren …) – mit Kopf, aber ohne Leiste
+function renderHelpOnly() {
+  authBar();
+  view('<div id="mb-view" class="mb-view"></div>');
+  const draw = () => { if (!location.hash.startsWith('#hilfe')) { location.reload(); return; } secHilfe($('#mb-view')); window.scrollTo(0, 0); };
+  draw(); addEventListener('hashchange', draw, { once: false });
+}
 (async function start() {
   if (!DEMO && await completeRedirect()) return;
-  if (DEMO || client.auth.loggedIn()) {
-    try { await loadMe(); saveTokens(); renderShell(); addEventListener('hashchange', route); await route(); pushClaim(); return; }
-    catch (err) { store.del('spd-tokens'); renderAuth('login'); msg($('#l-msg'), 'Sitzung abgelaufen – bitte neu anmelden. (' + errText(err) + ')'); return; }
-  }
+  // Vorschau der Anmeldung/Registrierung mit Beispieldaten (auch für die Hilfevideos)
+  if (DEMO && /^#(registrieren|anmelden)$/.test(location.hash)) { renderAuth(location.hash === '#registrieren' ? 'register' : 'login'); return; }
+  if (!DEMO && !client.auth.loggedIn() && location.hash.startsWith('#hilfe')) { renderHelpOnly(); return; }
+  if (DEMO || client.auth.loggedIn()) { await enterApp(); return; }
   renderAuth(location.hash === '#registrieren' ? 'register' : 'login');
 })();

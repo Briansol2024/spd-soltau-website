@@ -8,14 +8,18 @@ setBase(SPD.base || '');
 const isApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /[?&]app=1/.test(location.search);
 const onMembers = /\/mitglieder\//.test(location.pathname);
 let meName = null; try { meName = JSON.parse(localStorage.getItem('spd-me') || 'null')?.name || null; } catch (e) { /* ohne Speicher */ }
-let fromApp = false; try { fromApp = sessionStorage.getItem('spd-from-app') === '1'; } catch (e) { /* ohne Speicher */ }
+let fromApp = null; try { fromApp = sessionStorage.getItem('spd-from-app'); } catch (e) { /* ohne Speicher */ }
 if (onMembers) { try { sessionStorage.removeItem('spd-from-app'); } catch (e) { /* egal */ } }
 else if ((isApp && meName) || fromApp) {
   // Nur wer angemeldet ist (oder gerade aus der App kommt) bekommt den Streifen – Besucher sehen die Website wie gewohnt
   document.documentElement.classList.add('from-app');
-  const back = document.querySelector('#app-return a'); if (back && !meName) back.lastChild.textContent = 'Zum Mitgliederbereich';
+  const back = document.querySelector('#app-return a');
+  if (back) {
+    if (fromApp && fromApp.startsWith('?')) back.href = back.getAttribute('href') + fromApp; // aus der Vorschau (?demo) zurück in die Vorschau
+    if (!meName) back.lastChild.textContent = 'Zum Mitgliederbereich';
+  }
 }
-document.addEventListener('click', e => { if (e.target.closest('[data-website]')) { try { sessionStorage.setItem('spd-from-app', '1'); } catch (err) { /* egal */ } } });
+document.addEventListener('click', e => { if (e.target.closest('[data-website]')) { try { sessionStorage.setItem('spd-from-app', /^\?demo/.test(location.search) ? location.search : '1'); } catch (err) { /* egal */ } } });
 // Personen-Symbol im Website-Kopf: nach der Anmeldung die Initialen
 try { const ml = document.getElementById('member-link'); if (meName && ml) { const ini = meName.split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase(); ml.innerHTML = `<b>${esc(ini)}</b>`; ml.setAttribute('aria-label', `Mitgliederbereich – angemeldet als ${meName}`); ml.title = `Mitgliederbereich – ${meName}`; } } catch (e) { /* egal */ }
 const $ = (s, r = document) => r.querySelector(s);
@@ -217,7 +221,8 @@ if (claim) { let i = 0; [...claim.childNodes].forEach(n => { if (n.nodeType !== 
 // Sanftes Scrollen zu Ankern auf derselben Seite (z. B. „Ich suche eine Ansprechperson“)
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]'); if (!a) return;
-  const t = document.querySelector(a.getAttribute('href')); if (!t) return;
+  const href = a.getAttribute('href'); if (!/^#[A-Za-z][\w-]*$/.test(href)) return; // App-Routen wie #hilfe/zusagen sind keine Anker
+  const t = document.querySelector(href); if (!t) return;
   e.preventDefault(); t.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
 });
 

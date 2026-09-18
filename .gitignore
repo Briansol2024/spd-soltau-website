@@ -7,3 +7,6 @@ src/_d_*.js
 video/tmp/
 video/out/
 push/log/
+video/hilfe/tmp/
+video/hilfe/*.log
+video/hilfe/music.wav

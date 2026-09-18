@@ -20,6 +20,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Wix-Bilder, Video, APIs: unangetastet
+  if (/\.(mp4|webm|m4a|mp3)$/.test(url.pathname) || req.headers.has('range')) return; // Hilfevideos: direkt vom Netz (Bereichsanfragen, groß)
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })
       .catch(() => caches.match(req).then(r => r || caches.match('./offline.html'))));
