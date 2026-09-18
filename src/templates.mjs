@@ -199,8 +199,7 @@ export function startPage(d) {
     ${heroMedia(d.site)}
     <div class="wrap">
       <div class="hero-text">
-        <span class="tag">Aus Liebe zu Soltau</span>
-        <h1><span class="ln"><span>Moin!</span></span></h1>
+        <h1 class="hero-moin"><span class="ln"><span>Moin!</span></span></h1>
         <div class="hero-box">
           <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
           <a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>

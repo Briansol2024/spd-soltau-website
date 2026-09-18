@@ -587,7 +587,8 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .quick-2 small{font-size:16px}
 /* Drei Boxen statt Umfrage */
 .cols.boxes .box{align-content:start}
-@container site (max-width:900px){.danke{grid-template-columns:minmax(0,1fr)}.danke .ph{min-height:220px}.slogan{display:none}}
+@container site (max-width:900px){.danke{grid-template-columns:minmax(0,1fr)}.danke .ph{min-height:220px}.slogan{font-size:12px;padding-left:10px;margin-left:0}}
+@container site (max-width:360px){.slogan{display:none}}
 @container site (max-width:600px){
   .hero h1{font-size:50px}
   .hero.has-video .wrap{min-height:min(70vh,560px);padding-block:48px 40px}
@@ -1087,3 +1088,7 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
   .za-intro{font-size:16.5px}
 }
 @media (prefers-reduced-motion:reduce){.za.open .za-pic img{animation:none}.za-head,.za-num,.za-title,.za-body,.za-cols,.za-pic img{transition:none}}
+
+/* Hero: „Moin!“ steht allein und groß (Slogan bleibt in der Kopfzeile) */
+.hero h1.hero-moin{font-size:clamp(88px,14cqw,200px);margin-bottom:10px}
+@container site (max-width:600px){.hero h1.hero-moin{font-size:84px}}
