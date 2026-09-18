@@ -71,8 +71,9 @@ function inline(nodes = []) {
   }).join('');
 }
 
-export function ricosToHtml(rich) {
+export function ricosToHtml(rich, opts = {}) {
   if (!rich || !Array.isArray(rich.nodes)) return '';
+  let skipId = opts.skipImageId || null; // Titelbild nicht noch einmal im Text zeigen
   const block = n => {
     switch (n.type) {
       case 'PARAGRAPH': { const t = inline(n.nodes); return t.trim() ? `<p>${t}</p>` : ''; }
@@ -83,6 +84,7 @@ export function ricosToHtml(rich) {
       case 'DIVIDER': return '<hr>';
       case 'IMAGE': {
         const src = n.imageData?.image?.src; const id = src?.id || src?.url;
+        if (skipId && id && String(id).includes(skipId)) { skipId = null; return ''; }
         const u = id ? wixImageUrl(id.startsWith('wix:') || id.startsWith('http') ? id : `wix:image://v1/${id}/bild.jpg`, 1400, 900) : null;
         const alt = n.imageData?.altText || n.imageData?.caption || '';
         return u ? `<figure><img src="${escHtml(u)}" alt="${escHtml(alt)}" loading="lazy">${n.imageData?.caption ? `<figcaption>${escHtml(n.imageData.caption)}</figcaption>` : ''}</figure>` : '';
@@ -115,13 +117,14 @@ export async function fetchNews(client) {
   const out = [];
   for (const post of list) {
     let bodyHtml = '';
+    const media = post.media?.wixMedia?.image || post.coverMedia?.image || post.media?.image;
+    const coverId = (typeof media === 'string' ? media : (media?.id || media?.url || '')).match(/([0-9a-f]+_[0-9a-f]+~mv2\.[a-z]+)/)?.[1] || null;
     try {
       const full = await client.posts.getPost(post._id, { fieldsets: ['RICH_CONTENT', 'CONTENT_TEXT'] });
       const p = full.post || full;
-      bodyHtml = ricosToHtml(p.richContent);
+      bodyHtml = ricosToHtml(p.richContent, { skipImageId: coverId });
       if (!bodyHtml && p.contentText) bodyHtml = p.contentText.split(/\n{2,}/).map(t => `<p>${escHtml(t.trim())}</p>`).join('');
     } catch (e) { log('Beitragsinhalt nicht ladbar:', post.title, e.message); }
-    const media = post.media?.wixMedia?.image || post.coverMedia?.image || post.media?.image;
     const imgUrl = wixImageUrl(media, 1400, 900);
     const labels = (post.categoryIds || []).map(id => cats.get(id)).filter(Boolean);
     out.push({
