@@ -13,7 +13,7 @@ set "REPO=spd-soltau-website"
 echo GitHub-Konto: !GHUSER!   Repository: !REPO!
 git remote get-url origin >nul 2>nul || (
   echo Repository anlegen und Code hochladen ...
-  gh repo create !REPO! --public --source=. --remote=origin --push --description "Website und App des SPD Ortsvereins Soltau (Wix Headless, GitHub Pages)" || goto :err
+  gh repo create !REPO! --public --source=. --remote=origin --push --description "Website und App des SPD Ortsvereins Soltau - Wix Headless, GitHub Pages" || goto :err
 )
 echo Einstellungen fuer den automatischen Bau setzen ...
 gh variable set WIX_CLIENT_ID --body "!ENV_WIX_CLIENT_ID!" || goto :err
