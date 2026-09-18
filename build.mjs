@@ -183,15 +183,15 @@ async function buildApp() {
   await writeFile(path.join(OUT, 'offline.html'), `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline – SPD Soltau</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#E3000F;color:#fff;font-family:'TheSans SPD','Segoe UI',Arial,sans-serif;text-align:center;padding:24px}h1{font-size:40px;margin:0 0 12px;text-transform:uppercase}a{color:#fff}</style></head><body><div><h1>Gerade offline</h1><p>Diese Seite ist noch nicht gespeichert. Sobald wieder Netz da ist, klappt es.</p><p><a href="./">Zur Startseite</a></p></div></body></html>`, 'utf8');
   const manifest = {
     id: './', name: 'SPD Soltau', short_name: 'SPD Soltau', description: site.description, lang: 'de', dir: 'ltr',
-    start_url: './mitglieder/', scope: './', display: 'standalone', orientation: 'portrait', background_color: '#E3000F', theme_color: '#E3000F',
+    start_url: './index.html', scope: './', display: 'standalone', orientation: 'portrait', background_color: '#E3000F', theme_color: '#E3000F',
     icons: [
       { src: 'assets/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { src: 'assets/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
       { src: 'assets/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
-      { name: 'Termine', url: './termine/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Mitgliederbereich', url: './mitglieder/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Termine', url: './mitglieder/#termine', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Aktuelles', url: './aktuelles/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
     ],
   };

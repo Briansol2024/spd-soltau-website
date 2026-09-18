@@ -106,13 +106,12 @@ const appLink = hash => new URL(location.pathname + hash, location.href).href;
 const orteList = () => { if (!document.getElementById('orte')) { const dl = document.createElement('datalist'); dl.id = 'orte'; dl.innerHTML = ORTE.map(o => `<option value="${esc(o)}">`).join(''); document.body.appendChild(dl); } };
 
 // ===== Anmeldung / Registrierung =====
+// Anmeldebildschirm: keine App-Leiste, kein Initialen-Knopf – zur Website geht es über den Globus im Kopf
 function authBar() {
   document.querySelectorAll('.mb-tabbar,.mb-sheet').forEach(el => el.remove());
   document.body.classList.remove('has-tabbar', 'sheet-open');
-  if (!(isStandalone() || /[?&]app=1/.test(location.search))) return;
-  const bar = document.createElement('nav'); bar.className = 'mb-tabbar'; bar.setAttribute('aria-label', 'App-Leiste');
-  bar.innerHTML = `<a href="${esc(BASE)}/" data-tab="web">${ICON.web}<span>Webseite</span></a><a href="#" data-tab="login" aria-current="page">${ICON.user}<span>Anmelden</span></a><a href="${esc(BASE)}/termine/" data-tab="termine">${ICON.cal}<span>Termine</span></a><a href="${esc(BASE)}/aktuelles/" data-tab="news">${ICON.doc}<span>Aktuelles</span></a><a href="${esc(BASE)}/kontakt/" data-tab="kontakt">${ICON.more}<span>Kontakt</span></a>`;
-  document.body.append(bar); document.body.classList.add('has-tabbar');
+  const meBtn = document.getElementById('app-me'); if (meBtn) meBtn.hidden = true;
+  try { localStorage.removeItem('spd-me'); } catch (e) { /* egal */ }
 }
 function renderAuth(tab = 'login', hint = '') {
   authBar();
@@ -294,7 +293,7 @@ async function logout() {
   if (DEMO) { location.href = REDIRECT; return; }
   let logoutUrl = null;
   try { ({ logoutUrl } = await client.auth.logout(REDIRECT)); } catch (e) { /* lokal abmelden reicht */ }
-  store.del('spd-tokens'); store.del('spd-oauth');
+  store.del('spd-tokens'); store.del('spd-oauth'); store.del('spd-me');
   location.href = logoutUrl || REDIRECT;
 }
 
@@ -347,7 +346,6 @@ function navGroups() {
 }
 function navList() {
   return `${navGroups().map(([title, items]) => `<div class="mb-group"><div class="mb-group-title">${title}</div>${items.map(([k, l, icon]) => `<a href="#${k}" data-sec="${k}">${icon}<span>${l}</span><b class="mb-badge" data-badge="${k}" hidden></b></a>`).join('')}</div>`).join('')}
-  <div class="mb-group"><div class="mb-group-title">Website</div><a href="${esc(BASE)}/" data-sec="web">${ICON.web}<span>Zur Website</span></a></div>
   <button type="button" class="mb-logout" data-logout>${ICON.out}<span>Abmelden</span></button>`;
 }
 function renderShell() {
@@ -359,20 +357,23 @@ function renderShell() {
     <div class="mb-main">
       <div class="mb-head">
         <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)} · ${esc(rolesOf({ memberId: me.id, rollen: me.rollen }))}</p></div>
-        <button class="btn btn-line" type="button" id="logout">Abmelden</button>
       </div>
       <div id="mb-view" class="mb-view"></div>
     </div>
   </div>`);
   // App-Leiste und „Mehr“-Blatt hängen direkt am body (feste Position, unabhängig von Animationen der Seite)
   document.querySelectorAll('.mb-tabbar,.mb-sheet').forEach(el => el.remove());
-  const board = anyRight();
+  // Initialen im App-Kopf (führt zum Profil)
+  const meBtn = document.getElementById('app-me');
+  if (meBtn) { meBtn.textContent = me.name.split(/\s+/).map(x => x[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || '·'; meBtn.hidden = false; meBtn.title = `${me.name} – Mein Profil`; }
+  try { localStorage.setItem('spd-me', JSON.stringify({ name: me.name })); } catch (e) { /* egal */ }
+  const fourth = anyRight() ? ['vorstand', 'Vorstand', ICON.inbox] : secVisible('dokumente') ? ['dokumente', 'Dokumente', ICON.doc] : ['profil', 'Profil', ICON.user];
   const bar = document.createElement('nav'); bar.className = 'mb-tabbar'; bar.setAttribute('aria-label', 'App-Leiste');
   bar.innerHTML = `
-    <a href="${esc(BASE)}/" data-tab="web">${ICON.web}<span>Webseite</span></a>
     <a href="#start" data-tab="start">${ICON.home}<span>Start</span></a>
     <a href="#termine" data-tab="termine">${ICON.cal}<span>Termine</span></a>
-    ${board ? `<a href="#vorstand" data-tab="vorstand">${ICON.inbox}<span>Vorstand</span><b class="mb-badge" data-badge="vorstand" hidden></b></a>` : `<a href="#umfragen" data-tab="umfragen">${ICON.poll}<span>Umfragen</span></a>`}
+    <a href="#umfragen" data-tab="umfragen">${ICON.poll}<span>Umfragen</span></a>
+    <a href="#${fourth[0]}" data-tab="${fourth[0]}">${fourth[2]}<span>${fourth[1]}</span>${fourth[0] === 'vorstand' ? '<b class="mb-badge" data-badge="vorstand" hidden></b>' : ''}</a>
     <button type="button" data-tab="mehr" id="mb-more" aria-expanded="false" aria-controls="mb-sheet">${ICON.more}<span>Mehr</span></button>`;
   const sheet = document.createElement('div'); sheet.className = 'mb-sheet'; sheet.id = 'mb-sheet'; sheet.hidden = true;
   sheet.innerHTML = `<div class="mb-sheet-panel" role="dialog" aria-label="Weitere Bereiche"><div class="mb-sheet-head"><b>Bereiche</b><button type="button" class="mb-sheet-close" aria-label="Schließen">${ICON.close}</button></div><nav class="mb-sheet-nav">${navList()}</nav></div>`;
@@ -382,7 +383,6 @@ function renderShell() {
   $('#mb-more', bar).addEventListener('click', () => toggleSheet(sheet.hidden));
   sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('.mb-sheet-close') || e.target.closest('a')) toggleSheet(false); });
   document.querySelectorAll('[data-logout]').forEach(b => b.addEventListener('click', logout));
-  $('#logout').addEventListener('click', logout);
   updateBadges();
 }
 // Zähler: offene Vorgänge im Eingang (Vorstand)

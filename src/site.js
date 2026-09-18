@@ -3,8 +3,21 @@ import { setBase, url, newsCard, eventsGrouped, personCard, pollButtons, esc } f
 
 const SPD = window.SPD || {};
 setBase(SPD.base || '');
-// Installierte App (Standalone) – dann zeigt auch die Website die App-Leiste unten (?app=1 zum Ausprobieren im Browser)
-if (matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /[?&]app=1/.test(location.search)) document.documentElement.classList.add('app-mode');
+// Website aus der App heraus geöffnet (Globus im App-Kopf, installierte App oder ?app=1 zum Ausprobieren): oben ein Streifen zurück
+// zum Mitgliederbereich. Der Mitgliederbereich selbst ist die App und braucht keinen.
+const isApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /[?&]app=1/.test(location.search);
+const onMembers = /\/mitglieder\//.test(location.pathname);
+let meName = null; try { meName = JSON.parse(localStorage.getItem('spd-me') || 'null')?.name || null; } catch (e) { /* ohne Speicher */ }
+let fromApp = false; try { fromApp = sessionStorage.getItem('spd-from-app') === '1'; } catch (e) { /* ohne Speicher */ }
+if (onMembers) { try { sessionStorage.removeItem('spd-from-app'); } catch (e) { /* egal */ } }
+else if ((isApp && meName) || fromApp) {
+  // Nur wer angemeldet ist (oder gerade aus der App kommt) bekommt den Streifen – Besucher sehen die Website wie gewohnt
+  document.documentElement.classList.add('from-app');
+  const back = document.querySelector('#app-return a'); if (back && !meName) back.lastChild.textContent = 'Zum Mitgliederbereich';
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-website]')) { try { sessionStorage.setItem('spd-from-app', '1'); } catch (err) { /* egal */ } } });
+// Personen-Symbol im Website-Kopf: nach der Anmeldung die Initialen
+try { const ml = document.getElementById('member-link'); if (meName && ml) { const ini = meName.split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase(); ml.innerHTML = `<b>${esc(ini)}</b>`; ml.setAttribute('aria-label', `Mitgliederbereich – angemeldet als ${meName}`); ml.title = `Mitgliederbereich – ${meName}`; } } catch (e) { /* egal */ }
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -137,7 +150,7 @@ $$('form.mock').forEach(f => f.addEventListener('submit', e => {
 }));
 
 // ===== Bewegung =====
-const site = $('#site'), header = $('.header'), progress = $('#progress'), totop = $('#totop'), heroPh = $('.hero .ph');
+const site = $('#site'), header = $('.header') || $('.app-header'), progress = $('#progress'), totop = $('#totop'), heroPh = $('.hero .ph');
 const RV_SEL = '.section-head,.page-head>*,.card,.event,.person,.box,.ziel,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll';
 const io = new IntersectionObserver(entries => {
   const vis = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);

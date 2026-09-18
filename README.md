@@ -61,12 +61,18 @@ und der Push-Dienst (`push/README.md`).
 
 **Vorschau ohne Konto:** `/mitglieder/?demo` zeigt den kompletten Mitgliederbereich mit Beispieldaten (nichts wird gespeichert).
 
-**Navigation (App-Rahmen):** Am Handy eine feste App-Leiste unten – Webseite · Start · Termine · Vorstand (mit Zähler offener Anfragen; für
-Mitglieder ohne Vorstandsrechte: Umfragen) · Mehr. „Mehr“ öffnet ein Blatt mit allen Bereichen, gruppiert nach *Für alle / Persönlich / Vorstand / Website*,
-plus Abmelden. Am PC (ab 900 px) steht dieselbe gruppierte Liste als Seitenleiste links. Die installierte App (PWA, `start_url` = `/mitglieder/`) startet im
-Mitgliederbereich; auf den Website-Seiten zeigt sie dieselbe Leiste unten (nur im Standalone-Modus, zum Ausprobieren im Browser `?app=1`), auf dem
-Anmeldebildschirm eine Leiste mit Webseite, Termine, Aktuelles, Kontakt. Im normalen Browser sieht die Website aus wie bisher; der Mitgliederbereich hat
-die Leiste bzw. Seitenleiste immer.
+**Website und App sind getrennt (Konzept B):** Der Mitgliederbereich (`/mitglieder/`) hat einen eigenen schwarzen App-Kopf (SPD-Kachel,
+„Mitgliederbereich“, Globus-Knopf **Website**, Initialen → Profil) statt des roten Website-Kopfs, und einen schlanken Fuß (Impressum, Datenschutz).
+Am Handy eine feste App-Leiste unten – Start · Termine · Umfragen · Vorstand (mit Zähler offener Anfragen; ohne Vorstandsrechte: Dokumente bzw. Profil) ·
+Mehr; „Mehr“ öffnet ein Blatt mit allen Bereichen (*Für alle / Persönlich / Vorstand*) plus Abmelden. Am PC (ab 900 px) dieselbe Liste als
+Seitenleiste links. Die Website enthält keinen App-Bezug: rote Kopfzeile, Burger-Menü ohne Eintrag „Mitgliederbereich“, nur das Personen-Symbol
+führt zur Anmeldung (angemeldet zeigt es die Initialen).
+
+**Website aus der App heraus:** Der Globus öffnet die Website in derselben Ansicht, oben mit einem schwarzen Streifen „← Zurück zum
+Mitgliederbereich“ (Klasse `from-app`, gemerkt in `sessionStorage`; in der installierten App auf allen Website-Seiten, solange man angemeldet ist).
+**Installierte App (PWA):** `start_url` ist die Website-Startseite; ist jemand angemeldet, leitet ein Inline-Skript beim Start sofort in den
+Mitgliederbereich (einmal je Sitzung). Besucher ohne Konto sehen in der App einfach die Website und kommen über das Personen-Symbol zur Anmeldung.
+Zum Ausprobieren im Browser: `?app=1`.
 
 **Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·

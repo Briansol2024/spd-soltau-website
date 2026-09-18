@@ -318,7 +318,7 @@ dialog[open]::backdrop{animation:fadeIn .35s}
 @keyframes slideL{from{opacity:0;transform:translateX(40px) translateY(var(--py,0px))}to{opacity:1;transform:translateX(0) translateY(var(--py,0px))}}
 .hero .ph::before{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.06) 0 14.14px,transparent 14.14px 28.28px);background-size:40px 40px;animation:drift 3s linear infinite}
 @keyframes drift{to{background-position:40px 40px}}
-.header.scrolled{box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.header.scrolled,.app-header.scrolled{box-shadow:0 8px 30px rgba(0,0,0,.35)}
 .header.scrolled .wrap{min-height:58px}
 .btn{transition:transform .2s var(--ease),box-shadow .2s,background .15s}
 .btn:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--schwarz)}
@@ -748,7 +748,7 @@ body.sheet-open{overflow:hidden}
 @media (max-width:899px){.mb-head #logout{display:none}}
 @media (min-width:900px){
   .mb-layout{grid-template-columns:250px minmax(0,1fr);gap:40px}
-  .mb-side{display:block;position:sticky;top:88px;background:var(--grau);padding:10px 0}
+  .mb-side{display:block;position:sticky;top:76px;background:var(--grau);padding:10px 0}
   .mb-tabbar,.mb-sheet{display:none!important}
   body.has-tabbar{padding-bottom:0}
 }
@@ -882,12 +882,28 @@ body.sheet-open{overflow:hidden}
   .mb-head .title{font-size:34px}
   .hl-head .mb-actions{width:100%}
 }
-/* App-Leiste auf den Website-Seiten – nur in der installierten App (Standalone) */
-.app-tabbar{display:none}
-html.app-mode .app-tabbar{display:grid}
-html.app-mode body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
-html.app-mode .totop{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
-@media (min-width:900px){html.app-mode .app-tabbar{display:none}html.app-mode body{padding-bottom:0}}
+/* App-Kopf des Mitgliederbereichs (die App hat ihren eigenen Kopf – der rote Website-Kopf bleibt der Website) */
+.app-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--schwarz);color:#fff}
+.app-header .wrap{display:flex;align-items:center;gap:12px;min-height:60px}
+.app-logo{background:#fff;color:var(--rot);font:800 20px/1 var(--display);padding:6px 7px 4px;text-decoration:none;flex-shrink:0}
+.app-title{font:700 15px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-title .short{display:none}
+@media (max-width:460px){.app-title .long{display:none}.app-title .short{display:inline}.app-title{letter-spacing:.1em}}
+.app-globe{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:2px solid #fff;color:#fff;text-decoration:none;font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;flex-shrink:0;transition:background .15s,color .15s}
+.app-globe svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.app-globe:hover{background:#fff;color:var(--schwarz)}
+.app-me{width:38px;height:38px;border-radius:50%;background:var(--rot);color:#fff;display:inline-flex;align-items:center;justify-content:center;font:700 13px/1 var(--body);text-decoration:none;flex-shrink:0}
+.app-me[hidden]{display:none!important}
+.app-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:20px var(--gutter,16px);margin-top:40px;border-top:1px solid var(--linie);font-size:13px;color:var(--muted)}
+.app-footer a{color:var(--muted)}
+/* Website aus der App heraus: Streifen zurück zum Mitgliederbereich (Standalone oder nach Klick auf den Globus) */
+.app-return{display:none}
+html.from-app .app-return{display:flex;align-items:center;gap:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:60;min-height:44px;padding:0 16px;background:var(--schwarz);color:#fff}
+.app-return a{display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font:700 13px/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+.app-return a svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.app-return span{margin-left:auto;font-size:12px;color:#C9C4C2;white-space:nowrap}
+html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
+.member-link b{font:700 13px/1 var(--body)}
 /* Umfrage der Woche (Startseite) */
 .umfrage-box{background:var(--rot);color:#fff;margin:56px 0 0}
 .umfrage{padding:40px 0;display:grid;gap:14px}

@@ -31,40 +31,43 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SPD Soltau">
 <meta name="mobile-web-app-capable" content="yes">
+${path === '/' ? `<script>(function(){try{if((matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)&&localStorage.getItem('spd-tokens')&&!sessionStorage.getItem('spd-web')){sessionStorage.setItem('spd-web','1');location.replace('${url('/mitglieder/')}');}}catch(e){}})();</script>` : ''}
 <link rel="stylesheet" href="${url('/assets/fonts.css')}">
 <link rel="stylesheet" href="${url('/assets/styles.css')}">
 <script>window.SPD=${JSON.stringify({ base: url(''), ...clientData }).replace(/</g, '\\u003c')};</script>
 </head>
 <body>
 <div id="site">
+${path.startsWith('/mitglieder/') ? `<header class="app-header">
+  <div class="wrap">
+    <a class="app-logo" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Start">SPD</a>
+    <span class="app-title"><span class="long">Mitgliederbereich</span><span class="short">Mitglieder</span></span>
+    <a class="app-globe" href="${url('/index.html')}" data-website title="Zur Website spd-soltau.de"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span>Website</span></a>
+    <a class="app-me" id="app-me" href="#profil" hidden aria-label="Mein Profil"></a>
+  </div>
+</header>` : `<div class="app-return" id="app-return">
+  <a href="${url('/mitglieder/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Zurück zum Mitgliederbereich</a><span>SPD Soltau App</span>
+</div>
 <header class="header">
   <div class="wrap">
     <a class="logo" href="${url('/index.html')}" aria-label="SPD Soltau – Startseite"><img src="${url('/assets/images/logo-spd-soltau-weiss.png')}" alt="SPD Soltau" width="88" height="60" decoding="async"></a>
     <span class="slogan">Aus Liebe<br>zu Soltau</span>
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
       ${NAV.map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
-      <a class="nav-member" href="${url('/mitglieder/')}"${path.startsWith('/mitglieder/') ? ' aria-current="page"' : ''}>Mitgliederbereich</a>
     </nav>
     <a class="btn btn-schwarz cta" href="${url('/mitmachen/')}">Mitglied werden</a>
-    <a class="member-link${path.startsWith('/mitglieder/') ? ' active' : ''}" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Anmelden" title="Mitgliederbereich"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
+    <a class="member-link" id="member-link" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Anmelden" title="Mitgliederbereich"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
     <button class="burger" id="burger" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
     </button>
   </div>
-</header>
+</header>`}
 
 <main>
 ${content}
 </main>
 
-${path.startsWith('/mitglieder/') ? '' : `<nav class="mb-tabbar app-tabbar" aria-label="App-Leiste">
-  <a href="${url('/index.html')}" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span>Webseite</span></a>
-  <a href="${url('/mitglieder/')}#start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg><span>Start</span></a>
-  <a href="${url('/mitglieder/')}#termine"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Termine</span></a>
-  <a href="${url('/mitglieder/')}#umfragen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Umfragen</span></a>
-  <a href="${url('/mitglieder/')}#mehr"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></svg><span>Mehr</span></a>
-</nav>`}
-<footer class="footer">
+${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new Date().getFullYear()} SPD Ortsverein Soltau</span><span><a href="${url('/impressum/')}" data-website>Impressum</a> · <a href="${url('/datenschutz/')}" data-website>Datenschutz</a></span></footer>` : `<footer class="footer">
   <div class="ticker ticker-claim" aria-hidden="true"><div class="ticker-track">${'<span>Aus Liebe zu Soltau</span><span>Stärkste Kraft im Rat</span><span>Danke, Soltau</span><span>Jetzt beginnt die Arbeit</span>'.repeat(4)}</div></div>
   <div class="wrap">
     <div class="claim">Aus Liebe<br>zu Soltau.</div>
@@ -83,7 +86,7 @@ ${path.startsWith('/mitglieder/') ? '' : `<nav class="mb-tabbar app-tabbar" aria
       <span><a href="${url('/impressum/')}">Impressum</a> · <a href="${url('/datenschutz/')}">Datenschutz</a> · <a href="${url('/transparenz/')}">Transparenz</a></span>
     </div>
   </div>
-</footer>
+</footer>`}
 </div>
 
 <dialog id="person-dialog" aria-labelledby="dlg-name">
@@ -631,7 +634,6 @@ export function stadtratPage(d) {
 export function mitgliederPage(d) {
   return `
 <section>
-  ${pageHead('Mitgliederbereich', 'Für Mitglieder<br>der SPD Soltau', 'Anmelden, Termine zu- oder absagen, Benachrichtigungen aufs Handy – und die SPD Soltau als App auf dem Home-Bildschirm.')}
   <div class="wrap section mb-wrap">
     <div id="mitglieder-app" class="mb-app"><p class="muted">Lade Mitgliederbereich …</p></div>
     <noscript><p class="note note-err">Für den Mitgliederbereich muss JavaScript aktiviert sein.</p></noscript>
