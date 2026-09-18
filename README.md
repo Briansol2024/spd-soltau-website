@@ -86,9 +86,12 @@ unter „WhatsApp-Gruppen“, Mitglieder sehen sie auf der Startseite des Mitgli
 
 Einmalig: GitHub-Konto anlegen, dann in einem Terminal `winget install --id GitHub.cli`, neues Fenster, `gh auth login` (Browser-Anmeldung).
 Danach `tools\GitHub Pages einrichten.cmd` doppelklicken – legt das Repository an, überträgt alle Einstellungen aus `.env` als Variablen/Secrets,
-schaltet Pages ein und startet den Bau. Ergebnis: `https://<konto>.github.io/spd-soltau-website/` (Passwort wie bisher). Die alte Wix-Seite bleibt unter
-spd-soltau.de unverändert online. Danach bei Wix die Umleitungs-URI `https://<konto>.github.io/spd-soltau-website/mitglieder/` eintragen (Headless-Einstellungen).
-Für eine schönere Adresse (z. B. `neu.spd-soltau.de`) später einen CNAME-Eintrag bei Wix setzen und in GitHub Pages die Domain eintragen (`BASE_PATH` leeren).
+schaltet Pages ein und startet den Bau. Die alte Wix-Seite bleibt unter spd-soltau.de unverändert online.
+
+**Stand 18.09.2026:** Die Testversion läuft unter **https://neu.spd-soltau.de** (GitHub Pages, eigenes Zertifikat, Passwort wie bisher).
+Dafür: CNAME `neu` → `briansol2024.github.io` in den DNS-Einträgen bei Wix, Repository-Variable `CNAME=neu.spd-soltau.de`, `BASE_PATH` leer,
+Umleitungs-URI `https://neu.spd-soltau.de/mitglieder/` in den Headless-Einstellungen. Die Adresse `briansol2024.github.io/spd-soltau-website` leitet dorthin um.
+Go-live später: `www` bei Wix genauso auf GitHub Pages zeigen lassen, `CNAME=www.spd-soltau.de`, Passwort und `NOINDEX` entfernen.
 
 ## Vorschau über Tailscale (Testphase)
 
