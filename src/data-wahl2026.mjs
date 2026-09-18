@@ -54,6 +54,7 @@ export function nachruecker(w, n = 3) {
 export const STICHWAHL = {
   datum: '2026-09-27',
   datumText: 'Sonntag, 27. September 2026',
+  datumKurz: '27. September',
   kandidat: 'Sebastian Zinke',
   amt: 'Landrat des Heidekreises',
   ersterWahlgang: { prozent: 37.2, stimmen: 26486 },
@@ -65,7 +66,9 @@ export const STICHWAHL = {
     ['Lebensqualität', 'Gesundheit, Mobilität und digitale Verwaltung einfach nutzbar machen.'],
     ['Heimat', 'Landwirtschaft, Natur und Kulturlandschaften bewahren.'],
   ],
-  website: 'https://sebastian-zinke.de/',
+  // Stichwahl-Seite der SPD Heidekreis (Zinke hat keine eigene Wahlkampfseite; sebastian-zinke.de ist sein Landtagsportal)
+  website: 'https://www.spd-heidekreis.de/landratswahl-2026/',
+  websiteMdL: 'https://sebastian-zinke.de/',
   wahlinfo: 'https://www.soltau.de/home/aktuelles/wahlen.aspx',
   foto: '/assets/images/sebastian-zinke.jpg',
   fotoQuelle: 'Nominierung im Kulturhaus Schneverdingen, Foto: SPD Soltau',

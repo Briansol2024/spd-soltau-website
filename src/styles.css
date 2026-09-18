@@ -625,25 +625,6 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
   #start-news .card .card-body,#fraktion-news .card .card-body{padding-bottom:12px}
 }
 
-/* ===== Landrats-Stichwahl: Sebastian Zinke ===== */
-.zinke .zinke-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr);gap:48px;align-items:center;padding-block:56px}
-.zinke-photo{display:grid;gap:8px}
-.zinke-photo img{width:100%;height:auto;aspect-ratio:3/4;object-fit:cover;display:block;border:8px solid #fff;box-shadow:12px 12px 0 var(--schwarz)}
-.zinke-photo span{color:rgba(255,255,255,.75);font-size:12px}
-.zinke-text{display:grid;gap:16px;color:#fff;justify-items:start}
-.zinke-text .tag{justify-self:start}
-.zinke-text h2.title{color:#fff}
-.zinke-text .lead{color:#fff}
-.zinke-text p{color:#fff}
-.zinke-punkte{list-style:none;margin:4px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 24px;width:100%}
-.zinke-punkte li{display:grid;gap:2px;border-top:2px solid rgba(255,255,255,.5);padding-top:8px}
-.zinke-punkte b{font:800 15px/1.2 var(--display);text-transform:uppercase;letter-spacing:.06em}
-.zinke-punkte span{font-size:14px;line-height:1.4;color:rgba(255,255,255,.9)}
-.zinke .btn-schwarz:hover{box-shadow:4px 4px 0 #fff}
-.zinke .btn-line-weiss:hover{box-shadow:4px 4px 0 var(--schwarz)}
-@container site (max-width:900px){.zinke .zinke-grid{grid-template-columns:minmax(0,1fr);gap:28px;padding-block:44px}.zinke-photo{max-width:320px}}
-@container site (max-width:600px){.zinke-photo{max-width:220px}.zinke-photo img{box-shadow:8px 8px 0 var(--schwarz);border-width:6px}.zinke-punkte{grid-template-columns:minmax(0,1fr)}}
-
 /* ===== Unsere 11 im Stadtrat ===== */
 .people.rat{grid-template-columns:repeat(4,minmax(0,1fr))}
 @container site (max-width:900px){.people.rat{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -663,3 +644,11 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .ergebnis-tabelle td:nth-child(4){text-align:right}
 .ergebnis-tabelle th:nth-child(4){text-align:right}
 @container site (max-width:600px){.ergebnis-tabelle th:nth-child(3),.ergebnis-tabelle td:nth-child(3){display:none}}
+
+/* ===== Großer Stichwahl-Button im Willkommensbereich (bis 27.09.) ===== */
+.hero-stichwahl{margin:6px 0 2px}
+.btn-stichwahl{display:inline-grid;gap:4px;justify-items:start;text-align:left;padding:16px 24px;background:var(--rot);color:#fff;border:3px solid #fff;line-height:1;letter-spacing:0}
+.btn-stichwahl small{font:700 12px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;opacity:.92}
+.btn-stichwahl b{font:800 28px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.btn-stichwahl:hover{transform:translate(-3px,-3px);box-shadow:6px 6px 0 #fff;background:var(--rot)}
+@container site (max-width:600px){.btn-stichwahl{width:100%;justify-items:center;text-align:center;padding:16px 14px}.btn-stichwahl b{font-size:25px}}

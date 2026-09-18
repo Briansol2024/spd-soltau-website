@@ -120,6 +120,7 @@ export function startPage(d) {
         <span class="tag">SPD Ortsverein &amp; Ratsfraktion Soltau</span>
         <h1><span class="ln"><span>Moin!</span></span><span class="ln"><em class="sub">Herzlich willkommen.</em></span></h1>
         <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
+        ${d.stichwahl ? `<div class="hero-stichwahl"><a class="btn btn-stichwahl" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener"><small>Stichwahl am ${esc(d.stichwahl.datumKurz)}</small><b>Sebastian Zinke wählen</b></a></div>` : ''}
         <div class="hero-actions">
           <a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a>
           <a class="btn btn-line-weiss" href="${url('/mitmachen/')}">Mitmachen</a>
@@ -129,7 +130,6 @@ export function startPage(d) {
     </div>
   </div>
   <div class="ticker" aria-label="Nächste Termine"><div class="ticker-track" id="ticker">${((d.stichwahl ? `<span>So 27. Sep – Stichwahl Landrat: Sebastian Zinke wählen</span>` : '') + tickerItems(d.events)).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>'}</div></div>
-  ${d.stichwahl ? zinkeBand(d) : ''}
 
   <div class="wrap" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
@@ -525,29 +525,6 @@ export function notFoundPage(d) {
     <p>Diese Seite gibt es nicht (mehr). Vielleicht hilft die <a href="${url('/')}">Startseite</a> oder das Menü weiter.</p>
   </div>
 </section>`;
-}
-
-// ---------- Landrats-Stichwahl: Unterstützung für Sebastian Zinke (nur bis zum Wahltag) ----------
-function zinkeBand(d) {
-  const z = d.stichwahl;
-  return `
-  <div class="band-rot zinke">
-    <div class="wrap zinke-grid">
-      <div class="zinke-photo"><img src="${url(z.foto)}" alt="${esc(z.kandidat)}" loading="lazy" decoding="async"><span class="small">${esc(z.fotoQuelle)}</span></div>
-      <div class="zinke-text">
-        <span class="tag tag-schwarz">Stichwahl am ${esc(z.datumText)}</span>
-        <h2 class="title">Sebastian Zinke<br>als Landrat.</h2>
-        <p class="lead">Im ersten Wahlgang lag Sebastian Zinke mit ${z.ersterWahlgang.prozent.toLocaleString('de-DE')} Prozent vorn. Am 27. September entscheidet die Stichwahl, wer den Heidekreis in den nächsten Jahren führt. Wir unterstützen ihn – und bitten Sie um Ihre Stimme.</p>
-        <p>${esc(z.kurz)}</p>
-        <ul class="zinke-punkte">${z.schwerpunkte.map(([t, x]) => `<li><b>${esc(t)}</b><span>${esc(x)}</span></li>`).join('')}</ul>
-        <div class="hero-actions">
-          <a class="btn btn-schwarz" href="${esc(z.website)}" target="_blank" rel="noopener">Mehr über Sebastian Zinke</a>
-          <a class="btn btn-line-weiss" href="${esc(z.wahlinfo)}" target="_blank" rel="noopener">Briefwahl &amp; Wahllokale</a>
-        </div>
-        <p class="small" style="opacity:.85">Wahllokale am 27. September von 8 bis 18 Uhr. Wer nicht vor Ort sein kann, beantragt die Briefwahlunterlagen bei der Stadt Soltau.</p>
-      </div>
-    </div>
-  </div>`;
 }
 
 // ---------- Kommunalwahl 2026: Unsere 11 im Stadtrat ----------
