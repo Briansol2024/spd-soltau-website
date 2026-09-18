@@ -13,9 +13,12 @@ Der Push-Dienst ist ein kleines Node-Skript (`send.mjs`), das regelmäßig läuf
 | Registrierungsanfrage | Vorstand laut „Wer wird benachrichtigt?“ | neues Mitglied wartet auf Freigabe |
 | Buchungsanfrage | Vorstand laut „Wer wird benachrichtigt?“ | neue Anfrage über `/roter-bahnhof/` (Sammlung Buchungen, Status „offen“) |
 | Zu-/Absage | Vorstand laut „Wer wird benachrichtigt?“ | Mitglied hat in der App zu- oder abgesagt |
+| Kontakt-/Mitgliedsanfrage | Vorstand laut „Wer wird benachrichtigt?“ | Formular auf der Website abgeschickt (Sammlung Anfragen) |
+| Geburtstag / Jubiläum | Vorstand laut „Wer wird benachrichtigt?“ | morgens ab 8 Uhr, aus den freiwilligen Profilangaben (Geburtstag freigegeben, Eintrittsjahr) |
+| Mitglieder-Infos | angemeldete Mitglieder mit Thema „Mitglieder-Infos“ | neue Umfrage, Helferliste, Dokument, Ratsvorbereitung |
 | Nachricht | alle Mitglieder oder alle Abonnent*innen | Vorstand schreibt in der App unter „Nachricht an alle“ |
 
-Jede Nachricht wird in **PushLog** vermerkt – nichts geht doppelt raus. Einstellungen aus „Wer wird benachrichtigt?“ zählen nur, wenn sie von einem Vorstandsmitglied gespeichert wurden (Rolle „Vorstandsmitglied“ bei Wix). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.
+Jede Nachricht wird in **PushLog** vermerkt – nichts geht doppelt raus. Einstellungen aus „Wer wird benachrichtigt?“ und „Wer darf was?“ zählen nur, wenn sie jemand mit dem Recht „Verwaltung“ gespeichert hat (Standard: Vorstand, Wix-Rolle „Vorstandsmitglied“). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht. Der Dienst prüft außerdem die Rechte: Umfragen, Helferlisten, Dokumente und Ratsvorbereitungen von Mitgliedern ohne das jeweilige Recht werden entfernt, Aktionen ohne Recht abgelehnt.
 
 ## Einrichtung (einmalig)
 
@@ -49,3 +52,7 @@ Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml
 | `AppMitglieder` | Name, Rollen, Push-Status je Mitglied (vom Dienst gepflegt) | Mitglieder lesen |
 | `Buchungen` | Buchungsanfragen Roter Bahnhof | jeder darf anlegen, lesen nur Admin/Push-Dienst |
 | `PushLog` | Versandprotokoll | nur Admin/Push-Dienst |
+| `Umfragen`, `Helferlisten`, `Helfer`, `Dokumente`, `Ratsvorbereitung`, `Profile`, `Fahrgemeinschaften` | Inhalte des Mitgliederbereichs | Mitglieder lesen + anlegen, eigene ändern/löschen |
+| `UmfragenOeffentlich` | Umfrage der Woche (Startseite) | jeder liest, Mitglieder legen an |
+| `Stimmen` | Abstimmungen (intern und öffentlich) | jeder darf abstimmen, Mitglieder lesen die Auswertung |
+| `Anfragen` | Kontakt- und Mitgliedsanfragen der Website | jeder darf anlegen, lesen nur Admin/Push-Dienst |

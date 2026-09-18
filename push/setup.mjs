@@ -20,6 +20,7 @@ if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
   log('VAPID-Schlüssel erzeugt und in .env eingetragen.');
 } else log('VAPID-Schlüssel vorhanden.');
 add('WIX_SITE_ID', '2678f727-8329-4f07-95bd-755df04f685d');
+add('ICS_TOKEN', [...Array(20)].map(() => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join(''));
 if (!env.WIX_API_KEY) add('WIX_API_KEY', '');
 writeFileSync(envFile, envText, 'utf8');
 
@@ -50,6 +51,16 @@ const SCHEMA = {
   AppMitglieder: [T('name', 'Name'), T('rollen', 'Rollen', 'ARRAY_STRING'), T('vorstand', 'Vorstand', 'BOOLEAN'), T('pushAktiv', 'Push aktiv', 'BOOLEAN'), T('memberId', 'Mitglieds-ID'), T('status', 'Status')],
   Buchungen: [T('name', 'Name'), T('organisation', 'Verein/Gruppe'), T('datum', 'Datum'), T('von', 'Von'), T('bis', 'Bis'), T('zweck', 'Anlass'), T('personen', 'Personen'), T('email', 'E-Mail'), T('telefon', 'Telefon'), T('nachricht', 'Nachricht'), T('status', 'Status'), T('bearbeitetVon', 'Bearbeitet von'), T('bearbeitetAm', 'Bearbeitet am')],
   PushLog: [T('key', 'Schlüssel'), T('titel', 'Titel'), T('empfaenger', 'Empfänger', 'NUMBER')],
+  Umfragen: [T('frage', 'Frage'), T('beschreibung', 'Erläuterung'), T('optionen', 'Antworten', 'ARRAY_STRING'), T('mehrfach', 'Mehrfachauswahl', 'BOOLEAN'), T('offen', 'Offen', 'BOOLEAN'), T('endetAm', 'Läuft bis'), T('von', 'Von')],
+  UmfragenOeffentlich: [T('frage', 'Frage'), T('beschreibung', 'Erläuterung'), T('optionen', 'Antworten', 'ARRAY_STRING'), T('mehrfach', 'Mehrfachauswahl', 'BOOLEAN'), T('offen', 'Offen', 'BOOLEAN'), T('endetAm', 'Läuft bis'), T('von', 'Von')],
+  Stimmen: [T('umfrageId', 'Umfrage-ID'), T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('auswahl', 'Auswahl (Index)', 'ARRAY_STRING')],
+  Helferlisten: [T('titel', 'Titel'), T('datum', 'Datum'), T('ort', 'Ort'), T('eventTitel', 'Termin'), T('beschreibung', 'Beschreibung'), T('von', 'Von')],
+  Helfer: [T('listeId', 'Liste-ID'), T('schichtId', 'Schicht'), T('name', 'Name'), T('memberId', 'Mitglieds-ID')],
+  Dokumente: [T('titel', 'Titel'), T('kategorie', 'Kategorie'), T('datum', 'Datum'), T('url', 'Link'), T('datei', 'Datei', 'DOCUMENT'), T('beschreibung', 'Beschreibung'), T('von', 'Von')],
+  Ratsvorbereitung: [T('gremium', 'Gremium'), T('sitzung', 'Sitzung am'), T('zeit', 'Uhrzeit'), T('titel', 'Titel'), T('link', 'Link'), T('hinweis', 'Hinweis'), T('von', 'Von')],
+  Profile: [T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('ort', 'Ortsteil'), T('telefon', 'Telefon'), T('telefonSichtbar', 'Telefon sichtbar', 'BOOLEAN'), T('email', 'E-Mail'), T('emailSichtbar', 'E-Mail sichtbar', 'BOOLEAN'), T('geburtstag', 'Geburtstag'), T('geburtstagSichtbar', 'Geburtstag sichtbar', 'BOOLEAN'), T('eintritt', 'Eintrittsjahr', 'NUMBER'), T('fahreAb', 'Fährt ab')],
+  Fahrgemeinschaften: [T('eventTitel', 'Termin'), T('eventDatum', 'Datum'), T('typ', 'Biete/Suche'), T('ab', 'Ab'), T('plaetze', 'Plätze', 'NUMBER'), T('zeit', 'Abfahrt'), T('name', 'Name'), T('memberId', 'Mitglieds-ID')],
+  Anfragen: [T('typ', 'Art'), T('thema', 'Thema'), T('name', 'Name'), T('email', 'E-Mail'), T('ort', 'Wohnort/Straße'), T('interesse', 'Interesse'), T('nachricht', 'Nachricht'), T('status', 'Status'), T('bearbeitetVon', 'Bearbeitet von'), T('bearbeitetAm', 'Bearbeitet am')],
 };
 for (const [id, fields] of Object.entries(SCHEMA)) {
   try {

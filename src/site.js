@@ -64,6 +64,7 @@ kt?.addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b) return;
   $$('.chip', kt).forEach(c => c.setAttribute('aria-pressed', 'false'));
   b.setAttribute('aria-pressed', 'true');
+  const th = $('#k-thema'); if (th) th.value = b.textContent.trim();
 });
 
 // ---------- Personen-Fenster ----------
@@ -142,7 +143,7 @@ const io = new IntersectionObserver(entries => {
 }, { threshold: 0, rootMargin: '0px 0px -6% 0px' });
 function arm() {
   site.querySelectorAll(RV_SEL).forEach(el => {
-    if (el.classList.contains('rv') || el.closest('.hero') || (el.parentElement && el.parentElement.closest('.rv'))) return;
+    if (el.classList.contains('rv') || el.closest('.hero') || el.closest('#mitglieder-app') || (el.parentElement && el.parentElement.closest('.rv'))) return;
     el.classList.add('rv');
     if (el.matches('.section-head,.page-head>*')) el.classList.add('rv-l');
     if (el.matches('.insta .ph,.stat')) el.classList.add('rv-s');
@@ -235,7 +236,7 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   btn.disabled = true; if (note) note.hidden = true;
   const data = { status: 'offen' };
   new FormData(f).forEach((v, k) => { data[k] = String(v).trim(); });
-  data.title = `${data.name || ''} – ${data.datum || ''} ${data.von || ''}`.trim();
+  data.title = [data.typ ? { kontakt: 'Kontakt', mitglied: 'Mitgliedsanfrage' }[data.typ] || data.typ : '', data.name || '', data.datum || '', data.von || ''].filter(Boolean).join(' – ');
   try {
     await wixInsert(f.dataset.collection, data);
     f.querySelector('.form-fields').hidden = true; f.querySelector('.form-ok').hidden = false;
@@ -244,3 +245,44 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
     btn.disabled = false;
   }
 }));
+
+export async function wixQuery(collection, query) {
+  const token = await wixVisitorToken();
+  const r = await fetch('https://www.wixapis.com/wix-data/v2/items/query', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token }, body: JSON.stringify({ dataCollectionId: collection, query }) });
+  if (!r.ok) throw new Error('Abfrage fehlgeschlagen (' + r.status + ')');
+  return ((await r.json()).dataItems || []).map(it => ({ _id: it.id, ...it.data }));
+}
+
+// ---------- Termine per WhatsApp teilen (Text + Link auf die Terminseite) ----------
+const wireShare = () => $$('a[data-share]:not([data-ready])').forEach(a => { a.dataset.ready = '1'; a.href = 'https://wa.me/?text=' + encodeURIComponent(a.dataset.share + '\n' + new URL(url('/termine/'), location.href).href); });
+wireShare(); new MutationObserver(wireShare).observe(document.body, { childList: true, subtree: true });
+
+// ---------- Kalender-Abo: webcal-Link aus der ICS-Adresse ----------
+$$('a[data-webcal]').forEach(a => { a.href = new URL(a.getAttribute('href'), location.href).href.replace(/^https?:/, 'webcal:'); });
+
+// ---------- Startseite: Umfrage der Woche (öffentliche Umfrage aus dem Mitgliederbereich) ----------
+const ubox = $('#umfrage-box');
+if (ubox && SPD.app?.clientId) {
+  (async () => {
+    let u; try { [u] = await wixQuery('UmfragenOeffentlich', { filter: { offen: true }, sort: [{ fieldName: '_createdDate', order: 'DESC' }], paging: { limit: 1 } }); } catch (e) { return; }
+    const today = new Date().toISOString().slice(0, 10);
+    if (!u || (u.endetAm && u.endetAm < today) || !Array.isArray(u.optionen)) return;
+    const key = 'spd-umfrage-' + u._id; let voted = null; try { voted = localStorage.getItem(key); } catch (e) { /* ohne Speicher */ }
+    const render = () => {
+      ubox.hidden = false;
+      ubox.innerHTML = `<div class="wrap"><div class="umfrage"><span class="tag tag-weiss">Umfrage der Woche</span><h3>${esc(u.frage)}</h3>${u.beschreibung ? `<p>${esc(u.beschreibung)}</p>` : ''}
+        ${voted === null ? `<div class="umfrage-opts">${u.optionen.map((o, i) => `<button type="button" class="btn btn-weiss" data-i="${i}">${esc(o)}</button>`).join('')}</div><p class="small">${u.endetAm ? 'Läuft bis ' + esc(u.endetAm.split('-').reverse().join('.')) + '. ' : ''}Eine Stimme pro Gerät – die Auswertung stellt die SPD Soltau vor.</p>`
+          : `<p><b>Danke für Ihre Stimme${u.optionen[+voted] ? ' für „' + esc(u.optionen[+voted]) + '“' : ''}!</b> Das Ergebnis stellen wir nach Ende der Umfrage vor.</p>`}</div></div>`;
+    };
+    render();
+    ubox.addEventListener('click', async e => {
+      const b = e.target.closest('button[data-i]'); if (!b) return;
+      $$('button', ubox).forEach(x => x.disabled = true);
+      try {
+        await wixInsert('Stimmen', { umfrageId: u._id, auswahl: [+b.dataset.i], memberId: '', name: 'Besucher', title: 'Besucher – ' + u.frage });
+        voted = b.dataset.i; try { localStorage.setItem(key, voted); } catch (err) { /* ohne Speicher */ }
+      } catch (err) { $$('button', ubox).forEach(x => x.disabled = false); return; }
+      render();
+    });
+  })();
+}

@@ -202,6 +202,7 @@ export function startPage(d) {
     </div>
   </div>
 
+  <div id="umfrage-box" class="umfrage-box" hidden></div>
   <div class="wrap section">
     <div class="cols boxes">
       ${erk ? `<div class="box box-schwarz">
@@ -307,6 +308,9 @@ export function terminePage(d) {
         <dt>Altes Rathaus</dt><dd>Sitzungen der SPD-Ratsfraktion</dd>
         <dt>Alte Reithalle</dt><dd>Sitzungen des Stadtrates</dd>
       </dl>
+      <h3 style="margin-top:8px">Kalender abonnieren</h3>
+      <p class="small">Alle öffentlichen Termine automatisch im Handy-Kalender – neue Termine erscheinen von selbst.</p>
+      <a class="btn btn-weiss" href="${url('/assets/termine.ics')}" data-webcal style="justify-self:start">Termine abonnieren</a>
     </div>
   </div>
 </section>`;
@@ -420,7 +424,8 @@ export function mitmachenPage(d) {
 <section>
   ${pageHead('Mitmachen', 'Soltau<br>mitgestalten', 'Ob Mitgliedschaft, Newsletter oder ein Nachmittag am Infostand – jede Unterstützung zählt.')}
   <div class="wrap section split">
-    <form class="form mock" id="form-mitglied" novalidate>
+    <form class="form wix-form" id="form-mitglied" data-collection="Anfragen" novalidate>
+      <input type="hidden" name="typ" value="mitglied">
       <div class="form-fields" style="display:grid;gap:18px">
         <h2 class="title" style="font-size:40px">Interesse an einer Mitgliedschaft</h2>
         <p class="small muted">Wir melden uns persönlich. Der Beitritt selbst läuft über den SPD-Landesverband.</p>
@@ -432,6 +437,7 @@ export function mitmachenPage(d) {
         </div>
         <div class="field"><label for="m-msg">Nachricht (optional)</label><textarea id="m-msg" name="nachricht"></textarea></div>
         <label class="check"><input type="checkbox" id="m-ds" required> <span>Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</span></label>
+        <p class="note" hidden></p>
         <button class="btn btn-rot" type="submit" style="justify-self:start">Absenden</button>
       </div>
       <p class="form-ok" hidden>Danke! Wir melden uns in den nächsten Tagen bei Ihnen.</p>
@@ -466,7 +472,8 @@ export function kontaktPage(d) {
 <section>
   ${pageHead('Kontakt', 'Ihr<br>Anliegen', 'Ein Schlagloch in Ihrer Straße, eine Frage zu einer Ratsentscheidung, Kritik oder Lob – wir antworten.')}
   <div class="wrap section split">
-    <form class="form mock" id="form-kontakt" novalidate>
+    <form class="form wix-form" id="form-kontakt" data-collection="Anfragen" novalidate>
+      <input type="hidden" name="typ" value="kontakt"><input type="hidden" name="thema" id="k-thema" value="Straßen &amp; Verkehr">
       <div class="form-fields" style="display:grid;gap:18px">
         <div class="field"><label for="k-name">Name</label><input id="k-name" name="name" type="text" required autocomplete="name"></div>
         <div class="field"><label for="k-mail">E-Mail</label><input id="k-mail" name="email" type="email" required autocomplete="email"></div>
@@ -478,6 +485,7 @@ export function kontaktPage(d) {
         <div class="field"><label for="k-ort">Straße / Ortschaft (optional)</label><input id="k-ort" name="ort" type="text" placeholder="z. B. Walsroder Straße"></div>
         <div class="field"><label for="k-msg">Ihr Anliegen</label><textarea id="k-msg" name="nachricht" required></textarea></div>
         <label class="check"><input type="checkbox" id="k-ds" required> <span>Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</span></label>
+        <p class="note" hidden></p>
         <button class="btn btn-rot" type="submit" style="justify-self:start">Anliegen senden</button>
       </div>
       <p class="form-ok" hidden>Danke! Ihr Anliegen ist angekommen. Wir melden uns – in der Regel innerhalb einer Woche.</p>

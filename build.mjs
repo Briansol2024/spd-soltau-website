@@ -18,6 +18,7 @@ import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
 import esbuild from 'esbuild';
+import { createHash } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, 'dist');
@@ -54,6 +55,33 @@ const site = {
   heroPoster: '',
 };
 const noindex = env.NOINDEX === '1';
+// Geheimnis im Dateinamen des internen Kalender-Abos (ICS_TOKEN in .env, sonst abgeleitet)
+const icsToken = env.ICS_TOKEN || createHash('sha256').update('spd-ics-' + (env.WIX_CLIENT_ID || '')).digest('hex').slice(0, 20);
+
+// ---------- Kalender-Abo (iCalendar) ----------
+function icsFeed(events, name) {
+  const t = s => String(s ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const nextDay = d => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10).replace(/-/g, ''); };
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SPD Soltau//Website//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', `X-WR-CALNAME:${t(name)}`, 'X-WR-TIMEZONE:Europe/Berlin', 'REFRESH-INTERVAL;VALUE=DURATION:PT6H', 'X-PUBLISHED-TTL:PT6H',
+    'BEGIN:VTIMEZONE', 'TZID:Europe/Berlin', 'BEGIN:STANDARD', 'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'END:STANDARD',
+    'BEGIN:DAYLIGHT', 'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'END:DAYLIGHT', 'END:VTIMEZONE'];
+  for (const e of events) {
+    const m = String(e.zeit || '').match(/(\d{1,2}):(\d{2})/);
+    const d = String(e.date).replace(/-/g, '');
+    lines.push('BEGIN:VEVENT', `UID:${e.id || d + '-' + t(e.title).slice(0, 20)}@spd-soltau.de`, `DTSTAMP:${stamp}`, `SUMMARY:${t(e.title)}`);
+    if (m) {
+      const h = +m[1], mi = +m[2]; const endH = Math.min(23, h + 2);
+      lines.push(`DTSTART;TZID=Europe/Berlin:${d}T${String(h).padStart(2, '0')}${String(mi).padStart(2, '0')}00`, `DTEND;TZID=Europe/Berlin:${d}T${String(endH).padStart(2, '0')}${String(mi).padStart(2, '0')}00`);
+    } else lines.push(`DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nextDay(e.date)}`);
+    if (e.ort) lines.push(`LOCATION:${t(e.ort)}`);
+    lines.push(`DESCRIPTION:${t([e.typ, e.info].filter(Boolean).join(' – '))}`, `CATEGORIES:${t(e.typ || 'Termin')}`, 'END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  // Zeilen über 75 Zeichen werden gefaltet (RFC 5545)
+  const fold = l => { const out = []; let rest = l; while (rest.length > 74) { out.push(rest.slice(0, 74)); rest = ' ' + rest.slice(74); } out.push(rest); return out.join('\r\n'); };
+  return lines.map(fold).join('\r\n') + '\r\n';
+}
 
 // ---------- Daten ----------
 async function loadData() {
@@ -239,8 +267,11 @@ async function main() {
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
-    app: { clientId: env.WIX_CLIENT_ID || '', vapid: env.VAPID_PUBLIC_KEY || '' },
+    app: { clientId: env.WIX_CLIENT_ID || '', vapid: env.VAPID_PUBLIC_KEY || '', ics: { public: `${BASE}/assets/termine.ics`, intern: `${BASE}/assets/termine-intern-${icsToken}.ics` } },
   };
+  // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
+  await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich'), 'SPD Soltau – Termine'), 'utf8');
+  await writeFile(path.join(OUT, 'assets', `termine-intern-${icsToken}.ics`), icsFeed(d.events, 'SPD Soltau – alle Termine (Mitglieder)'), 'utf8');
   const page = (rel, pth, title, description, content, extra = {}) =>
     write(rel, T.layout({ site, path: pth, title, description, content, clientData, noindex, ...extra }));
 

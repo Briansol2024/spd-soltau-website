@@ -754,3 +754,83 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .routing-table th:not(:first-child),.routing-table td:not(:first-child){text-align:center;width:120px}
 .routing-table input{width:22px;height:22px;accent-color:var(--rot)}
 .routing-info{display:grid;gap:6px;margin-bottom:12px}
+
+/* ===== Mitgliederbereich: Bereiche, Karten, Listen ===== */
+.demo-note{margin-bottom:20px}
+.mb-nav{position:sticky;top:72px;z-index:5;background:#fff;padding:10px 0;margin:0 0 16px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+.mb-nav::-webkit-scrollbar{display:none}
+.mb-nav .chip{white-space:nowrap;flex:0 0 auto}
+.mb-view{min-height:40vh}
+.mb-sub{padding-top:36px;margin-top:36px;border-top:2px solid var(--schwarz)}
+.mb-subnav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.mb-subnav a{font:700 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--schwarz);text-decoration:none;border-bottom:2px solid var(--rot);padding-bottom:4px}
+.start-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@container site (max-width:760px){.start-grid{grid-template-columns:minmax(0,1fr)}}
+.start-ev{display:flex;gap:8px;align-items:center;flex-wrap:wrap;text-decoration:none;color:var(--ink);padding:8px 0;border-top:1px solid var(--linie);font-size:15px}
+.start-ev:first-of-type{border-top:0}
+.start-ev b{color:var(--rot);font-variant-numeric:tabular-nums}
+.start-ev .badge{margin-left:auto;font-size:11px;padding:6px 8px 5px}
+.linkbtn{background:none;border:0;padding:0;color:var(--rot);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer}
+.mb-details{border:2px solid var(--schwarz);padding:0 16px;margin:12px 0}
+.mb-details>summary{cursor:pointer;padding:12px 0;font:700 15px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.mb-details>summary::after{content:"+";font-size:22px;line-height:1}
+.mb-details[open]>summary::after{content:"–"}
+.mb-details>summary::-webkit-details-marker{display:none}
+.mb-details>*:not(summary){margin-bottom:16px}
+.rides .ride-list{display:grid;gap:6px;margin-bottom:12px}
+.ride-form.mb-form{gap:10px}
+.tight{gap:8px}
+.rows{display:grid;gap:8px}
+.rows .row input,.rows .row select,.rows .row textarea{font:inherit;padding:10px 12px;border:2px solid var(--schwarz);background:#fff;width:100%;min-width:0;border-radius:0}
+.top-row{display:grid;grid-template-columns:70px minmax(0,2fr) minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--linie)}
+.top-row textarea{grid-column:1/-1}
+.top-row .linkbtn{grid-column:1/-1;justify-self:start}
+@container site (max-width:600px){.top-row{grid-template-columns:70px minmax(0,1fr)}.top-row select{grid-column:1/-1}}
+.hl-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.hl h4,.poll h4,.rat h4{font:700 24px/1 var(--display);text-transform:uppercase;margin-top:6px}
+.shifts{display:grid;gap:8px}
+.shift{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;background:#fff;border-left:4px solid var(--rot)}
+.shift.full{border-left-color:var(--muted)}
+.shift .chip{flex:0 0 auto}
+.poll-list,.rat-list,.doc-list{display:grid;gap:16px}
+.poll-results{display:grid;gap:6px;margin:6px 0}
+.poll-row{position:relative;display:flex;justify-content:space-between;gap:10px;padding:8px 12px;background:#fff;overflow:hidden;font-size:15px}
+.poll-row .bar{position:absolute;inset:0 auto 0 0;background:rgba(227,0,15,.14);transition:width .5s}
+.poll-row.mine .bar{background:rgba(227,0,15,.3)}
+.poll-row .lbl,.poll-row .pct{position:relative}
+.poll-row .pct{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.poll-vote{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.poll-vote.compact .chip{font-size:13px;padding:6px 10px}
+.doc{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--linie)}
+.doc-list .doc:first-child{border-top:0}
+.doc-title{font:700 20px/1.1 var(--display);text-transform:uppercase;color:var(--ink);text-decoration:none}
+.doc-title:hover{color:var(--rot)}
+.doc-cat{font:800 20px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--rot);margin-bottom:8px}
+.tops{display:grid;gap:10px;margin-top:8px}
+.top{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;padding:10px 12px;background:#fff}
+.top-nr{font:800 14px/1.4 var(--display);letter-spacing:.08em;color:var(--rot);text-transform:uppercase}
+.pos{display:inline-block;font:700 11px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;padding:5px 7px 4px;margin-left:6px;border:2px solid var(--schwarz)}
+.pos-dafr,.pos-dafür{background:#1E7B3A;border-color:#1E7B3A;color:#fff}
+.pos-dagegen{background:var(--rot);border-color:var(--rot);color:#fff}
+.pos-enthaltung{background:var(--grau)}
+.people-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.member{display:grid;gap:2px;padding:12px 14px;background:var(--grau);border-left:4px solid var(--rot)}
+.member b{font:700 18px/1.1 var(--display);text-transform:uppercase}
+.member a{color:var(--ink);text-decoration:none}
+@container site (max-width:600px){
+  .mb-nav{top:64px}
+  .mb-head{margin-bottom:12px}
+  .mb-head .title{font-size:34px}
+  .hl-head .mb-actions{width:100%}
+}
+/* Umfrage der Woche (Startseite) */
+.umfrage-box{background:var(--rot);color:#fff;margin:56px 0 0}
+.umfrage{padding:40px 0;display:grid;gap:14px}
+.umfrage h3{font:800 clamp(28px,3.6cqw,44px)/1 var(--display);text-transform:uppercase;color:#fff;max-width:26ch}
+.umfrage-opts{display:flex;gap:10px;flex-wrap:wrap}
+.mb-view .section-head .title,.mb-section .section-head .title{font:800 clamp(26px,3cqw,36px)/1 var(--display);text-transform:uppercase}
+/* WhatsApp-Teilen */
+.wa{gap:6px}
+.wa svg{width:16px;height:16px;fill:currentColor}
+.event .share{display:inline-block;margin-top:8px;font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--schwarz);text-decoration:none;border-bottom:2px solid var(--rot);padding-bottom:3px}
+.start-ev svg{width:18px;height:18px;fill:#25D366}

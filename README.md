@@ -16,7 +16,9 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Instagram-Kacheln | Zwischenspeicher der Wix-Instagram-App (`@vanyadoing/instagram/ig-media`) – Bilder werden beim Bauen auf den eigenen Host kopiert | Instagram posten, Wix-App bleibt verbunden |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
 | Wahlergebnis 2026 (Seite „Unsere 11 im Stadtrat“), Stichwahl-Aufruf | `src/data-wahl2026.mjs` – Fotos/Berufe kommen automatisch aus der Kandidat*innen-Sammlung | hier im Projekt |
-| Mitgliederbereich (`/mitglieder/`): Konten, Zu-/Absagen, Push-Abos, „Wer wird benachrichtigt?“ | Wix-Mitglieder + CMS-Sammlungen `Zusagen`, `PushSubscriptions`, `Benachrichtigungen`, `Aktionen`, `AppMitglieder` | Dashboard → Kunden & Leads bzw. CMS; Freigaben direkt in der App |
+| Mitgliederbereich (`/mitglieder/`): Konten, Zu-/Absagen, Helferlisten, Fahrgemeinschaften, Umfragen, Dokumente, Ratsvorbereitung, Verzeichnis/Profile, Push, „Wer wird benachrichtigt?“, „Wer darf was?“ | Wix-Mitglieder + CMS-Sammlungen (`Zusagen`, `Helferlisten`, `Helfer`, `Fahrgemeinschaften`, `Umfragen`, `UmfragenOeffentlich`, `Stimmen`, `Dokumente`, `Ratsvorbereitung`, `Profile`, `PushSubscriptions`, `Benachrichtigungen`, `Aktionen`, `AppMitglieder`) | in der App; Dashboard → CMS zum Nachsehen |
+| Kontakt- und Mitmachen-Formular | CMS-Sammlung `Anfragen` | Push an den Vorstand, „Erledigt“ in der App |
+| Kalender-Abo (`assets/termine.ics`, intern mit Geheimnis) | aus den Wix-Events beim Bauen | automatisch |
 | Buchungsanfragen Roter Bahnhof (`/roter-bahnhof/`) | CMS-Sammlung `Buchungen` | Push an den Vorstand, Annehmen/Ablehnen in der App |
 
 Die Seite wird **alle 30 Minuten** automatisch neu gebaut (GitHub Actions). Neue Beiträge oder Termine
@@ -56,6 +58,21 @@ sagen zu Terminen zu oder ab (mit Grund), aktivieren Push-Benachrichtigungen (Ak
 legt fest, **wer über Registrierungs- und Buchungsanfragen benachrichtigt wird**, bearbeitet Anfragen im „Eingang“ und schickt Nachrichten an alle.
 Alle Daten bleiben bei Wix. Voraussetzungen: Wix → Headless-Einstellungen → erlaubte Umleitungs-URIs (`…/mitglieder/` je Adresse, ist eingetragen)
 und der Push-Dienst (`push/README.md`).
+
+**Vorschau ohne Konto:** `/mitglieder/?demo` zeigt den kompletten Mitgliederbereich mit Beispieldaten (nichts wird gespeichert).
+
+**Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten, Fahrgemeinschaften, Kalender-Abo) ·
+Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
+Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·
+Vorstand (Eingang, Wer wird benachrichtigt?, Wer darf was?, Nachricht an alle, WhatsApp-Gruppen).
+
+**Rechte:** Standard = der gesamte Vorstand (Wix-Rolle „Vorstandsmitglied“) darf alles. Unter „Wer darf was?“ lässt sich je Recht (Umfragen, Helferlisten,
+Dokumente, Ratsvorbereitung, Nachrichten, Eingang, Verwaltung) einzeln festlegen, wer es darf. Die Logik steckt in `src/lib/rights.mjs` und wird vom Push-Dienst
+ebenfalls geprüft (Einträge ohne Recht werden entfernt).
+
+**WhatsApp:** In Gruppen posten kann die App nicht automatisch (WhatsApp hat dafür keine Schnittstelle). Stattdessen: „WhatsApp“-Knopf an Terminen, Helferlisten,
+Umfragen, Dokumenten und Nachrichten – öffnet WhatsApp mit dem fertigen Text, Gruppe auswählen, abschicken. Einladungslinks der Gruppen pflegt der Vorstand
+unter „WhatsApp-Gruppen“, Mitglieder sehen sie auf der Startseite des Mitgliederbereichs. Auf der öffentlichen Terminseite gibt es „Per WhatsApp teilen“ je Termin.
 
 ## Vorschau über Tailscale (Testphase)
 
@@ -115,7 +132,7 @@ Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wi
 
 ## Noch offen (bewusst für später)
 
-- Kontakt- und Mitmachen-Formular senden noch nicht (zeigen nur die Bestätigung). Die Buchungsanfrage funktioniert bereits (CMS `Buchungen`); Kontakt/Mitmachen können genauso angeschlossen werden.
+- Dokumente werden als Link eingestellt (Datei vorher in der Wix-Medienverwaltung/Dateifreigabe oder einer Cloud ablegen). Direkter Upload aus der App wäre mit einem kleinen Server-Teil nachrüstbar.
 - Antwort an Anfragende (Buchung bestätigt/abgelehnt) schickt der Vorstand noch selbst – automatische E-Mails wären über Wix „Ausgelöste E-Mails“ möglich.
 - Umfrage zählt nur lokal im Browser. Geplant: Zählung über eine CMS-Sammlung.
 - Impressum/Datenschutz mit den Mustern des SPD-Landesverbands abgleichen.

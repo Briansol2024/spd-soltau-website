@@ -10,6 +10,7 @@
 //   node push/send.mjs --dry      nichts senden, nur zeigen, was gesendet würde
 import webpush from 'web-push';
 import { adminClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
+import { evaluateSettings } from '../src/lib/rights.mjs';
 
 const DRY = process.argv.includes('--dry');
 const TEST = process.argv.includes('--test');
@@ -17,7 +18,6 @@ const VORSTAND_RE = new RegExp(env.VORSTAND_ROLLE || 'vorstand', 'i');
 const SITE = (env.PUSH_SITE_URL || env.SITE_URL || '').replace(/\/$/, '');
 const NOW = Date.now();
 const H = 3600 * 1000;
-const BOARD_TOPICS = ['registrierung', 'buchung', 'zusage'];
 const PUSH_HOSTS = /(^|\.)(push\.apple\.com|fcm\.googleapis\.com|android\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com|push\.mozilla\.com|web\.push\.apple\.com|wns2-.*\.notify\.windows\.com|.*\.push\.ovh\.net)$/i;
 
 if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) { console.error('VAPID-Schlüssel fehlen – bitte zuerst: node push/setup.mjs'); process.exit(1); }
@@ -79,6 +79,7 @@ const byTopic = (subs, topic) => subs.filter(s => (s.themen || []).includes(topi
 const byMembers = (subs, ids) => subs.filter(s => s.memberId && ids.includes(s.memberId));
 const memberSubs = subs => subs.filter(s => !!s.memberId);
 const url = p => (SITE ? SITE : '') + p;
+const INBOX = '/mitglieder/#vorstand/eingang';
 
 // ---------- Mitglieder abgleichen ----------
 async function syncMembers(subs) {
@@ -121,25 +122,47 @@ async function syncMembers(subs) {
   return { approved, pending, board };
 }
 
-// ---------- Wer wird benachrichtigt? ----------
-async function loadRouting(board, approved) {
+// ---------- Rechte + „Wer wird benachrichtigt?“ (gemeinsame Logik mit dem Mitgliederbereich) ----------
+async function loadSettings(approved) {
   const snaps = await queryAll(client, 'Benachrichtigungen', q => q.descending('_createdDate'));
-  const routing = {};
-  for (const t of BOARD_TOPICS) {
-    const snap = snaps.find(s => s.thema === t && board.has(s._owner)); // nur Einstellungen von Vorstandsmitgliedern zählen
-    routing[t] = snap ? (snap.empfaenger || []).filter(id => approved.some(a => a.memberId === id)) : [...board];
-    log(`  ${t}: ${routing[t].length} Empfänger${snap ? '' : ' (Standard: gesamter Vorstand)'}`);
+  const st = evaluateSettings(snaps, approved);
+  // Schnappschüsse von Absendern ohne Berechtigung zählen nicht – und werden aufgeräumt
+  const trusted = new Set([...st.board, ...st.rights.verwaltung]);
+  for (const sn of snaps) {
+    if (trusted.has(sn._owner)) continue;
+    log(`  Einstellung „${sn.thema}“ von unberechtigtem Absender entfernt`);
+    if (!DRY) await client.items.remove('Benachrichtigungen', sn._id).catch(() => {});
   }
-  return routing;
+  for (const [t, ids] of Object.entries(st.routing)) log(`  ${t}: ${ids.length} Empfänger${st.snap[t] ? '' : ' (Standard: gesamter Vorstand)'}`);
+  return st;
+}
+const hasRight = (st, memberId, right) => !!st.rights[right]?.has(memberId);
+
+// Inhalte, die nur mit Recht angelegt werden dürfen: Einträge Unberechtigter werden entfernt
+async function moderate(st) {
+  const rules = [['Umfragen', 'umfragen'], ['UmfragenOeffentlich', 'umfragen'], ['Helferlisten', 'helfer'], ['Dokumente', 'dokumente'], ['Ratsvorbereitung', 'rat']];
+  for (const [col, right] of rules) {
+    try {
+      const list = await queryAll(client, col);
+      for (const it of list) {
+        if (hasRight(st, it._owner, right) || st.board.has(it._owner)) continue;
+        log(`  ${col}: „${it.titel || it.frage || it._id}“ von ${it.von || it._owner} ohne Recht „${right}“ – entfernt`);
+        if (!DRY) await client.items.remove(col, it._id).catch(() => {});
+      }
+    } catch (e) { log(`Moderation ${col}:`, e.message); }
+  }
 }
 
+
 // ---------- Aktionen des Vorstands ----------
-async function processActions(board, subs, logKeys) {
+async function processActions(st, subs, logKeys) {
   const open = await queryAll(client, 'Aktionen', q => q.eq('status', 'offen'));
+  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten' };
   for (const a of open) {
     let payload = {}; try { payload = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ }
     const done = async (status, ergebnis) => { log(`  Aktion ${a.typ}: ${ergebnis}`); if (!DRY) await client.items.update('Aktionen', { ...a, status, ergebnis, erledigtAm: new Date().toISOString() }).catch(e => log('Aktion update', e.message)); };
-    if (!board.has(a._owner)) { await done('abgelehnt', 'Absender ist kein Vorstandsmitglied'); continue; }
+    const need = NEEDS[a.typ];
+    if (!need || !hasRight(st, a._owner, need)) { await done('abgelehnt', `Absender hat das Recht „${need || '?'}“ nicht`); continue; }
     try {
       switch (a.typ) {
         case 'mitglied_freigeben':
@@ -155,6 +178,12 @@ async function processActions(board, subs, logKeys) {
           if (!DRY) await client.items.update('Buchungen', { ...b, status, bearbeitetVon: a.von || '', bearbeitetAm: new Date().toISOString() });
           await done('erledigt', `Buchung ${b.name || ''} ${b.datum || ''}: ${status} – Bitte die anfragende Person informieren (${b.email || ''} ${b.telefon || ''})`);
           break;
+        }
+        case 'anfrage_erledigt': {
+          if (!payload.anfrageId) throw new Error('anfrageId fehlt');
+          const an = await client.items.get('Anfragen', payload.anfrageId);
+          if (!DRY) await client.items.update('Anfragen', { ...an, status: 'erledigt', bearbeitetVon: a.von || '', bearbeitetAm: new Date().toISOString() });
+          await done('erledigt', `Anfrage von ${an.name || ''} als erledigt markiert`); break;
         }
         case 'nachricht': {
           const to = payload.ziel === 'alle' ? subs : memberSubs(subs);
@@ -201,15 +230,67 @@ async function contentPushes(subs, logKeys) {
   } catch (e) { log('Termine:', e.message); }
 }
 
-// ---------- Vorstand: Registrierungen, Buchungen, Zu-/Absagen ----------
+// ---------- Mitglieder-Infos: neue Umfragen, Helferlisten, Dokumente, Ratsvorbereitung ----------
+async function memberPushes(subs, logKeys) {
+  const to = byTopic(memberSubs(subs), 'mitglieder');
+  const recent = it => NOW - new Date(it._createdDate || 0).getTime() <= 48 * H;
+  const sources = [
+    ['Umfragen', 'umfrage', u => ({ title: 'Neue Umfrage: ' + u.frage, body: (u.beschreibung || 'Jetzt abstimmen im Mitgliederbereich.').slice(0, 140), url: url('/mitglieder/#umfragen') })],
+    ['UmfragenOeffentlich', 'umfrage', u => ({ title: 'Neue Umfrage: ' + u.frage, body: 'Läuft auch öffentlich auf der Startseite – Auswertung intern.', url: url('/mitglieder/#umfragen') })],
+    ['Helferlisten', 'helfer', l => ({ title: 'Helfer gesucht: ' + l.titel, body: [l.datum ? fmtDe(l.datum + 'T12:00:00').slice(0, 10) : '', l.ort, (l.schichten || []).map(s => s.zeit).join(', ')].filter(Boolean).join(' · '), url: url('/mitglieder/#termine/helferlisten') })],
+    ['Dokumente', 'dokument', d => ({ title: 'Neues Dokument: ' + d.titel, body: [d.kategorie, d.beschreibung].filter(Boolean).join(' – ').slice(0, 140), url: url('/mitglieder/#dokumente') })],
+    ['Ratsvorbereitung', 'rat', r => ({ title: 'Ratsvorbereitung: ' + (r.titel || r.gremium || 'Sitzung'), body: `${r.gremium || ''} am ${r.sitzung ? fmtDe(r.sitzung + 'T12:00:00').slice(0, 10) : ''} – ${(r.tops || []).length} Tagesordnungspunkte mit Einordnung`, url: url('/mitglieder/#rat') })],
+  ];
+  for (const [col, prefix, make] of sources) {
+    try {
+      for (const it of (await queryAll(client, col, q => q.descending('_createdDate'))).filter(recent)) {
+        const key = `${prefix}:${it._id}`; if (logKeys.has(key)) continue;
+        await send(to, { ...make(it), tag: key }, key, logKeys);
+      }
+    } catch (e) { log(`${col}:`, e.message); }
+  }
+}
+
+// ---------- Vorstand: Registrierungen, Buchungen, Anfragen, Zu-/Absagen, Geburtstage ----------
 async function boardPushes(subs, pending, routing, logKeys) {
   for (const m of pending) {
     const key = 'registrierung:' + m.memberId; if (logKeys.has(key)) continue;
     await send(byMembers(subs, routing.registrierung), {
-      title: 'Neue Registrierungsanfrage', body: `${m.name} (${m.email}) möchte in den Mitgliederbereich. Freischalten oder ablehnen im Eingang.`, tag: key, url: url('/mitglieder/#eingang'),
+      title: 'Neue Registrierungsanfrage', body: `${m.name} (${m.email}) möchte in den Mitgliederbereich. Freischalten oder ablehnen im Eingang.`, tag: key, url: url(INBOX),
       data: { typ: 'registrierung', id: key, memberId: m.memberId, name: m.name, details: { Name: m.name, 'E-Mail': m.email, Registriert: fmtDe(m.registriert) } },
     }, key, logKeys);
   }
+  // Kontakt- und Mitgliedsanfragen (Formulare der Website)
+  try {
+    const open = await queryAll(client, 'Anfragen', q => q.eq('status', 'offen').descending('_createdDate'));
+    for (const a of open) {
+      const key = 'anfrage:' + a._id; if (logKeys.has(key)) continue;
+      if (NOW - new Date(a._createdDate).getTime() > 14 * 24 * H) continue;
+      const art = a.typ === 'mitglied' ? 'Mitgliedsanfrage' : 'Kontaktanfrage';
+      const text = a.nachricht || a.interesse || '';
+      await send(byMembers(subs, routing.anfrage), {
+        title: art + (a.thema ? ': ' + a.thema : ''), body: `${a.name || '?'}: ${text}`.slice(0, 180), tag: key, url: url(INBOX),
+        data: { typ: 'anfrage', id: key, anfrageId: a._id, details: { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '' } },
+      }, key, logKeys);
+    }
+  } catch (e) { log('Anfragen:', e.message); }
+  // Geburtstage und Jubiläen (aus den freiwilligen Profilangaben), morgens ab 8 Uhr
+  try {
+    if (hourBerlin(NOW) >= 8) {
+      const today = isoDate(NOW), year = today.slice(0, 4), md = today.slice(5);
+      const profiles = await queryAll(client, 'Profile');
+      for (const p of profiles) {
+        const ev = [];
+        if (p.geburtstagSichtbar && String(p.geburtstag || '').endsWith(md)) ev.push(`${p.name} hat heute Geburtstag 🎂`);
+        const jahre = p.eintritt ? +year - +p.eintritt : 0;
+        if ([10, 25, 40, 50, 60, 70].includes(jahre) && md === '01-01') ev.push(`${p.name} ist ${jahre} Jahre in der SPD 🌹`);
+        for (const text of ev) {
+          const key = `geburtstag:${p.memberId}:${year}:${text.includes('Jahre') ? 'jub' : 'gb'}`; if (logKeys.has(key)) continue;
+          await send(byMembers(subs, routing.geburtstag), { title: text.includes('Jahre') ? 'Jubiläum' : 'Geburtstag', body: text, tag: key, url: url('/mitglieder/#mitglieder') }, key, logKeys);
+        }
+      }
+    }
+  } catch (e) { log('Geburtstage:', e.message); }
   try {
     const open = await queryAll(client, 'Buchungen', q => q.eq('status', 'offen').descending('_createdDate'));
     for (const b of open) {
@@ -217,7 +298,7 @@ async function boardPushes(subs, pending, routing, logKeys) {
       if (NOW - new Date(b._createdDate).getTime() > 14 * 24 * H) continue;
       const zeit = [b.datum, b.von && b.bis ? `${b.von}–${b.bis} Uhr` : ''].filter(Boolean).join(' ');
       await send(byMembers(subs, routing.buchung), {
-        title: 'Buchungsanfrage Roter Bahnhof', body: `${b.name || '?'}${b.organisation ? ' (' + b.organisation + ')' : ''}: ${zeit} – ${b.zweck || ''}`, tag: key, url: url('/mitglieder/#eingang'),
+        title: 'Buchungsanfrage Roter Bahnhof', body: `${b.name || '?'}${b.organisation ? ' (' + b.organisation + ')' : ''}: ${zeit} – ${b.zweck || ''}`, tag: key, url: url(INBOX),
         data: { typ: 'buchung', id: key, buchungId: b._id, details: { Name: b.name || '', 'Verein/Gruppe': b.organisation || '', Wann: zeit, Anlass: b.zweck || '', Personen: b.personen || '', 'E-Mail': b.email || '', Telefon: b.telefon || '', Nachricht: b.nachricht || '' } },
       }, key, logKeys);
     }
@@ -242,10 +323,12 @@ async function boardPushes(subs, pending, routing, logKeys) {
     log('fertig', stats); return;
   }
   const logKeys = await loadLog();
-  const { approved, pending, board } = await syncMembers(subs);
-  const routing = await loadRouting(board, approved);
-  await processActions(board, subs, logKeys);
+  const { approved, pending } = await syncMembers(subs);
+  const st = await loadSettings(approved);
+  await moderate(st);
+  await processActions(st, subs, logKeys);
   await contentPushes(subs, logKeys);
-  await boardPushes(subs, pending, routing, logKeys);
+  await memberPushes(subs, logKeys);
+  await boardPushes(subs, pending, st.routing, logKeys);
   log('fertig', stats);
 })().catch(e => { console.error('Push-Dienst abgebrochen:', e.message, e.details ? JSON.stringify(e.details).slice(0, 300) : ''); process.exit(1); });

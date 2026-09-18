@@ -1,11 +1,15 @@
-// Mitgliederbereich (/mitglieder/): Anmeldung und Registrierung über das Wix-Mitgliederkonto,
-// Zu-/Absagen zu Terminen, Push-Benachrichtigungen, App-Installation und die Werkzeuge des Vorstands
-// (wer wird benachrichtigt, Eingang mit Registrierungs- und Buchungsanfragen, Nachricht an alle).
-// Alle Daten liegen bei Wix (Mitglieder, CMS-Sammlungen). Wird mit esbuild zu assets/mitglieder.js gebündelt.
+// Mitgliederbereich (/mitglieder/): Anmeldung und Registrierung über das Wix-Mitgliederkonto, danach
+// Termine (Zu-/Absagen, Helferlisten, Fahrgemeinschaften), Umfragen, Dokumente, Ratsvorbereitung,
+// Mitgliederverzeichnis, Profil (Push, App) und die Werkzeuge des Vorstands (Eingang, Wer wird benachrichtigt,
+// Rechte, Nachricht an alle). Alle Daten liegen bei Wix (Mitgliederkonten + CMS-Sammlungen).
+// Mit ?demo läuft alles mit Beispieldaten im Speicher (Vorschau für den Vorstand).
+// Wird mit esbuild zu assets/mitglieder.js gebündelt.
 import { createClient, OAuthStrategy } from '@wix/sdk';
 import * as items from '@wix/wix-data-items-sdk';
 import * as members from '@wix/auto_sdk_members_members';
 import { esc, D, WD, MONS, MONL } from './render.mjs';
+import { RIGHTS, BOARD_TOPICS, evaluateSettings } from './lib/rights.mjs';
+import { makeDemoClient } from './demo.js';
 
 const SPD = window.SPD || {};
 const CFG = SPD.app || {};
@@ -13,12 +17,14 @@ const app = document.getElementById('mitglieder-app');
 if (!app) throw new Error('Mitgliederbereich: Container fehlt');
 const $ = (s, r = app) => r.querySelector(s);
 const $$ = (s, r = app) => [...r.querySelectorAll(s)];
+const DEMO = /[?&]demo\b/.test(location.search);
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
-const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos vom Vorstand' };
-const BOARD_TOPICS = [
-  ['registrierung', 'Neue Registrierungsanfragen', 'Jemand möchte sich im Mitgliederbereich anmelden und wartet auf Freigabe.'],
-  ['buchung', 'Buchungsanfragen Roter Bahnhof', 'Eine Anfrage über das Buchungsformular ist eingegangen.'],
-  ['zusage', 'Zu- und Absagen zu Terminen', 'Ein Mitglied hat zu einem Termin zu- oder abgesagt.'],
+const BASE = SPD.base || '.';
+const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Dokumente, Nachrichten)' };
+const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrichseck', 'Harber', 'Hötzingen', 'Leitzingen', 'Marbostel', 'Meinern', 'Mittelstendorf', 'Moide', 'Oeningen', 'Tetendorf', 'Wolterdingen', 'Woltem'];
+const SECTIONS = [
+  ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],
+  ['rat', 'Rat'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'],
 ];
 
 // ---------- Speicher (nur dieses Gerät) ----------
@@ -35,24 +41,41 @@ function idb() {
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   });
 }
+let demoInbox = [];
 async function inboxAll() {
+  if (DEMO) return demoInbox;
   try { const db = await idb(); return await new Promise((res, rej) => { const q = db.transaction('inbox').objectStore('inbox').getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => rej(q.error); }); }
   catch (e) { return []; }
 }
 async function inboxPut(item) {
+  if (DEMO) { const i = demoInbox.findIndex(x => x.id === item.id); if (i >= 0) demoInbox[i] = item; else demoInbox.push(item); return; }
   try { const db = await idb(); await new Promise((res, rej) => { const t = db.transaction('inbox', 'readwrite'); t.objectStore('inbox').put(item); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) { /* egal */ }
 }
 
-// ---------- Wix-Client ----------
-const client = createClient({
+// ---------- Wix-Client (oder Vorschau-Attrappe) ----------
+const client = DEMO ? makeDemoClient(SPD) : createClient({
   modules: { items, members },
   auth: OAuthStrategy({ clientId: CFG.clientId, tokens: store.get('spd-tokens') || undefined }),
 });
-const saveTokens = () => store.set('spd-tokens', client.auth.getTokens());
+if (DEMO) demoInbox = client.inbox;
+const saveTokens = () => { if (!DEMO) store.set('spd-tokens', client.auth.getTokens()); };
 const errText = e => e?.details?.applicationError?.description || e?.message || String(e);
-const isPermissionError = e => /WDE0027|WDE0028|permission|403/i.test(errText(e) + ' ' + (e?.details?.applicationError?.code || ''));
+const db = {
+  async list(col, { eq = {}, desc = null, asc = null, limit = 500 } = {}) {
+    let q = client.items.query(col);
+    for (const [k, v] of Object.entries(eq)) q = q.eq(k, v);
+    if (desc) q = q.descending(desc); if (asc) q = q.ascending(asc);
+    return (await q.limit(limit).find()).items;
+  },
+  insert: (col, data) => client.items.insert(col, data),
+  update: (col, item) => client.items.update(col, item),
+  remove: (col, id) => client.items.remove(col, id),
+};
 
-let me = null;           // { id, name, email, vorstand, rollen }
+let me = null;          // { id, name, email, vorstand, rollen, can(right) }
+let people = [];        // AppMitglieder
+let settings = null;    // evaluateSettings(...)
+let myProfile = null;   // eigenes Profil
 let deferredInstall = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('#install-btn')?.removeAttribute('hidden'); });
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -63,8 +86,22 @@ const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in win
 const view = html => { app.innerHTML = html; };
 const msg = (el, text, kind = 'err') => { if (!el) return; el.hidden = !text; el.className = `note note-${kind}`; el.textContent = text || ''; };
 const busy = (btn, on) => { if (!btn) return; btn.disabled = on; btn.classList.toggle('busy', on); };
-const fmtDate = s => { const x = D(s); return `${WD[x.getDay()]}, ${x.getDate()}. ${MONL[x.getMonth()]} ${x.getFullYear()}`; };
+const todayIso = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
+const fmtDate = s => { if (!s) return ''; const x = D(s); return `${WD[x.getDay()]}, ${x.getDate()}. ${MONL[x.getMonth()]} ${x.getFullYear()}`; };
+const fmtShort = s => { if (!s) return ''; const x = D(s); return `${WD[x.getDay()]} ${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.`; };
 const fmtWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr'; };
+const nameOf = id => people.find(p => p.memberId === id)?.name || '–';
+const dateBox = s => { const x = D(s); return `<div class="event-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div>`; };
+const badge = t => `<span class="badge ${t === 'Öffentlich' ? 'badge-off' : t === 'Mitglieder' ? 'badge-mit' : ''}">${esc(t)}</span>`;
+const nl2br = t => esc(t).replace(/\n/g, '<br>');
+const linkOf = d => d.url || (d.datei && String(d.datei).startsWith('wix:document://') ? 'https://docs.wixstatic.com/ugd/' + String(d.datei).replace(/^wix:document:\/\/v1\/ugd\//, '').split('/')[0] : d.datei) || '';
+const opt = (list, cur) => list.map(o => `<option${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('');
+// WhatsApp: Text vorbereiten, Gruppe wählt man in WhatsApp selbst (eine offizielle Schnittstelle in Gruppen gibt es nicht)
+const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4.1c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
+const waHref = text => 'https://wa.me/?text=' + encodeURIComponent(text);
+const waBtn = (text, label = 'WhatsApp') => `<a class="btn btn-line btn-sm wa" href="${esc(waHref(text))}" target="_blank" rel="noopener" title="Text in eine WhatsApp-Gruppe schicken">${WA_ICON}${esc(label)}</a>`;
+const appLink = hash => new URL(location.pathname + hash, location.href).href;
+const orteList = () => { if (!document.getElementById('orte')) { const dl = document.createElement('datalist'); dl.id = 'orte'; dl.innerHTML = ORTE.map(o => `<option value="${esc(o)}">`).join(''); document.body.appendChild(dl); } };
 
 // ===== Anmeldung / Registrierung =====
 function renderAuth(tab = 'login', hint = '') {
@@ -91,7 +128,7 @@ function renderAuth(tab = 'login', hint = '') {
         <div class="field"><label for="r-mail">E-Mail-Adresse</label><input id="r-mail" type="email" autocomplete="email" required inputmode="email"></div>
         <div class="field"><label for="r-pw">Passwort (mindestens 8 Zeichen)</label><input id="r-pw" type="password" autocomplete="new-password" required minlength="8"></div>
         <div class="field"><label for="r-pw2">Passwort wiederholen</label><input id="r-pw2" type="password" autocomplete="new-password" required minlength="8"></div>
-        <label class="check"><input type="checkbox" id="r-ds" required> <span>Ich habe die <a href="${esc(SPD.base)}/datenschutz/">Datenschutzhinweise</a> gelesen. Meine Daten werden im Mitgliederkonto bei Wix gespeichert.</span></label>
+        <label class="check"><input type="checkbox" id="r-ds" required> <span>Ich habe die <a href="${esc(BASE)}/datenschutz/">Datenschutzhinweise</a> gelesen. Meine Daten werden im Mitgliederkonto bei Wix gespeichert.</span></label>
         <div id="captcha-box" class="captcha-box" hidden></div>
         <p class="note" id="r-msg" hidden></p>
         <div class="mb-actions"><button class="btn btn-rot" type="submit">Registrieren</button></div>
@@ -102,6 +139,7 @@ function renderAuth(tab = 'login', hint = '') {
         <p class="note" id="p-msg" hidden></p>
         <div class="mb-actions"><button class="btn btn-rot" type="submit">Link schicken</button><button class="btn btn-line" type="button" id="p-back">Zurück</button></div>
       </form>
+      <p class="small muted">Noch kein Konto und nur mal reinschauen? <a href="?demo">Vorschau mit Beispieldaten öffnen</a></p>
     </div>
     <div class="mb-side">
       ${pushCard(false)}
@@ -129,15 +167,12 @@ async function onLogin(e) {
   } catch (err) { msg($('#l-msg'), 'Anmeldung nicht möglich: ' + errText(err)); }
   busy(btn, false);
 }
-
 async function onRegister(e) {
   e.preventDefault(); const f = e.target; if (!f.checkValidity()) { f.reportValidity(); return; }
   if ($('#r-pw').value !== $('#r-pw2').value) { msg($('#r-msg'), 'Die Passwörter stimmen nicht überein.'); return; }
   const btn = f.querySelector('[type=submit]'); busy(btn, true); msg($('#r-msg'), '');
-  const params = {
-    email: $('#r-mail').value.trim(), password: $('#r-pw').value,
-    profile: { firstName: $('#r-vn').value.trim(), lastName: $('#r-nn').value.trim(), nickname: `${$('#r-vn').value.trim()} ${$('#r-nn').value.trim()}`.trim(), privacyStatus: 'PRIVATE' },
-  };
+  const vn = $('#r-vn').value.trim(), nn = $('#r-nn').value.trim();
+  const params = { email: $('#r-mail').value.trim(), password: $('#r-pw').value, profile: { firstName: vn, lastName: nn, nickname: `${vn} ${nn}`.trim(), privacyStatus: 'PRIVATE' } };
   try {
     let res = await client.auth.register(params);
     // Wix verlangt je nach Einstellung eine reCAPTCHA-Prüfung (Google-Skript wird nur dann geladen)
@@ -150,17 +185,13 @@ async function onRegister(e) {
   } catch (err) { msg($('#r-msg'), 'Registrierung nicht möglich: ' + errText(err)); }
   busy(btn, false);
 }
-
 async function onReset(e) {
   e.preventDefault(); const f = e.target; if (!f.checkValidity()) { f.reportValidity(); return; }
   const btn = f.querySelector('[type=submit]'); busy(btn, true); msg($('#p-msg'), '');
-  try {
-    await client.auth.sendPasswordResetEmail($('#p-mail').value.trim(), REDIRECT);
-    msg($('#p-msg'), 'E-Mail ist unterwegs. Bitte Posteingang (und Spam-Ordner) prüfen.', 'ok');
-  } catch (err) { msg($('#p-msg'), 'Das hat nicht geklappt: ' + errText(err)); }
+  try { await client.auth.sendPasswordResetEmail($('#p-mail').value.trim(), REDIRECT); msg($('#p-msg'), 'E-Mail ist unterwegs. Bitte Posteingang (und Spam-Ordner) prüfen.', 'ok'); }
+  catch (err) { msg($('#p-msg'), 'Das hat nicht geklappt: ' + errText(err)); }
   busy(btn, false);
 }
-
 const needsCaptcha = res => res.loginState === 'USER_CAPTCHA_REQUIRED' || res.loginState === 'SILENT_CAPTCHA_REQUIRED' || (res.loginState === 'FAILURE' && (res.errorCode === 'missingCaptchaToken' || res.errorCode === 'invalidCaptchaToken'));
 function loadRecaptcha() {
   if (window.grecaptcha?.enterprise) return Promise.resolve();
@@ -183,8 +214,6 @@ async function captchaTokens(res) {
     if (silent) window.grecaptcha.enterprise.execute(id);
   });
 }
-
-// Ergebnis von login/register/processVerification auswerten
 async function handleAuthState(res, mode) {
   const target = mode === 'login' ? $('#l-msg') : mode === 'register' ? $('#r-msg') : $('#v-msg');
   switch (res.loginState) {
@@ -192,15 +221,12 @@ async function handleAuthState(res, mode) {
     case 'EMAIL_VERIFICATION_REQUIRED': return renderVerify(res);
     case 'OWNER_APPROVAL_REQUIRED': return renderPending();
     case 'FAILURE': {
-      const t = { invalidEmail: 'Diese E-Mail-Adresse ist ungültig oder unbekannt.', invalidPassword: 'Das Passwort ist falsch.', emailAlreadyExists: 'Für diese E-Mail-Adresse gibt es schon ein Konto. Bitte anmelden oder Passwort zurücksetzen.', resetPassword: 'Bitte setze dein Passwort zurück („Passwort vergessen“).', missingCaptchaToken: 'Bitte die Roboter-Prüfung abschließen.', invalidCaptchaToken: 'Die Roboter-Prüfung ist fehlgeschlagen. Bitte noch einmal.' }[res.errorCode];
-      msg(target, t || ('Fehler: ' + (res.error || 'unbekannt')));
-      if (res.errorCode === 'invalidEmail' && mode === 'login') msg(target, 'Kein Konto mit dieser E-Mail-Adresse – oder es ist noch nicht vom Vorstand freigeschaltet.');
-      return;
+      const t = { invalidEmail: mode === 'login' ? 'Kein Konto mit dieser E-Mail-Adresse – oder es ist noch nicht vom Vorstand freigeschaltet.' : 'Diese E-Mail-Adresse ist ungültig.', invalidPassword: 'Das Passwort ist falsch.', emailAlreadyExists: 'Für diese E-Mail-Adresse gibt es schon ein Konto. Bitte anmelden oder Passwort zurücksetzen.', resetPassword: 'Bitte setze dein Passwort zurück („Passwort vergessen“).', missingCaptchaToken: 'Bitte die Roboter-Prüfung abschließen.', invalidCaptchaToken: 'Die Roboter-Prüfung ist fehlgeschlagen. Bitte noch einmal.' }[res.errorCode];
+      msg(target, t || ('Fehler: ' + (res.error || 'unbekannt'))); return;
     }
     default: msg(target, 'Unerwarteter Status: ' + res.loginState);
   }
 }
-
 function renderVerify(state) {
   view(`
   <div class="mb-card mb-narrow">
@@ -221,19 +247,17 @@ function renderVerify(state) {
     busy(btn, false);
   });
 }
-
 function renderPending() {
   view(`
   <div class="mb-card mb-narrow">
     <span class="tag">Fast geschafft</span>
     <h2 class="title">Der Vorstand schaltet dich frei</h2>
     <p>Deine Registrierung ist eingegangen. Ein Vorstandsmitglied prüft, dass du Mitglied der SPD Soltau bist, und schaltet dein Konto frei – du bekommst dann eine E-Mail und kannst dich anmelden.</p>
-    <p class="small muted">Das dauert in der Regel nicht lange. Bei Fragen: <a href="${esc(SPD.base)}/kontakt/">Kontakt</a>.</p>
+    <p class="small muted">Das dauert in der Regel nicht lange. Bei Fragen: <a href="${esc(BASE)}/kontakt/">Kontakt</a>.</p>
     <div class="mb-actions"><button class="btn btn-line" type="button" id="pending-back">Zur Anmeldung</button></div>
   </div>`);
   $('#pending-back').addEventListener('click', () => renderAuth('login'));
 }
-
 // Sitzung abschließen: Wix leitet einmal über seine Autorisierungsseite und zurück (funktioniert auch auf dem Handy)
 async function finishLogin(sessionToken) {
   const oauthData = client.auth.generateOAuthData(REDIRECT, REDIRECT);
@@ -248,14 +272,12 @@ async function completeRedirect() {
   history.replaceState(null, '', REDIRECT + (location.hash || ''));
   if (q.get('error')) { renderAuth('login'); msg($('#l-msg'), 'Anmeldung abgebrochen: ' + (q.get('errorDescription') || q.get('error'))); return true; }
   if (!oauthData) { renderAuth('login'); msg($('#l-msg'), 'Die Anmeldung konnte nicht abgeschlossen werden (Sitzungsdaten fehlen). Bitte noch einmal anmelden.'); return true; }
-  try {
-    const tokens = await client.auth.getMemberTokens(q.get('code'), q.get('state'), oauthData);
-    client.auth.setTokens(tokens); saveTokens(); store.del('spd-oauth');
-  } catch (err) { renderAuth('login'); msg($('#l-msg'), 'Anmeldung fehlgeschlagen: ' + errText(err)); return true; }
+  try { const tokens = await client.auth.getMemberTokens(q.get('code'), q.get('state'), oauthData); client.auth.setTokens(tokens); saveTokens(); store.del('spd-oauth'); }
+  catch (err) { renderAuth('login'); msg($('#l-msg'), 'Anmeldung fehlgeschlagen: ' + errText(err)); return true; }
   return false;
 }
-
 async function logout() {
+  if (DEMO) { location.href = REDIRECT; return; }
   let logoutUrl = null;
   try { ({ logoutUrl } = await client.auth.logout(REDIRECT)); } catch (e) { /* lokal abmelden reicht */ }
   store.del('spd-tokens'); store.del('spd-oauth');
@@ -267,116 +289,506 @@ async function loadMe() {
   const { member } = await client.members.getCurrentMember({ fieldsets: ['FULL'] });
   const c = member.contact || {}, p = member.profile || {};
   const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || p.nickname || member.loginEmail;
-  me = { id: member._id, name, email: member.loginEmail, rollen: [], vorstand: false, status: member.status };
-  // Rollen kommen aus der vom Push-Dienst gepflegten Sammlung AppMitglieder
-  try {
-    const r = await client.items.query('AppMitglieder').eq('memberId', me.id).find();
-    const it = r.items[0]; if (it) { me.rollen = it.rollen || []; me.vorstand = !!it.vorstand; if (it.name) me.name = it.name; }
-  } catch (e) { /* Sammlung noch leer oder nicht lesbar */ }
+  me = { id: member._id, name, email: member.loginEmail, rollen: [], vorstand: false, can: r => !!settings?.rights[r]?.has(me.id) };
+  await loadSettings();
+  const mine = people.find(x => x.memberId === me.id);
+  if (mine) { me.rollen = mine.rollen || []; me.vorstand = !!mine.vorstand; if (mine.name) me.name = mine.name; }
+  try { myProfile = (await db.list('Profile', { eq: { memberId: me.id }, limit: 1 }))[0] || null; } catch (e) { myProfile = null; }
   return me;
 }
+async function loadSettings() {
+  try { people = (await db.list('AppMitglieder')).filter(p => p.memberId).sort((a, b) => (b.vorstand ? 1 : 0) - (a.vorstand ? 1 : 0) || String(a.name).localeCompare(String(b.name), 'de')); } catch (e) { people = []; }
+  let snaps = [];
+  try { snaps = await db.list('Benachrichtigungen', { desc: '_createdDate' }); } catch (e) { snaps = []; }
+  settings = evaluateSettings(snaps, people);
+}
+const anyRight = () => RIGHTS.some(([k]) => me.can(k));
 
-async function renderHome() {
-  const events = (SPD.events || []).slice(0, 30);
+function renderShell() {
+  const first = me.name.split(' ')[0] || me.name;
   view(`
+  ${DEMO ? '<p class="note note-info demo-note"><b>Vorschau mit Beispieldaten.</b> So sieht der Mitgliederbereich nach der Anmeldung aus – Änderungen werden hier nicht gespeichert. <a href="./">Zur echten Anmeldung</a></p>' : ''}
   <div class="mb-head">
-    <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(me.name.split(' ')[0] || me.name)}!</h2><p class="muted small">${esc(me.email)}${me.vorstand ? ' · Vorstand' : ''}</p></div>
+    <div><span class="tag">Angemeldet</span><h2 class="title">Moin, ${esc(first)}!</h2><p class="muted small">${esc(me.email)}${me.vorstand ? ' · Vorstand' : ''}${me.rollen.length && !me.vorstand ? ' · ' + esc(me.rollen.join(', ')) : ''}</p></div>
     <button class="btn btn-line" type="button" id="logout">Abmelden</button>
   </div>
-  <nav class="mb-nav" aria-label="Bereiche">
-    <a href="#termine" class="chip">Termine</a>
-    <a href="#push" class="chip">Benachrichtigungen</a>
-    ${me.vorstand ? '<a href="#eingang" class="chip">Eingang</a><a href="#wer" class="chip">Wer wird benachrichtigt</a><a href="#nachricht" class="chip">Nachricht senden</a>' : ''}
-    <a href="#app-install" class="chip">App</a>
-  </nav>
-  <section class="mb-section" id="termine">
-    <div class="section-head"><h3 class="title">Termine – kommst du?</h3><span class="muted small">Zusagen sehen alle Mitglieder</span></div>
-    <div id="rsvp-list" class="rsvp-list"><p class="muted">Lade Termine …</p></div>
-  </section>
-  <section class="mb-section" id="push">
-    <div class="section-head"><h3 class="title">Benachrichtigungen</h3></div>
-    <div class="mb-grid">${pushCard(true)}${installCard()}</div>
-  </section>
-  ${me.vorstand ? `
-  <section class="mb-section" id="eingang">
-    <div class="section-head"><h3 class="title">Eingang</h3><span class="muted small">Anfragen, die per Push auf diesem Gerät angekommen sind</span></div>
-    <div id="inbox"><p class="muted">Lade …</p></div>
-  </section>
-  <section class="mb-section" id="wer">
-    <div class="section-head"><h3 class="title">Wer wird benachrichtigt?</h3><span class="muted small">Gilt für Push-Nachrichten an den Vorstand</span></div>
-    <div id="routing"><p class="muted">Lade …</p></div>
-  </section>
-  <section class="mb-section" id="nachricht">
-    <div class="section-head"><h3 class="title">Nachricht an alle</h3><span class="muted small">Push an alle, die Benachrichtigungen aktiviert haben</span></div>
-    <form class="form mb-form" id="f-broadcast" novalidate>
-      <div class="field"><label for="b-titel">Überschrift</label><input id="b-titel" type="text" required maxlength="60" placeholder="z. B. Mitgliederversammlung verschoben"></div>
-      <div class="field"><label for="b-text">Text</label><textarea id="b-text" required maxlength="300" placeholder="Kurz und klar – max. 300 Zeichen"></textarea></div>
-      <div class="field"><label for="b-ziel">An wen?</label><select id="b-ziel"><option value="mitglieder">Nur angemeldete Mitglieder</option><option value="alle">Alle Abonnent*innen (auch Besucher)</option></select></div>
-      <p class="note" id="b-msg" hidden></p>
-      <div class="mb-actions"><button class="btn btn-rot" type="submit">Senden</button></div>
-    </form>
-  </section>` : ''}
-  `);
+  <nav class="mb-nav" id="mb-nav" aria-label="Bereiche">${SECTIONS.filter(([k]) => k !== 'vorstand' || anyRight()).map(([k, l]) => `<a href="#${k}" class="chip" data-sec="${k}">${l}</a>`).join('')}</nav>
+  <div id="mb-view" class="mb-view"></div>`);
   $('#logout').addEventListener('click', logout);
-  wirePush(); wireInstall();
-  renderRsvps(events);
-  if (me.vorstand) { renderInbox(); renderRouting(); $('#f-broadcast').addEventListener('submit', onBroadcast); }
-  if (location.hash) { const t = $(location.hash); t?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand };
+async function route() {
+  let key = (location.hash || '#start').slice(1).split('/')[0];
+  if (['eingang', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
+  if (key === 'push' || key === 'app-install') key = 'profil';
+  if (!RENDER[key] || (key === 'vorstand' && !anyRight())) key = 'start';
+  $$('#mb-nav .chip').forEach(a => a.setAttribute('aria-pressed', String(a.dataset.sec === key)));
+  const v = $('#mb-view'); if (!v) return;
+  v.innerHTML = '<p class="muted">Lade …</p>';
+  try { await RENDER[key](v); } catch (err) { v.innerHTML = `<p class="note note-err">Das konnte nicht geladen werden: ${esc(errText(err))}</p>`; }
+  const sub = location.hash.split('/')[1]; if (sub) document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+const sectionHead = (title, extra = '') => `<div class="section-head"><h3 class="title">${title}</h3>${extra ? `<span class="muted small">${extra}</span>` : ''}</div>`;
+
+// ---------- Start: Überblick ----------
+async function secStart(v) {
+  const events = (SPD.events || []).slice(0, 3);
+  const [zusagen, umfragen, listen, helfer, docs, profiles] = await Promise.all([
+    db.list('Zusagen').catch(() => []), db.list('Umfragen', { eq: { offen: true } }).catch(() => []), db.list('Helferlisten').catch(() => []),
+    db.list('Helfer').catch(() => []), db.list('Dokumente', { desc: '_createdDate', limit: 3 }).catch(() => []), db.list('Profile').catch(() => []),
+  ]);
+  const today = todayIso();
+  const openLists = listen.filter(l => !l.datum || l.datum >= today);
+  const freeSlots = openLists.reduce((n, l) => n + (l.schichten || []).reduce((m, s) => m + Math.max(0, (s.plaetze || 0) - helfer.filter(h => h.listeId === l._id && h.schichtId === s.id).length), 0), 0);
+  const bdays = upcomingBirthdays(profiles, 14);
+  v.innerHTML = `
+  <div class="start-grid">
+    <div class="mb-card">
+      <h3>Nächste Termine</h3>
+      ${events.length ? events.map(ev => { const mine = zusagen.find(z => z.eventId === ev.id && z.memberId === me.id); return `<a class="start-ev" href="#termine/ev-${esc(ev.id)}"><b>${esc(fmtShort(ev.date))}</b> ${esc(ev.title)} <span class="small muted">${esc(ev.zeit || '')}</span>${mine ? `<span class="badge ${mine.status === 'zusage' ? 'badge-mit' : ''}">${mine.status === 'zusage' ? 'zugesagt' : 'abgesagt'}</span>` : '<span class="badge">offen</span>'}</a>`; }).join('') : '<p class="muted small">Keine Termine eingetragen.</p>'}
+      <a class="btn btn-schwarz btn-sm" href="#termine">Alle Termine</a>
+    </div>
+    <div class="mb-card">
+      <h3>Mitmachen</h3>
+      <p class="small"><b>${umfragen.length}</b> offene Umfrage${umfragen.length === 1 ? '' : 'n'} · <b>${freeSlots}</b> freie Helferplätze</p>
+      ${umfragen.slice(0, 2).map(u => `<a class="start-ev" href="#umfragen/u-${esc(u._id)}">🗳️ ${esc(u.frage)}</a>`).join('')}
+      ${openLists.slice(0, 2).map(l => `<a class="start-ev" href="#termine/hl-${esc(l._id)}">🙋 ${esc(l.titel)} <span class="small muted">${esc(fmtShort(l.datum))}</span></a>`).join('')}
+      <div class="mb-actions"><a class="btn btn-schwarz btn-sm" href="#umfragen">Umfragen</a><a class="btn btn-line btn-sm" href="#termine/helferlisten">Helferlisten</a></div>
+    </div>
+    <div class="mb-card">
+      <h3>Neue Dokumente</h3>
+      ${docs.length ? docs.map(d => `<a class="start-ev" href="${esc(linkOf(d) || '#dokumente')}" ${linkOf(d) ? 'target="_blank" rel="noopener"' : ''}>📄 ${esc(d.titel)} <span class="small muted">${esc(d.kategorie || '')}</span></a>`).join('') : '<p class="muted small">Noch keine Dokumente.</p>'}
+      <a class="btn btn-schwarz btn-sm" href="#dokumente">Alle Dokumente</a>
+    </div>
+    ${(settings.snap.whatsapp?.gruppen || []).length ? `<div class="mb-card"><h3>Unsere WhatsApp-Gruppen</h3><p class="small muted">Die App schickt Push-Nachrichten – in den Gruppen läuft der Austausch. Termine, Helferlisten und Umfragen lassen sich mit einem Tipp dorthin teilen.</p>${settings.snap.whatsapp.gruppen.map(g => `<a class="start-ev" href="${esc(g.url)}" target="_blank" rel="noopener">${WA_ICON} ${esc(g.name)}<span class="badge" style="margin-left:auto">Beitreten</span></a>`).join('')}</div>` : ''}
+    <div class="mb-card">
+      <h3>Geburtstage</h3>
+      ${bdays.length ? bdays.map(b => `<p class="small">🎂 <b>${esc(b.name)}</b> – ${esc(b.text)}</p>`).join('') : '<p class="muted small">In den nächsten zwei Wochen keine eingetragenen Geburtstage.</p>'}
+      <p class="small muted">Nur wer es im Profil freigibt, erscheint hier.</p>
+    </div>
+  </div>`;
+}
+function upcomingBirthdays(profiles, days) {
+  const now = new Date(); const out = [];
+  for (const p of profiles) {
+    if (!p.geburtstagSichtbar || !p.geburtstag) continue;
+    const m = String(p.geburtstag).match(/(\d{2})-(\d{2})$/); if (!m) continue;
+    let d = new Date(now.getFullYear(), +m[1] - 1, +m[2]);
+    if (d < new Date(now.getFullYear(), now.getMonth(), now.getDate())) d = new Date(now.getFullYear() + 1, +m[1] - 1, +m[2]);
+    const diff = Math.round((d - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+    if (diff <= days) out.push({ name: p.name, diff, text: diff <= 0 ? 'heute!' : diff === 1 ? 'morgen' : `${d.getDate()}. ${MONL[d.getMonth()]}` });
+  }
+  return out.sort((a, b) => a.diff - b.diff);
 }
 
-// ---------- Zu-/Absagen ----------
-async function renderRsvps(events) {
-  const box = $('#rsvp-list'); if (!box) return;
-  if (!events.length) { box.innerHTML = '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'; return; }
-  let all = [];
-  try { all = (await client.items.query('Zusagen').limit(1000).find()).items; }
-  catch (e) { box.innerHTML = `<p class="note note-err">Zusagen konnten nicht geladen werden: ${esc(errText(e))}</p>`; return; }
-  const byEvent = new Map();
-  for (const z of all) { if (!byEvent.has(z.eventId)) byEvent.set(z.eventId, []); byEvent.get(z.eventId).push(z); }
-  box.innerHTML = events.map(ev => {
-    const list = byEvent.get(ev.id) || [];
-    const mine = list.find(z => z.memberId === me.id);
-    const ja = list.filter(z => z.status === 'zusage'), nein = list.filter(z => z.status === 'absage');
-    const x = D(ev.date);
-    return `<article class="rsvp" data-id="${esc(ev.id)}">
-      <div class="event-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div>
-      <div class="rsvp-body">
-        <h4>${esc(ev.title)}</h4>
-        <div class="meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · <span class="badge ${ev.typ === 'Öffentlich' ? 'badge-off' : ev.typ === 'Mitglieder' ? 'badge-mit' : ''}">${esc(ev.typ)}</span></div>
-        <div class="rsvp-btns">
-          <button type="button" class="chip" data-status="zusage" aria-pressed="${mine?.status === 'zusage'}">✓ Ich komme</button>
-          <button type="button" class="chip" data-status="absage" aria-pressed="${mine?.status === 'absage'}">✕ Ich kann nicht</button>
-        </div>
-        <div class="rsvp-grund" ${mine?.status === 'absage' ? '' : 'hidden'}>
-          <div class="field"><label>Grund (optional, sieht nur der Vorstand)</label><input type="text" maxlength="120" value="${esc(mine?.grund || '')}" placeholder="z. B. Schicht, Urlaub, krank"></div>
-          <button type="button" class="btn btn-schwarz btn-sm" data-save-grund>Speichern</button>
-        </div>
-        <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
-        <p class="note" hidden></p>
+// ---------- Termine: Zu-/Absagen, Helferlisten, Fahrgemeinschaften ----------
+async function secTermine(v) {
+  const events = (SPD.events || []).slice(0, 40);
+  const [zusagen, listen, helfer, fahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => [])]);
+  const today = todayIso();
+  const ics = CFG.ics || {};
+  orteList();
+  v.innerHTML = `
+  ${sectionHead('Termine – kommst du?', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
+  <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
+  <section class="mb-sub" id="helferlisten">
+    ${sectionHead('Helferlisten', me.can('helfer') ? 'Du darfst Listen anlegen' : '')}
+    <div id="hl-list">${listen.filter(l => !l.datum || l.datum >= today).map(l => helperList(l, helfer, events)).join('') || '<p class="muted small">Gerade werden keine Helfer*innen gesucht.</p>'}</div>
+    ${me.can('helfer') ? `<details class="mb-details" id="hl-new"><summary>Neue Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
+  </section>
+  <section class="mb-sub" id="kalender">
+    ${sectionHead('Kalender abonnieren', 'Termine automatisch im Handy-Kalender')}
+    <p class="small">Einmal abonnieren – neue Termine erscheinen von selbst im Kalender (iPhone: Link antippen → „Abonnieren“; Android/Google: Kalender → „Per URL hinzufügen“).</p>
+    <div class="mb-actions">
+      ${ics.intern ? `<a class="btn btn-rot btn-sm" href="${esc(webcal(ics.intern))}">Alle Termine (Mitglieder)</a><button class="btn btn-line btn-sm" type="button" data-copy="${esc(absUrl(ics.intern))}">Adresse kopieren</button>` : ''}
+      ${ics.public ? `<a class="btn btn-line btn-sm" href="${esc(webcal(ics.public))}">Nur öffentliche Termine</a>` : ''}
+    </div>
+    <p class="note" id="ics-msg" hidden></p>
+  </section>`;
+  wireEvents(v, events, zusagen, listen, helfer, fahrten);
+}
+const absUrl = rel => new URL(rel, location.href).href;
+const webcal = rel => absUrl(rel).replace(/^https?:/, 'webcal:');
+function eventCard(ev, zusagen, listen, helfer, fahrten) {
+  const list = zusagen.filter(z => z.eventId === ev.id);
+  const mine = list.find(z => z.memberId === me.id);
+  const ja = list.filter(z => z.status === 'zusage'), nein = list.filter(z => z.status === 'absage');
+  const myLists = listen.filter(l => l.eventId === ev.id);
+  const rides = fahrten.filter(f => f.eventId === ev.id);
+  return `<article class="rsvp" id="ev-${esc(ev.id)}" data-id="${esc(ev.id)}">
+    ${dateBox(ev.date)}
+    <div class="rsvp-body">
+      <h4>${esc(ev.title)}</h4>
+      <div class="meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · ${badge(ev.typ)}</div>
+      ${ev.info ? `<p class="small">${esc(ev.info)}</p>` : ''}
+      <div class="rsvp-btns">
+        <button type="button" class="chip" data-status="zusage" aria-pressed="${mine?.status === 'zusage'}">✓ Ich komme</button>
+        <button type="button" class="chip" data-status="absage" aria-pressed="${mine?.status === 'absage'}">✕ Ich kann nicht</button>
+        ${waBtn(`📅 ${ev.title}\n${fmtDate(ev.date)}${ev.zeit ? ', ' + ev.zeit : ''}${ev.ort ? ' · ' + ev.ort : ''}\nZu-/Absage und Mitfahren: ${appLink('#termine/ev-' + ev.id)}`)}
       </div>
-    </article>`;
-  }).join('');
-  box.addEventListener('click', async e => {
-    const b = e.target.closest('button[data-status],button[data-save-grund]'); if (!b) return;
-    const art = b.closest('.rsvp'); const ev = events.find(x => x.id === art.dataset.id); if (!ev) return;
-    const status = b.dataset.status || (art.querySelector('[data-status][aria-pressed="true"]')?.dataset.status) || 'absage';
-    const grund = status === 'absage' ? art.querySelector('.rsvp-grund input').value.trim() : '';
+      <div class="rsvp-grund" ${mine?.status === 'absage' ? '' : 'hidden'}>
+        <div class="field"><label>Grund (optional, sieht nur der Vorstand)</label><input type="text" maxlength="120" value="${esc(mine?.grund || '')}" placeholder="z. B. Schicht, Urlaub, krank"></div>
+        <button type="button" class="btn btn-schwarz btn-sm" data-save-grund>Speichern</button>
+      </div>
+      <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
+      ${myLists.map(l => `<p class="small">🙋 <a href="#termine/hl-${esc(l._id)}">Helfer gesucht: ${esc(l.titel)}</a></p>`).join('')}
+      <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
+        <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} Platz${(r.plaetze || 1) === 1 ? '' : 'e'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
+        <form class="form mb-form ride-form" novalidate>
+          <div class="mb-3">
+            <div class="field"><label>Ich …</label><select name="typ"><option value="biete">biete Plätze an</option><option value="suche">suche eine Mitfahrt</option></select></div>
+            <div class="field"><label>Ab (Ortsteil)</label><input name="ab" type="text" list="orte" value="${esc(myProfile?.fahreAb || myProfile?.ort || '')}" required></div>
+            <div class="field"><label>Plätze / Abfahrt</label><div class="mb-2 tight"><input name="plaetze" type="number" min="1" max="8" value="3" aria-label="Plätze"><input name="zeit" type="time" aria-label="Abfahrt"></div></div>
+          </div>
+          <p class="note" hidden></p>
+          <div class="mb-actions"><button class="btn btn-schwarz btn-sm" type="submit">Eintragen</button></div>
+        </form>
+      </details>
+      <p class="note" hidden></p>
+    </div>
+  </article>`;
+}
+function helperList(l, helfer, events) {
+  const ev = events.find(e => e.id === l.eventId);
+  return `<article class="mb-card hl" id="hl-${esc(l._id)}" data-id="${esc(l._id)}">
+    <div class="hl-head"><div><h4>${esc(l.titel)}</h4><p class="small muted">${esc(fmtDate(l.datum))}${l.ort ? ' · ' + esc(l.ort) : ''}${ev ? ' · Termin: ' + esc(ev.title) : ''} · angelegt von ${esc(l.von || '–')}</p></div><div class="mb-actions">${waBtn(`🙋 Helfer gesucht: ${l.titel} – ${fmtDate(l.datum)}${l.ort ? ', ' + l.ort : ''}\n${(l.schichten || []).map(s => s.zeit + ' (' + (s.plaetze || 0) + ' Plätze)').join(', ')}\nEintragen: ${appLink('#termine/hl-' + l._id)}`)}${l._owner === me.id || me.can('helfer') ? '<button type="button" class="linkbtn" data-del-list>Liste löschen</button>' : ''}</div></div>
+    ${l.beschreibung ? `<p class="small">${nl2br(l.beschreibung)}</p>` : ''}
+    <div class="shifts">${(l.schichten || []).map(s => {
+      const who = helfer.filter(h => h.listeId === l._id && h.schichtId === s.id); const mine = who.some(h => h.memberId === me.id); const free = Math.max(0, (s.plaetze || 0) - who.length);
+      return `<div class="shift ${free === 0 ? 'full' : ''}"><div><b>${esc(s.zeit || 'Schicht')}</b> <span class="small">${who.length}/${s.plaetze || 0}${free ? ` · noch ${free} frei` : ' · voll'}</span><br><span class="small muted">${who.length ? esc(who.map(h => h.name).join(', ')) : 'noch niemand'}</span></div><button type="button" class="chip" data-shift="${esc(s.id)}" aria-pressed="${mine}" ${!mine && !free ? 'disabled' : ''}>${mine ? '✓ Ich helfe' : 'Ich helfe mit'}</button></div>`;
+    }).join('')}</div>
+    <p class="note" hidden></p>
+  </article>`;
+}
+function helperForm(events) {
+  return `<form class="form mb-form" id="f-hl" novalidate>
+    <div class="mb-2">
+      <div class="field"><label for="hl-titel">Titel</label><input id="hl-titel" name="titel" type="text" required placeholder="z. B. Infostand Wochenmarkt"></div>
+      <div class="field"><label for="hl-ev">Zu welchem Termin? (optional)</label><select id="hl-ev" name="eventId"><option value="">– kein Termin –</option>${events.map(e => `<option value="${esc(e.id)}">${esc(fmtShort(e.date))} ${esc(e.title)}</option>`).join('')}</select></div>
+    </div>
+    <div class="mb-2">
+      <div class="field"><label for="hl-datum">Datum</label><input id="hl-datum" name="datum" type="date" required></div>
+      <div class="field"><label for="hl-ort">Ort / Treffpunkt</label><input id="hl-ort" name="ort" type="text"></div>
+    </div>
+    <div class="field"><label for="hl-text">Was ist zu tun? (optional)</label><textarea id="hl-text" name="beschreibung" rows="2"></textarea></div>
+    <div class="field"><label>Schichten (Zeit und Anzahl Helfer*innen)</label>
+      <div id="hl-shifts" class="rows"><div class="row mb-2 tight"><input type="text" placeholder="z. B. 09:00–11:00" aria-label="Zeit"><input type="number" min="1" max="30" value="2" aria-label="Plätze"></div></div>
+      <button type="button" class="linkbtn" id="hl-add">+ Schicht hinzufügen</button>
+    </div>
+    <p class="note" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot" type="submit">Liste anlegen</button></div>
+  </form>`;
+}
+function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
+  v.addEventListener('click', async e => {
+    // Zu-/Absagen
+    const b = e.target.closest('button[data-status],button[data-save-grund]');
+    if (b) {
+      const art = b.closest('.rsvp'); const ev = events.find(x => x.id === art.dataset.id); if (!ev) return;
+      const status = b.dataset.status || (art.querySelector('[data-status][aria-pressed="true"]')?.dataset.status) || 'absage';
+      const grund = status === 'absage' ? art.querySelector('.rsvp-grund input').value.trim() : '';
+      const note = art.querySelector(':scope > .rsvp-body > .note');
+      if (status === 'absage' && b.dataset.status) { $$('[data-status]', art).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.status === status))); art.querySelector('.rsvp-grund').hidden = false; }
+      busy(b, true);
+      try {
+        const r = await db.list('Zusagen', { eq: { eventId: ev.id, memberId: me.id }, limit: 1 });
+        const data = { eventId: ev.id, eventTitel: ev.title, eventDatum: ev.date, status, grund, memberId: me.id, name: me.name, title: `${me.name} – ${ev.title}` };
+        if (r[0]) await db.update('Zusagen', { ...r[0], ...data }); else await db.insert('Zusagen', data);
+        if (status === 'zusage' || b.dataset.saveGrund !== undefined) { await route(); const n = document.querySelector(`#ev-${CSS.escape(ev.id)} .rsvp-body > .note`); msg(n, status === 'zusage' ? 'Zugesagt – bis dann!' : 'Abgesagt. Danke für die Rückmeldung.', 'ok'); }
+        else { busy(b, false); msg(note, 'Abgesagt – Grund kannst du noch ergänzen.', 'ok'); }
+      } catch (err) { msg(note, 'Speichern fehlgeschlagen: ' + errText(err)); busy(b, false); }
+      return;
+    }
+    // Helferlisten: eintragen/austragen, löschen
+    const h = e.target.closest('button[data-shift],button[data-del-list]');
+    if (h) {
+      const art = h.closest('.hl'); const l = listen.find(x => x._id === art.dataset.id); if (!l) return;
+      busy(h, true);
+      try {
+        if (h.dataset.shift) {
+          const mine = helfer.find(x => x.listeId === l._id && x.schichtId === h.dataset.shift && x.memberId === me.id);
+          if (mine) await db.remove('Helfer', mine._id);
+          else await db.insert('Helfer', { listeId: l._id, schichtId: h.dataset.shift, memberId: me.id, name: me.name, title: `${me.name} – ${l.titel}` });
+        } else if (confirm('Diese Helferliste wirklich löschen?')) {
+          for (const x of helfer.filter(x => x.listeId === l._id)) await db.remove('Helfer', x._id).catch(() => {});
+          await db.remove('Helferlisten', l._id);
+        } else { busy(h, false); return; }
+        route();
+      } catch (err) { msg(art.querySelector('.note'), 'Das hat nicht geklappt: ' + errText(err)); busy(h, false); }
+      return;
+    }
+    // Fahrgemeinschaft löschen
+    const d = e.target.closest('button[data-del-ride]');
+    if (d) { const id = d.closest('.ride').dataset.id; busy(d, true); try { await db.remove('Fahrgemeinschaften', id); route(); } catch (err) { busy(d, false); } return; }
+    // Kalender-Adresse kopieren
+    const c = e.target.closest('button[data-copy]');
+    if (c) { try { await navigator.clipboard.writeText(c.dataset.copy); msg($('#ics-msg'), 'Adresse kopiert – im Kalender unter „Abonnement/Per URL“ einfügen.', 'ok'); } catch (err) { msg($('#ics-msg'), c.dataset.copy, 'info'); } }
+  });
+  // Neue Helferliste
+  const f = $('#f-hl');
+  if (f) {
+    $('#hl-add').addEventListener('click', () => { const r = document.createElement('div'); r.className = 'row mb-2 tight'; r.innerHTML = '<input type="text" placeholder="z. B. 11:00–13:00" aria-label="Zeit"><input type="number" min="1" max="30" value="2" aria-label="Plätze">'; $('#hl-shifts').appendChild(r); });
+    f.addEventListener('submit', async e => {
+      e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+      const btn = f.querySelector('[type=submit]'); busy(btn, true);
+      const schichten = $$('#hl-shifts .row').map((r, i) => ({ id: 's' + (i + 1), zeit: r.children[0].value.trim(), plaetze: +r.children[1].value || 1 })).filter(s => s.zeit || s.plaetze);
+      try {
+        const fd = new FormData(f); const ev = events.find(x => x.id === fd.get('eventId'));
+        await db.insert('Helferlisten', { titel: fd.get('titel').trim(), title: fd.get('titel').trim(), eventId: fd.get('eventId') || '', eventTitel: ev?.title || '', datum: fd.get('datum'), ort: fd.get('ort').trim(), beschreibung: fd.get('beschreibung').trim(), schichten, von: me.name });
+        location.hash = '#termine/helferlisten'; route();
+      } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
+    });
+  }
+  // Fahrgemeinschaften
+  $$('.ride-form', v).forEach(rf => rf.addEventListener('submit', async e => {
+    e.preventDefault(); if (!rf.checkValidity()) { rf.reportValidity(); return; }
+    const evId = rf.closest('.rides').dataset.ev; const ev = events.find(x => x.id === evId); const fd = new FormData(rf);
+    const btn = rf.querySelector('[type=submit]'); busy(btn, true);
+    try {
+      await db.insert('Fahrgemeinschaften', { eventId: evId, eventTitel: ev?.title || '', eventDatum: ev?.date || '', typ: fd.get('typ'), ab: fd.get('ab').trim(), plaetze: +fd.get('plaetze') || 1, zeit: fd.get('zeit'), hinweis: '', memberId: me.id, name: me.name, title: `${me.name} – ${ev?.title || ''}` });
+      location.hash = `#termine/ev-${evId}`; route();
+    } catch (err) { msg(rf.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
+  }));
+}
+
+// ---------- Umfragen ----------
+async function secUmfragen(v) {
+  const [intern, pub, stimmen] = await Promise.all([db.list('Umfragen', { desc: '_createdDate' }).catch(() => []), db.list('UmfragenOeffentlich', { desc: '_createdDate' }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => [])]);
+  const all = [...intern.map(u => ({ ...u, col: 'Umfragen' })), ...pub.map(u => ({ ...u, col: 'UmfragenOeffentlich' }))].sort((a, b) => String(b._createdDate).localeCompare(String(a._createdDate)));
+  const today = todayIso();
+  const open = all.filter(u => u.offen && (!u.endetAm || u.endetAm >= today)), closed = all.filter(u => !open.includes(u));
+  v.innerHTML = `
+  ${sectionHead('Umfragen', me.can('umfragen') ? 'Du darfst Umfragen anlegen' : 'Umfragen legt der Vorstand an')}
+  ${me.can('umfragen') ? `<details class="mb-details" id="u-new"><summary>Neue Umfrage anlegen</summary>
+    <form class="form mb-form" id="f-umfrage" novalidate>
+      <div class="field"><label for="u-frage">Frage</label><input id="u-frage" name="frage" type="text" required maxlength="140" placeholder="z. B. Sommerfest am 12. oder 19. Juli?"></div>
+      <div class="field"><label for="u-text">Erläuterung (optional)</label><textarea id="u-text" name="beschreibung" rows="2"></textarea></div>
+      <div class="field"><label for="u-opt">Antwortmöglichkeiten (eine pro Zeile)</label><textarea id="u-opt" name="optionen" rows="4" required placeholder="12. Juli&#10;19. Juli&#10;Mir egal"></textarea></div>
+      <div class="field"><label for="u-ende">Läuft bis</label><input id="u-ende" name="endetAm" type="date" required value="${new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)}"></div>
+      <label class="check"><input type="checkbox" name="mehrfach"> <span>Mehrfachauswahl erlauben</span></label>
+      <label class="check"><input type="checkbox" name="oeffentlich"> <span>Öffentlich auf der Startseite („Umfrage der Woche“) – die Auswertung bleibt intern</span></label>
+      <p class="note" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Umfrage starten</button></div>
+    </form></details>` : ''}
+  <div class="poll-list">${open.length ? open.map(u => pollCard(u, stimmen, true)).join('') : '<p class="muted">Gerade läuft keine Umfrage.</p>'}</div>
+  ${closed.length ? `<section class="mb-sub">${sectionHead('Abgeschlossen')}<div class="poll-list">${closed.slice(0, 10).map(u => pollCard(u, stimmen, false)).join('')}</div></section>` : ''}`;
+  wirePolls(v, all, stimmen);
+}
+function pollCard(u, stimmen, open) {
+  const votes = stimmen.filter(s => s.umfrageId === u._id);
+  const mine = votes.find(s => s.memberId === me.id);
+  const opts = u.optionen || [];
+  const counts = opts.map((_, i) => votes.filter(s => (s.auswahl || []).includes(i)).length);
+  const total = votes.length; const max = Math.max(1, ...counts);
+  const showResults = !open || !!mine;
+  const isPublic = u.col === 'UmfragenOeffentlich';
+  return `<article class="mb-card poll" id="u-${esc(u._id)}" data-id="${esc(u._id)}" data-col="${esc(u.col)}">
+    <div class="hl-head"><div><span class="tag ${isPublic ? 'tag-schwarz' : ''}">${isPublic ? 'Öffentlich' : 'Intern'}</span> <span class="small muted">von ${esc(u.von || '–')}${u.endetAm ? ` · ${open ? 'bis' : 'endete'} ${esc(fmtShort(u.endetAm))}` : ''} · ${total} Stimme${total === 1 ? '' : 'n'}</span><h4>${esc(u.frage)}</h4>${u.beschreibung ? `<p class="small">${nl2br(u.beschreibung)}</p>` : ''}</div>
+      <div class="mb-actions">${open ? waBtn(`🗳️ Umfrage: ${u.frage}\n${isPublic ? 'Abstimmen auf der Startseite: ' + new URL(BASE + '/', location.href).href : 'Abstimmen im Mitgliederbereich: ' + appLink('#umfragen/u-' + u._id)}`) : ''}${open && (u._owner === me.id || me.can('umfragen')) ? '<button type="button" class="linkbtn" data-close-poll>Umfrage schließen</button>' : ''}</div></div>
+    ${showResults ? `<div class="poll-results">${opts.map((o, i) => `<div class="poll-row ${mine && (mine.auswahl || []).includes(i) ? 'mine' : ''}"><span class="bar" style="width:${Math.round(counts[i] / max * 100)}%"></span><span class="lbl">${esc(o)}</span><span class="pct">${counts[i]}${total ? ` · ${Math.round(counts[i] / total * 100)} %` : ''}</span></div>`).join('')}</div>${mine && open ? '<p class="small muted">Du hast abgestimmt. Tippe auf eine Antwort, um deine Stimme zu ändern.</p>' : ''}` : ''}
+    ${open ? `<div class="poll-vote ${showResults ? 'compact' : ''}">${opts.map((o, i) => `<button type="button" class="chip" data-vote="${i}" aria-pressed="${!!mine && (mine.auswahl || []).includes(i)}">${esc(o)}</button>`).join('')}${u.mehrfach ? '<button type="button" class="btn btn-schwarz btn-sm" data-vote-save>Auswahl speichern</button>' : ''}</div><p class="small muted">${u.mehrfach ? 'Mehrere Antworten möglich. ' : ''}${isPublic ? 'Diese Umfrage läuft auch öffentlich auf der Startseite; die Auswertung sehen nur Mitglieder.' : 'Der Vorstand kann im CMS sehen, wer wie abgestimmt hat – die Abstimmung ist also nicht geheim.'}</p>` : ''}
+    <p class="note" hidden></p>
+  </article>`;
+}
+function wirePolls(v, all, stimmen) {
+  v.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-vote],button[data-vote-save],button[data-close-poll]'); if (!b) return;
+    const art = b.closest('.poll'); const u = all.find(x => x._id === art.dataset.id); if (!u) return;
+    const note = art.querySelector(':scope > .note');
+    if (b.dataset.closePoll !== undefined) {
+      if (!confirm('Umfrage jetzt schließen? Danach kann niemand mehr abstimmen.')) return;
+      busy(b, true); try { await db.update(u.col, { ...stripCol(u), offen: false }); route(); } catch (err) { msg(note, errText(err)); busy(b, false); } return;
+    }
+    let auswahl;
+    if (u.mehrfach) {
+      if (b.dataset.vote !== undefined) { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); return; }
+      auswahl = $$('[data-vote][aria-pressed="true"]', art).map(x => +x.dataset.vote);
+      if (!auswahl.length) { msg(note, 'Bitte mindestens eine Antwort auswählen.'); return; }
+    } else auswahl = [+b.dataset.vote];
     busy(b, true);
     try {
-      await saveRsvp(ev, status, grund);
-      $$('[data-status]', art).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.status === status)));
-      art.querySelector('.rsvp-grund').hidden = status !== 'absage';
-      msg(art.querySelector('.note'), status === 'zusage' ? 'Zugesagt – bis dann!' : 'Abgesagt. Danke für die Rückmeldung.', 'ok');
-      renderRsvps(events);
-    } catch (err) { msg(art.querySelector('.note'), 'Speichern fehlgeschlagen: ' + errText(err)); }
-    busy(b, false);
+      const mine = stimmen.find(s => s.umfrageId === u._id && s.memberId === me.id);
+      const data = { umfrageId: u._id, auswahl, memberId: me.id, name: me.name, title: `${me.name} – ${u.frage}` };
+      if (mine) await db.update('Stimmen', { ...mine, ...data }); else await db.insert('Stimmen', data);
+      route();
+    } catch (err) { msg(note, 'Stimme nicht gespeichert: ' + errText(err)); busy(b, false); }
+  });
+  const f = $('#f-umfrage');
+  f?.addEventListener('submit', async e => {
+    e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+    const fd = new FormData(f); const optionen = String(fd.get('optionen')).split('\n').map(s => s.trim()).filter(Boolean);
+    if (optionen.length < 2) { msg(f.querySelector('.note'), 'Bitte mindestens zwei Antwortmöglichkeiten.'); return; }
+    const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    try {
+      const col = fd.get('oeffentlich') ? 'UmfragenOeffentlich' : 'Umfragen';
+      await db.insert(col, { frage: fd.get('frage').trim(), title: fd.get('frage').trim(), beschreibung: fd.get('beschreibung').trim(), optionen, mehrfach: !!fd.get('mehrfach'), offen: true, endetAm: fd.get('endetAm'), von: me.name, vonId: me.id });
+      route();
+    } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
   });
 }
-async function saveRsvp(ev, status, grund) {
-  const r = await client.items.query('Zusagen').eq('eventId', ev.id).eq('memberId', me.id).find();
-  const data = { eventId: ev.id, eventTitel: ev.title, eventDatum: ev.date, status, grund, memberId: me.id, name: me.name, title: `${me.name} – ${ev.title}` };
-  if (r.items[0]) await client.items.update('Zusagen', { ...r.items[0], ...data });
-  else await client.items.insert('Zusagen', data);
+const stripCol = u => { const { col, ...rest } = u; return rest; };
+
+// ---------- Dokumente ----------
+async function secDokumente(v) {
+  const docs = await db.list('Dokumente', { desc: '_createdDate' }).catch(() => []);
+  const cats = ['Protokoll', 'Antrag', 'Beschluss', 'Vorlage', 'Sonstiges'];
+  const groups = new Map(); for (const d of docs) { const k = d.kategorie || 'Sonstiges'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(d); }
+  v.innerHTML = `
+  ${sectionHead('Dokumente', 'Protokolle, Anträge, Vorlagen – nur für Mitglieder')}
+  ${me.can('dokumente') ? `<details class="mb-details" id="d-new"><summary>Dokument einstellen</summary>
+    <form class="form mb-form" id="f-doc" novalidate>
+      <div class="mb-2">
+        <div class="field"><label for="d-titel">Titel</label><input id="d-titel" name="titel" type="text" required placeholder="z. B. Protokoll Vorstandssitzung 10/2026"></div>
+        <div class="field"><label for="d-kat">Kategorie</label><select id="d-kat" name="kategorie">${opt(cats, 'Protokoll')}</select></div>
+      </div>
+      <div class="mb-2">
+        <div class="field"><label for="d-datum">Datum</label><input id="d-datum" name="datum" type="date" required value="${todayIso()}"></div>
+        <div class="field"><label for="d-url">Link zur Datei</label><input id="d-url" name="url" type="url" required placeholder="https://…"></div>
+      </div>
+      <div class="field"><label for="d-text">Kurzbeschreibung (optional)</label><textarea id="d-text" name="beschreibung" rows="2"></textarea></div>
+      <p class="small muted">Datei vorher hochladen – z. B. in der Wix-Medienverwaltung oder Dateifreigabe (Link kopieren) oder in einer Cloud (OneDrive, Google Drive, Nextcloud) mit Freigabelink.</p>
+      <p class="note" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Speichern</button></div>
+    </form></details>` : ''}
+  ${docs.length ? [...groups].map(([k, list]) => `<section class="mb-sub"><h4 class="doc-cat">${esc(k)}</h4><div class="doc-list">${list.map(d => `<article class="doc" data-id="${esc(d._id)}"><div class="doc-body"><a class="doc-title" href="${esc(linkOf(d) || '#')}" target="_blank" rel="noopener">📄 ${esc(d.titel)}</a><p class="small muted">${esc(fmtDate(d.datum))} · ${esc(d.von || '–')}</p>${d.beschreibung ? `<p class="small">${nl2br(d.beschreibung)}</p>` : ''}</div><div class="mb-actions">${linkOf(d) ? waBtn(`📄 ${d.titel}${d.kategorie ? ' (' + d.kategorie + ')' : ''}\n${linkOf(d)}`) : ''}${d._owner === me.id || me.can('dokumente') ? '<button type="button" class="linkbtn" data-del-doc>löschen</button>' : ''}</div></article>`).join('')}</div></section>`).join('') : '<p class="muted">Noch keine Dokumente eingestellt.</p>'}`;
+  $('#f-doc')?.addEventListener('submit', async e => {
+    const f = e.target; e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+    const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    try { await db.insert('Dokumente', { titel: fd.get('titel').trim(), title: fd.get('titel').trim(), kategorie: fd.get('kategorie'), datum: fd.get('datum'), url: fd.get('url').trim(), beschreibung: fd.get('beschreibung').trim(), von: me.name }); route(); }
+    catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
+  });
+  v.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-del-doc]'); if (!b || !confirm('Dokument aus der Liste entfernen?')) return;
+    busy(b, true); try { await db.remove('Dokumente', b.closest('.doc').dataset.id); route(); } catch (err) { busy(b, false); }
+  });
+}
+
+// ---------- Ratsvorbereitung ----------
+const POS = ['offen', 'dafür', 'dagegen', 'Enthaltung', 'Änderungsantrag'];
+async function secRat(v, editId = null) {
+  const all = await db.list('Ratsvorbereitung', { desc: 'sitzung' }).catch(() => []);
+  const today = todayIso();
+  const next = all.filter(r => (r.sitzung || '') >= today).sort((a, b) => a.sitzung.localeCompare(b.sitzung)), past = all.filter(r => (r.sitzung || '') < today);
+  const editing = editId ? all.find(r => r._id === editId) : null;
+  v.innerHTML = `
+  ${sectionHead('Ratsvorbereitung', 'Tagesordnung mit der Einordnung der Fraktion – nur intern')}
+  ${me.can('rat') ? `<details class="mb-details" id="r-new" ${editing ? 'open' : ''}><summary>${editing ? 'Sitzung bearbeiten' : 'Sitzung anlegen'}</summary>${ratForm(editing)}</details>` : ''}
+  <div class="rat-list">${next.length ? next.map(r => ratCard(r)).join('') : '<p class="muted">Keine kommende Sitzung eingetragen.</p>'}</div>
+  ${past.length ? `<section class="mb-sub"><h4 class="doc-cat">Vergangene Sitzungen</h4><div class="rat-list">${past.slice(0, 6).map(r => ratCard(r)).join('')}</div></section>` : ''}`;
+  wireRat(v, all);
+}
+function ratCard(r) {
+  return `<article class="mb-card rat" data-id="${esc(r._id)}">
+    <div class="hl-head"><div><span class="tag">${esc(r.gremium || 'Rat')}</span> <span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><h4>${esc(r.titel || 'Sitzung')}</h4></div>
+      <div class="mb-actions">${r.link ? `<a class="btn btn-line btn-sm" href="${esc(r.link)}" target="_blank" rel="noopener">Ratsinfo</a>` : ''}${me.can('rat') ? '<button type="button" class="btn btn-line btn-sm" data-edit-rat>Bearbeiten</button>' : ''}</div></div>
+    ${(r.tops || []).length ? `<div class="tops">${r.tops.map(t => `<div class="top"><div class="top-nr">TOP ${esc(t.nr || '')}</div><div><b>${esc(t.titel)}</b> <span class="pos pos-${esc((t.position || 'offen').replace(/[^a-zä]/gi, '').toLowerCase())}">${esc(t.position || 'offen')}</span>${t.einordnung ? `<p class="small">${nl2br(t.einordnung)}</p>` : ''}</div></div>`).join('')}</div>` : '<p class="small muted">Noch keine Tagesordnungspunkte eingetragen.</p>'}
+    ${r.hinweis ? `<p class="small"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
+    <p class="small muted">Stand: ${esc(fmtWhen(r._updatedDate || r._createdDate))} · ${esc(r.von || '–')}</p>
+  </article>`;
+}
+function ratForm(r) {
+  const tops = r?.tops?.length ? r.tops : [{ nr: '', titel: '', position: 'offen', einordnung: '' }];
+  return `<form class="form mb-form" id="f-rat" data-id="${esc(r?._id || '')}" novalidate>
+    <div class="mb-3">
+      <div class="field"><label for="ra-gr">Gremium</label><input id="ra-gr" name="gremium" type="text" list="gremien" required value="${esc(r?.gremium || 'Rat der Stadt Soltau')}"><datalist id="gremien"><option value="Rat der Stadt Soltau"><option value="Verwaltungsausschuss"><option value="Bauausschuss"><option value="Sozialausschuss"><option value="Finanzausschuss"><option value="Fraktionssitzung"></datalist></div>
+      <div class="field"><label for="ra-datum">Sitzung am</label><input id="ra-datum" name="sitzung" type="date" required value="${esc(r?.sitzung || '')}"></div>
+      <div class="field"><label for="ra-zeit">Uhrzeit</label><input id="ra-zeit" name="zeit" type="time" value="${esc(r?.zeit || '')}"></div>
+    </div>
+    <div class="mb-2">
+      <div class="field"><label for="ra-titel">Titel</label><input id="ra-titel" name="titel" type="text" value="${esc(r?.titel || '')}" placeholder="z. B. Haushalt 2027"></div>
+      <div class="field"><label for="ra-link">Link (Ratsinformationssystem, optional)</label><input id="ra-link" name="link" type="url" value="${esc(r?.link || '')}"></div>
+    </div>
+    <div class="field"><label>Tagesordnungspunkte</label>
+      <div id="ra-tops" class="rows">${tops.map(t => topRow(t)).join('')}</div>
+      <button type="button" class="linkbtn" id="ra-add">+ TOP hinzufügen</button>
+    </div>
+    <div class="field"><label for="ra-hinweis">Hinweis für die Fraktion (optional)</label><textarea id="ra-hinweis" name="hinweis" rows="2">${esc(r?.hinweis || '')}</textarea></div>
+    <p class="note" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot" type="submit">${r ? 'Änderungen speichern' : 'Sitzung speichern'}</button>${r ? '<button class="btn btn-line" type="button" id="ra-cancel">Abbrechen</button><button class="btn btn-line" type="button" id="ra-del">Löschen</button>' : ''}</div>
+  </form>`;
+}
+const topRow = t => `<div class="row top-row"><input type="text" placeholder="Nr." value="${esc(t.nr || '')}" aria-label="TOP-Nummer"><input type="text" placeholder="Titel des Tagesordnungspunkts" value="${esc(t.titel || '')}" aria-label="Titel"><select aria-label="Position">${opt(POS, t.position || 'offen')}</select><textarea rows="2" placeholder="Einordnung der Fraktion (optional)" aria-label="Einordnung">${esc(t.einordnung || '')}</textarea><button type="button" class="linkbtn" data-del-top>entfernen</button></div>`;
+function wireRat(v, all) {
+  const f = $('#f-rat');
+  if (f) {
+    $('#ra-add').addEventListener('click', () => { const d = document.createElement('div'); d.innerHTML = topRow({}); $('#ra-tops').appendChild(d.firstElementChild); });
+    f.addEventListener('click', e => { const b = e.target.closest('button[data-del-top]'); if (b) b.closest('.top-row').remove(); });
+    $('#ra-cancel')?.addEventListener('click', () => route());
+    $('#ra-del')?.addEventListener('click', async () => { if (!confirm('Sitzung wirklich löschen?')) return; try { await db.remove('Ratsvorbereitung', f.dataset.id); route(); } catch (err) { msg(f.querySelector('.note'), errText(err)); } });
+    f.addEventListener('submit', async e => {
+      e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+      const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
+      const tops = $$('#ra-tops .top-row').map(r => ({ nr: r.children[0].value.trim(), titel: r.children[1].value.trim(), position: r.children[2].value, einordnung: r.children[3].value.trim() })).filter(t => t.titel);
+      const data = { gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, hinweis: fd.get('hinweis').trim(), von: me.name };
+      try {
+        const cur = all.find(r => r._id === f.dataset.id);
+        if (cur) await db.update('Ratsvorbereitung', { ...cur, ...data }); else await db.insert('Ratsvorbereitung', data);
+        route();
+      } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
+    });
+  }
+  v.addEventListener('click', e => { const b = e.target.closest('button[data-edit-rat]'); if (!b) return; secRat(v, b.closest('.rat').dataset.id); });
+}
+
+// ---------- Mitglieder: Verzeichnis, Geburtstage, Jubiläen ----------
+async function secMitglieder(v) {
+  const profiles = await db.list('Profile').catch(() => []);
+  const byId = new Map(profiles.map(p => [p.memberId, p]));
+  const year = new Date().getFullYear();
+  const jub = profiles.filter(p => p.eintritt && [10, 25, 40, 50, 60, 70].includes(year - +p.eintritt)).map(p => ({ name: p.name, jahre: year - +p.eintritt }));
+  const bdays = upcomingBirthdays(profiles, 60);
+  v.innerHTML = `
+  ${sectionHead('Mitglieder', `${people.length} im Mitgliederbereich`)}
+  <p class="small muted">Kontaktdaten sieht man nur, wenn das Mitglied sie im Profil freigegeben hat. Deine eigenen Angaben änderst du unter <a href="#profil">Profil</a>.</p>
+  <div class="people-list">${people.map(p => { const pr = byId.get(p.memberId) || {}; return `<div class="member"><b>${esc(p.name)}</b><span class="small muted">${esc((p.rollen || []).join(', ') || 'Mitglied')}${pr.ort ? ' · ' + esc(pr.ort) : ''}</span>${pr.telefonSichtbar && pr.telefon ? `<a class="small" href="tel:${esc(pr.telefon)}">📞 ${esc(pr.telefon)}</a>` : ''}${pr.emailSichtbar && pr.email ? `<a class="small" href="mailto:${esc(pr.email)}">✉️ ${esc(pr.email)}</a>` : ''}</div>`; }).join('') || '<p class="muted">Die Liste wird vom Push-Dienst aus den Wix-Mitgliedern befüllt.</p>'}</div>
+  <div class="mb-grid" style="margin-top:28px">
+    <div class="mb-card"><h3>Geburtstage (60 Tage)</h3>${bdays.length ? bdays.map(b => `<p class="small">🎂 <b>${esc(b.name)}</b> – ${esc(b.text)}</p>`).join('') : '<p class="small muted">Keine eingetragen.</p>'}</div>
+    <div class="mb-card"><h3>Jubiläen ${year}</h3>${jub.length ? jub.map(j => `<p class="small">🌹 <b>${esc(j.name)}</b> – ${j.jahre} Jahre in der SPD</p>`).join('') : '<p class="small muted">Keine runden Jubiläen eingetragen (Eintrittsjahr im Profil).</p>'}</div>
+  </div>`;
+}
+
+// ---------- Profil: eigene Angaben, Push, App ----------
+async function secProfil(v) {
+  const p = myProfile || {};
+  orteList();
+  v.innerHTML = `
+  ${sectionHead('Mein Profil', 'Freiwillige Angaben – du entscheidest, was andere Mitglieder sehen')}
+  <div class="mb-grid">
+    <form class="form mb-form mb-card" id="f-profil" novalidate>
+      <div class="mb-2">
+        <div class="field"><label for="pf-ort">Ortsteil</label><input id="pf-ort" name="ort" type="text" list="orte" value="${esc(p.ort || '')}"></div>
+        <div class="field"><label for="pf-fahre">Fahre meist ab (für Fahrgemeinschaften)</label><input id="pf-fahre" name="fahreAb" type="text" list="orte" value="${esc(p.fahreAb || '')}"></div>
+      </div>
+      <div class="mb-2">
+        <div class="field"><label for="pf-tel">Telefon</label><input id="pf-tel" name="telefon" type="tel" value="${esc(p.telefon || '')}"></div>
+        <label class="check" style="align-self:end"><input type="checkbox" name="telefonSichtbar" ${p.telefonSichtbar ? 'checked' : ''}> <span>Telefon für Mitglieder sichtbar</span></label>
+      </div>
+      <label class="check"><input type="checkbox" name="emailSichtbar" ${p.emailSichtbar ? 'checked' : ''}> <span>E-Mail (${esc(me.email)}) für Mitglieder sichtbar</span></label>
+      <div class="mb-2">
+        <div class="field"><label for="pf-geb">Geburtstag</label><input id="pf-geb" name="geburtstag" type="date" value="${esc(p.geburtstag || '')}"></div>
+        <label class="check" style="align-self:end"><input type="checkbox" name="geburtstagSichtbar" ${p.geburtstagSichtbar ? 'checked' : ''}> <span>Geburtstag (Tag und Monat) anzeigen und den Vorstand erinnern</span></label>
+      </div>
+      <div class="field"><label for="pf-eintritt">Eintrittsjahr SPD (für Jubiläen)</label><input id="pf-eintritt" name="eintritt" type="number" min="1900" max="${new Date().getFullYear()}" value="${esc(p.eintritt || '')}"></div>
+      <p class="note" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Profil speichern</button></div>
+    </form>
+    <div class="mb-side">${pushCard(true)}${installCard()}</div>
+  </div>`;
+  wirePush(); wireInstall();
+  $('#f-profil').addEventListener('submit', async e => {
+    const f = e.target; e.preventDefault(); const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    const data = {
+      memberId: me.id, name: me.name, title: me.name, ort: fd.get('ort').trim(), fahreAb: fd.get('fahreAb').trim(),
+      telefon: fd.get('telefonSichtbar') ? fd.get('telefon').trim() : '', telefonSichtbar: !!fd.get('telefonSichtbar'),
+      email: fd.get('emailSichtbar') ? me.email : '', emailSichtbar: !!fd.get('emailSichtbar'),
+      geburtstag: fd.get('geburtstag') || '', geburtstagSichtbar: !!fd.get('geburtstagSichtbar') && !!fd.get('geburtstag'), eintritt: fd.get('eintritt') ? +fd.get('eintritt') : null,
+    };
+    try {
+      myProfile = myProfile?._id ? await db.update('Profile', { ...myProfile, ...data }) : await db.insert('Profile', data);
+      msg(f.querySelector('.note'), 'Gespeichert.', 'ok');
+    } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
+    busy(btn, false);
+  });
 }
 
 // ---------- Push-Benachrichtigungen ----------
@@ -386,13 +798,13 @@ function pushCard(loggedIn) {
   return `<div class="mb-card" id="push-card">
     <h3>Aufs Handy</h3>
     <p class="small">${loggedIn ? 'Neue Beiträge, Termine und Nachrichten vom Vorstand direkt als Mitteilung auf diesem Gerät.' : 'Neue Beiträge und Termine als Mitteilung auf diesem Gerät – auch ohne Anmeldung.'}</p>
-    ${pushSupported() ? `
+    ${pushSupported() || DEMO ? `
     <label class="toggle"><input type="checkbox" id="push-on" ${cur?.aktiv ? 'checked' : ''}> Benachrichtigungen auf diesem Gerät</label>
     <div class="topics" id="push-topics" ${cur?.aktiv ? '' : 'hidden'}>
-      ${topics.map(([k, label]) => `<label class="check"><input type="checkbox" data-topic="${k}" ${!cur || (cur.themen || []).includes(k) ? 'checked' : ''}> ${esc(label)}</label>`).join('')}
-      ${loggedIn && me?.vorstand ? '<p class="small muted">Als Vorstandsmitglied bekommst du zusätzlich die Themen, die dir unter „Wer wird benachrichtigt?“ zugeordnet sind.</p>' : ''}
+      ${topics.map(([k, label]) => `<label class="check"><input type="checkbox" data-topic="${k}" ${!cur || (cur.themen || []).includes(k) ? 'checked' : ''}> <span>${esc(label)}</span></label>`).join('')}
+      ${loggedIn && me && anyRight() ? '<p class="small muted">Vorstands-Themen (Anfragen, Buchungen …) kommen zusätzlich – wer welche bekommt, steht unter „Vorstand → Wer wird benachrichtigt?“.</p>' : ''}
     </div>` : isIOS() && !isStandalone()
-      ? '<p class="note note-info">Auf dem iPhone funktionieren Mitteilungen erst, wenn die Seite als App auf dem Home-Bildschirm liegt (siehe rechts).</p>'
+      ? '<p class="note note-info">Auf dem iPhone funktionieren Mitteilungen erst, wenn die Seite als App auf dem Home-Bildschirm liegt (siehe „Als App“).</p>'
       : '<p class="note note-info">Dieser Browser unterstützt keine Web-Benachrichtigungen.</p>'}
     <p class="note" id="push-msg" hidden></p>
   </div>`;
@@ -402,7 +814,7 @@ function wirePush() {
   on.addEventListener('change', async () => {
     busy(on, true);
     try {
-      if (on.checked) { await pushSubscribe(); $('#push-topics').hidden = false; msg($('#push-msg'), 'Aktiviert. Zum Testen schickt der Vorstand gelegentlich eine Nachricht.', 'ok'); }
+      if (on.checked) { await pushSubscribe(); $('#push-topics').hidden = false; msg($('#push-msg'), 'Aktiviert.', 'ok'); }
       else { await pushUnsubscribe(); $('#push-topics').hidden = true; msg($('#push-msg'), 'Benachrichtigungen ausgeschaltet.', 'ok'); }
     } catch (err) { on.checked = !on.checked; msg($('#push-msg'), errText(err)); }
     busy(on, false);
@@ -414,6 +826,7 @@ function wirePush() {
 const topicsChosen = () => $$('#push-topics input[data-topic]').filter(c => c.checked).map(c => c.dataset.topic);
 function b64ToBytes(s) { const p = '='.repeat((4 - s.length % 4) % 4); const b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); }
 async function pushSubscribe() {
+  if (DEMO) { store.set('spd-push', { aktiv: true, themen: topicsChosen(), demo: true }); return; }
   if (!CFG.vapid) throw new Error('Push ist auf diesem Server noch nicht eingerichtet (VAPID-Schlüssel fehlt).');
   if (Notification.permission === 'denied') throw new Error('Mitteilungen sind für diese Seite blockiert. Bitte in den Browser-Einstellungen erlauben.');
   const reg = await navigator.serviceWorker.ready;
@@ -421,14 +834,12 @@ async function pushSubscribe() {
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(CFG.vapid) });
   const themen = topicsChosen().length ? topicsChosen() : Object.keys(TOPICS).filter(k => me || k !== 'mitglieder');
   const j = sub.toJSON();
-  await client.items.insert('PushSubscriptions', {
-    title: me ? me.name : 'Besucher', endpoint: sub.endpoint, keys: JSON.stringify(j.keys), themen, aktiv: true,
-    memberId: me?.id || '', name: me?.name || '', ua: navigator.userAgent.slice(0, 160), standalone: isStandalone(),
-  });
+  await client.items.insert('PushSubscriptions', { title: me ? me.name : 'Besucher', endpoint: sub.endpoint, keys: JSON.stringify(j.keys), themen, aktiv: true, memberId: me?.id || '', name: me?.name || '', ua: navigator.userAgent.slice(0, 160), standalone: isStandalone() });
   saveTokens();
   store.set('spd-push', { aktiv: true, endpoint: sub.endpoint, themen, memberId: me?.id || '' });
 }
 async function pushUnsubscribe() {
+  if (DEMO) { store.set('spd-push', { aktiv: false }); return; }
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
   if (sub) { try { await client.items.insert('PushSubscriptions', { title: 'abgemeldet', endpoint: sub.endpoint, aktiv: false, themen: [], memberId: me?.id || '' }); } catch (e) { /* egal */ } await sub.unsubscribe(); }
@@ -436,7 +847,7 @@ async function pushUnsubscribe() {
 }
 // Nach der Anmeldung: bestehende Geräte-Anmeldung dem Mitglied zuordnen (damit Vorstands-Themen ankommen)
 async function pushClaim() {
-  const cur = store.get('spd-push'); if (!cur?.aktiv || cur.memberId === me.id || !pushSupported()) return;
+  const cur = store.get('spd-push'); if (DEMO || !cur?.aktiv || cur.memberId === me.id || !pushSupported()) return;
   try { await pushSubscribe(); } catch (e) { /* später erneut */ }
 }
 
@@ -457,90 +868,125 @@ function wireInstall() {
   });
 }
 
-// ---------- Vorstand: Eingang ----------
+// ---------- Vorstand ----------
+async function secVorstand(v) {
+  const tabs = [me.can('freigaben') && ['eingang', 'Eingang'], me.can('verwaltung') && ['wer', 'Wer wird benachrichtigt?'], me.can('verwaltung') && ['rechte', 'Wer darf was?'], me.can('nachrichten') && ['nachricht', 'Nachricht an alle'], me.can('verwaltung') && ['whatsapp', 'WhatsApp-Gruppen']].filter(Boolean);
+  v.innerHTML = `
+  <nav class="mb-subnav">${tabs.map(([k, l]) => `<a href="#vorstand/${k}">${l}</a>`).join('')}</nav>
+  ${me.can('freigaben') ? `<section class="mb-sub" id="eingang">${sectionHead('Eingang', 'Anfragen, die per Push auf diesem Gerät angekommen sind')}<div id="inbox"><p class="muted">Lade …</p></div></section>` : ''}
+  ${me.can('verwaltung') ? `<section class="mb-sub" id="wer">${sectionHead('Wer wird benachrichtigt?', 'Push-Nachrichten an den Vorstand')}<div id="routing"></div></section>
+  <section class="mb-sub" id="rechte">${sectionHead('Wer darf was?', 'Rechte im Mitgliederbereich')}<div id="rights"></div></section>` : ''}
+  ${me.can('nachrichten') ? `<section class="mb-sub" id="nachricht">${sectionHead('Nachricht an alle', 'Push an alle, die Benachrichtigungen aktiviert haben')}
+    <form class="form mb-form" id="f-broadcast" novalidate>
+      <div class="field"><label for="b-titel">Überschrift</label><input id="b-titel" type="text" required maxlength="60" placeholder="z. B. Mitgliederversammlung verschoben"></div>
+      <div class="field"><label for="b-text">Text</label><textarea id="b-text" required maxlength="300" placeholder="Kurz und klar – max. 300 Zeichen"></textarea></div>
+      <div class="field"><label for="b-ziel">An wen?</label><select id="b-ziel"><option value="mitglieder">Nur angemeldete Mitglieder</option><option value="alle">Alle Abonnent*innen (auch Besucher)</option></select></div>
+      <p class="note" id="b-msg" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Senden</button></div>
+      <p id="b-wa" class="small" hidden>Dieselbe Nachricht auch in eine WhatsApp-Gruppe: <a class="btn btn-line btn-sm wa" href="#" target="_blank" rel="noopener">${WA_ICON}WhatsApp öffnen</a></p>
+    </form></section>` : ''}
+  ${me.can('verwaltung') ? `<section class="mb-sub" id="whatsapp">${sectionHead('WhatsApp-Gruppen', 'Einladungslinks für Mitglieder')}
+    <p class="small muted">Eine Zeile pro Gruppe: <b>Name | Einladungslink</b> (in WhatsApp: Gruppeninfo → „Per Link einladen“). Die Links sehen nur angemeldete Mitglieder – wer den Link hat, kann beitreten. Automatisch in Gruppen posten kann die App nicht (WhatsApp bietet dafür keine Schnittstelle); Termine, Helferlisten und Umfragen haben aber einen „WhatsApp“-Knopf, der den fertigen Text in die Gruppe schickt.</p>
+    <form class="form mb-form" id="f-wa" novalidate>
+      <div class="field"><label for="wa-list">Gruppen</label><textarea id="wa-list" rows="4" placeholder="Ortsverein | https://chat.whatsapp.com/…&#10;Fraktion | https://chat.whatsapp.com/…">${esc((settings.snap.whatsapp?.gruppen || []).map(g => `${g.name} | ${g.url}`).join('\n'))}</textarea></div>
+      <p class="note" id="wa-msg" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Speichern</button></div>
+    </form></section>` : ''}`;
+  if (me.can('freigaben')) renderInbox();
+  if (me.can('verwaltung')) {
+    renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.');
+    renderMatrix('rights', RIGHTS.map(([k, l]) => [k, l, '']), k => [...settings.rights[k]], k => 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand (Wix-Rolle „Vorstandsmitglied“). Das Recht „Rechte und Benachrichtigungen festlegen“ kann nur der Vorstand vergeben.');
+  }
+  $('#f-broadcast')?.addEventListener('submit', onBroadcast);
+  $('#f-wa')?.addEventListener('submit', async e => {
+    e.preventDefault(); const f = e.target; const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    const gruppen = $('#wa-list').value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(x => x[0] && /^https:\/\/(chat\.whatsapp\.com|wa\.me)\//.test(x[1] || '')).map(([name, url]) => ({ name, url }));
+    try {
+      await db.insert('Benachrichtigungen', { title: `WhatsApp-Gruppen: ${gruppen.map(g => g.name).join(', ') || 'keine'}`, thema: 'whatsapp', gruppen, empfaenger: [], von: me.name });
+      await loadSettings(); msg($('#wa-msg'), `Gespeichert (${gruppen.length} Gruppe${gruppen.length === 1 ? '' : 'n'}).`, 'ok');
+    } catch (err) { msg($('#wa-msg'), 'Nicht gespeichert: ' + errText(err)); }
+    busy(btn, false);
+  });
+}
 async function renderInbox() {
   const box = $('#inbox'); if (!box) return;
   const list = (await inboxAll()).sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 50);
   if (!list.length) { box.innerHTML = '<p class="muted">Noch nichts eingegangen. Anfragen erscheinen hier, sobald sie per Push auf diesem Gerät ankommen.</p>'; return; }
+  const LABEL = { registrierung: 'Registrierung', buchung: 'Buchung', anfrage: 'Anfrage' };
   box.innerHTML = list.map(it => {
     const d = it.data || {};
     const actions = it.done ? `<span class="badge">${esc(it.done)}</span>` : d.typ === 'registrierung'
       ? `<button class="btn btn-rot btn-sm" data-act="mitglied_freigeben">Freischalten</button><button class="btn btn-line btn-sm" data-act="mitglied_ablehnen">Ablehnen</button>`
-      : d.typ === 'buchung'
-        ? `<button class="btn btn-rot btn-sm" data-act="buchung_annehmen">Annehmen</button><button class="btn btn-line btn-sm" data-act="buchung_ablehnen">Ablehnen</button>`
-        : '';
+      : d.typ === 'buchung' ? `<button class="btn btn-rot btn-sm" data-act="buchung_annehmen">Annehmen</button><button class="btn btn-line btn-sm" data-act="buchung_ablehnen">Ablehnen</button>`
+        : d.typ === 'anfrage' ? `<button class="btn btn-rot btn-sm" data-act="anfrage_erledigt">Erledigt</button>` : '';
     return `<article class="inbox-item" data-id="${esc(it.id)}">
-      <div><span class="tag ${d.typ === 'buchung' ? 'tag-schwarz' : ''}">${esc(d.typ === 'registrierung' ? 'Registrierung' : d.typ === 'buchung' ? 'Buchung' : d.typ || 'Info')}</span> <span class="small muted">${esc(fmtWhen(it.receivedAt))}</span></div>
+      <div><span class="tag ${d.typ === 'buchung' ? 'tag-schwarz' : ''}">${esc(LABEL[d.typ] || d.typ || 'Info')}</span> <span class="small muted">${esc(fmtWhen(it.receivedAt))}</span></div>
       <h4>${esc(it.title || '')}</h4>
-      <p class="small">${esc(it.body || '').replace(/\n/g, '<br>')}</p>
-      ${d.details ? `<dl class="inbox-details">${Object.entries(d.details).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+      <p class="small">${nl2br(it.body || '')}</p>
+      ${d.details ? `<dl class="inbox-details">${Object.entries(d.details).filter(([, val]) => val).map(([k, val]) => `<dt>${esc(k)}</dt><dd>${/@/.test(val) ? `<a href="mailto:${esc(val)}">${esc(val)}</a>` : /^[\d +\/-]{6,}$/.test(val) ? `<a href="tel:${esc(val)}">${esc(val)}</a>` : nl2br(val)}</dd>`).join('')}</dl>` : ''}
       <div class="mb-actions">${actions}</div>
       <p class="note" hidden></p>
     </article>`;
   }).join('');
-  box.addEventListener('click', async e => {
+  box.onclick = async e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const art = b.closest('.inbox-item'); const it = list.find(x => x.id === art.dataset.id); if (!it) return;
     busy(b, true);
     try {
-      await client.items.insert('Aktionen', { title: `${b.dataset.act}: ${it.title || ''}`, typ: b.dataset.act, payload: JSON.stringify(it.data || {}), status: 'offen', von: me.name });
-      it.done = b.textContent.trim() + ' (wird ausgeführt)'; await inboxPut(it);
+      await db.insert('Aktionen', { title: `${b.dataset.act}: ${it.title || ''}`, typ: b.dataset.act, payload: JSON.stringify(it.data || {}), status: 'offen', von: me.name });
+      it.done = b.textContent.trim() + (DEMO ? '' : ' (wird ausgeführt)'); await inboxPut(it);
       renderInbox();
     } catch (err) { msg(art.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(b, false); }
-  });
+  };
 }
-
-// ---------- Vorstand: Wer wird benachrichtigt? ----------
-async function renderRouting() {
-  const box = $('#routing'); if (!box) return;
-  let people = [], current = new Map();
-  try {
-    people = (await client.items.query('AppMitglieder').limit(500).find()).items.filter(p => p.memberId).sort((a, b) => (b.vorstand ? 1 : 0) - (a.vorstand ? 1 : 0) || String(a.name).localeCompare(String(b.name), 'de'));
-    const snaps = (await client.items.query('Benachrichtigungen').descending('_createdDate').limit(200).find()).items;
-    for (const s of snaps) if (!current.has(s.thema)) current.set(s.thema, s);
-  } catch (e) { box.innerHTML = `<p class="note note-err">Konnte die Einstellungen nicht laden: ${esc(errText(e))}</p>`; return; }
+// Tabelle Mitglied × Thema/Recht – speichert je geändertem Thema einen Schnappschuss
+function renderMatrix(boxId, rows, current, themaOf, hint) {
+  const box = $('#' + boxId); if (!box) return;
   if (!people.length) { box.innerHTML = '<p class="note note-info">Die Mitgliederliste ist noch leer – sie wird vom Push-Dienst automatisch aus den Wix-Mitgliedern befüllt.</p>'; return; }
   box.innerHTML = `
-    <p class="small muted">Häkchen setzen = diese Person bekommt eine Push-Nachricht auf ihr Gerät. 📱 = hat Benachrichtigungen aktiviert. Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht. Änderungen gelten ab der nächsten Nachricht.</p>
+    <p class="small muted">${esc(hint)}</p>
     <div class="routing-table"><table>
-      <thead><tr><th>Mitglied</th>${BOARD_TOPICS.map(([k, label]) => `<th><span>${esc(label)}</span></th>`).join('')}</tr></thead>
-      <tbody>${people.map(p => `<tr><td><b>${esc(p.name)}</b>${p.pushAktiv ? ' 📱' : ''}<br><span class="small muted">${esc((p.rollen || []).join(', ') || 'Mitglied')}</span></td>${BOARD_TOPICS.map(([k]) => `<td><input type="checkbox" data-thema="${k}" data-member="${esc(p.memberId)}" ${(current.get(k)?.empfaenger || []).includes(p.memberId) ? 'checked' : ''} aria-label="${esc(p.name)}: ${esc(k)}"></td>`).join('')}</tr>`).join('')}</tbody>
+      <thead><tr><th>Mitglied</th>${rows.map(([k, l]) => `<th><span>${esc(l)}</span></th>`).join('')}</tr></thead>
+      <tbody>${people.map(p => `<tr><td><b>${esc(p.name)}</b>${p.pushAktiv ? ' 📱' : ''}<br><span class="small muted">${esc((p.rollen || []).join(', ') || 'Mitglied')}</span></td>${rows.map(([k]) => `<td><input type="checkbox" data-thema="${esc(themaOf(k))}" data-member="${esc(p.memberId)}" ${(current(k) || []).includes(p.memberId) ? 'checked' : ''} aria-label="${esc(p.name)}: ${esc(k)}"></td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>
-    <div class="routing-info">${BOARD_TOPICS.map(([k, label, info]) => `<p class="small"><b>${esc(label)}:</b> ${esc(info)}${current.get(k) ? ` <span class="muted">(zuletzt geändert ${esc(fmtWhen(current.get(k)._createdDate))} von ${esc(current.get(k).von || '–')})</span>` : ''}</p>`).join('')}</div>
-    <p class="note" id="routing-msg" hidden></p>
-    <div class="mb-actions"><button class="btn btn-rot" type="button" id="routing-save">Speichern</button></div>`;
-  $('#routing-save').addEventListener('click', async () => {
-    const btn = $('#routing-save'); busy(btn, true); msg($('#routing-msg'), '');
+    <div class="routing-info">${rows.map(([k, l, i]) => { const s = settings.snap[themaOf(k)]; return `<p class="small"><b>${esc(l)}:</b> ${esc(i || '')} ${s ? `<span class="muted">(zuletzt geändert ${esc(fmtWhen(s._createdDate))} von ${esc(s.von || '–')})</span>` : '<span class="muted">(Standard: gesamter Vorstand)</span>'}</p>`; }).join('')}</div>
+    <p class="note" id="${boxId}-msg" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot" type="button" id="${boxId}-save">Speichern</button></div>`;
+  $(`#${boxId}-save`).addEventListener('click', async () => {
+    const btn = $(`#${boxId}-save`); busy(btn, true); msg($(`#${boxId}-msg`), '');
     try {
-      for (const [k, label] of BOARD_TOPICS) {
-        const ids = $$(`input[data-thema="${k}"]`).filter(c => c.checked).map(c => c.dataset.member);
-        const before = current.get(k)?.empfaenger || [];
+      let n = 0;
+      for (const [k, l] of rows) {
+        const thema = themaOf(k);
+        const ids = $$(`#${boxId} input[data-thema="${thema}"]`).filter(c => c.checked).map(c => c.dataset.member);
+        const before = current(k) || [];
         if (ids.length === before.length && ids.every(i => before.includes(i))) continue;
-        const namen = ids.map(i => people.find(p => p.memberId === i)?.name || i);
-        await client.items.insert('Benachrichtigungen', { title: `${label}: ${namen.join(', ') || 'niemand'}`, thema: k, empfaenger: ids, namen, von: me.name });
+        const namen = ids.map(nameOf);
+        await db.insert('Benachrichtigungen', { title: `${l}: ${namen.join(', ') || 'niemand'}`, thema, empfaenger: ids, namen, von: me.name }); n++;
       }
-      msg($('#routing-msg'), 'Gespeichert.', 'ok'); renderRouting();
-    } catch (err) { msg($('#routing-msg'), 'Speichern fehlgeschlagen: ' + errText(err)); }
-    busy(btn, false);
+      await loadSettings();
+      renderMatrix(boxId, rows, current, themaOf, hint);
+      msg($(`#${boxId}-msg`), n ? 'Gespeichert.' : 'Nichts geändert.', 'ok');
+    } catch (err) { msg($(`#${boxId}-msg`), 'Speichern fehlgeschlagen: ' + errText(err)); busy(btn, false); }
   });
 }
-
-// ---------- Vorstand: Nachricht an alle ----------
 async function onBroadcast(e) {
   e.preventDefault(); const f = e.target; if (!f.checkValidity()) { f.reportValidity(); return; }
   const btn = f.querySelector('[type=submit]'); busy(btn, true); msg($('#b-msg'), '');
   try {
-    await client.items.insert('Aktionen', { title: `Nachricht: ${$('#b-titel').value.trim()}`, typ: 'nachricht', payload: JSON.stringify({ titel: $('#b-titel').value.trim(), text: $('#b-text').value.trim(), ziel: $('#b-ziel').value }), status: 'offen', von: me.name });
-    f.reset(); msg($('#b-msg'), 'Wird in den nächsten Minuten verschickt.', 'ok');
+    await db.insert('Aktionen', { title: `Nachricht: ${$('#b-titel').value.trim()}`, typ: 'nachricht', payload: JSON.stringify({ titel: $('#b-titel').value.trim(), text: $('#b-text').value.trim(), ziel: $('#b-ziel').value }), status: 'offen', von: me.name });
+    const wa = waHref(`${$('#b-titel').value.trim()}\n${$('#b-text').value.trim()}`);
+    f.reset(); msg($('#b-msg'), DEMO ? 'In der echten App geht die Nachricht in den nächsten Minuten raus.' : 'Wird in den nächsten Minuten verschickt.', 'ok');
+    $('#b-wa').hidden = false; $('#b-wa a').href = wa;
   } catch (err) { msg($('#b-msg'), 'Nicht gespeichert: ' + errText(err)); }
   busy(btn, false);
 }
 
 // ===== Start =====
 (async function start() {
-  if (await completeRedirect()) return;
-  if (client.auth.loggedIn()) {
-    try { await loadMe(); saveTokens(); await renderHome(); pushClaim(); return; }
+  if (!DEMO && await completeRedirect()) return;
+  if (DEMO || client.auth.loggedIn()) {
+    try { await loadMe(); saveTokens(); renderShell(); addEventListener('hashchange', route); await route(); pushClaim(); return; }
     catch (err) { store.del('spd-tokens'); renderAuth('login'); msg($('#l-msg'), 'Sitzung abgelaufen – bitte neu anmelden. (' + errText(err) + ')'); return; }
   }
   renderAuth(location.hash === '#registrieren' ? 'register' : 'login');
