@@ -12,6 +12,7 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
   const pool = [...(SPD.vorstand || []), ...(SPD.rat || []), ...(SPD.fraktion || [])].map(p => p.name).filter(Boolean);
   const names = [...new Set(pool)].filter(n => !/max mustermann/i.test(n)).slice(0, 14);
   if (!names.length) names.push('Birhat Kaçar', 'Manuela Bartels', 'Inna Herold', 'Reiner Klatt', 'Karin Ruland', 'Harald Garbers');
+  while (names.length < 14) names.push('Mitglied ' + (names.length + 1)); // Beispieldaten brauchen 5 Vorstand + 6 Rat + 3 weitere
   const people = ['Max Mustermann', ...names].map((name, i) => ({ _id: uid(), memberId: i === 0 ? ME : 'demo-m' + i, name, vorstand: i < 5 && !(mitglied && i === 0), rollen: mitglied && i === 0 ? ['Mitglied'] : i < 5 ? ['Vorstandsmitglied'] : i < 11 ? ['Ratsmitglied'] : ['Mitglied'], pushAktiv: i % 3 !== 1, status: 'aktiv', title: name }));
   const ids = people.map(p => p.memberId);
   const OWNER = mitglied ? ids[1] : ME; // wer die Einstellungen gespeichert hat (muss zum Vorstand gehören)
@@ -27,7 +28,7 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
     Benachrichtigungen: [
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'registrierung', empfaenger: mitglied ? [ids[1], ids[2]] : [ME, ids[1]], namen: mitglied ? [people[1].name, people[2].name] : ['Max Mustermann', people[1].name], von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'recht:umfragen', empfaenger: mitglied ? [ids[1], ids[2]] : [ME, ids[1], ids[2]], namen: mitglied ? [people[1].name, people[2].name] : ['Max Mustermann', people[1].name, people[2].name], von: VON },
-      { _id: uid(), _owner: OWNER, _createdDate: daysAgo(4), thema: 'gruppe:rat', empfaenger: ids.slice(5, 11), namen: people.slice(5, 11).map(p => p.name), von: VON },
+      { _id: uid(), _owner: OWNER, _createdDate: daysAgo(4), thema: 'gruppe:rat', empfaenger: [...(mitglied ? [] : [ME]), ...ids.slice(5, 11)], namen: [...(mitglied ? [] : ['Max Mustermann']), ...people.slice(5, 11).map(p => p.name)], von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(4), thema: 'gruppe:fraktion', empfaenger: [ids[2], ...ids.slice(11, 13)], namen: [people[2], ...people.slice(11, 13)].map(p => p.name), von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(2), thema: 'sicht:rat', modus: 'gruppen', gruppen: ['fraktion'], empfaenger: ids.slice(13, 14), namen: people.slice(13, 14).map(p => p.name), von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'whatsapp', empfaenger: [], gruppen: [{ name: 'SPD Soltau – Mitglieder', url: 'https://chat.whatsapp.com/BEISPIEL1' }, { name: 'Ratsfraktion', url: 'https://chat.whatsapp.com/BEISPIEL2' }], von: VON },
@@ -74,11 +75,37 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       ], von: people[1].name, title: 'Konstituierende Sitzung' },
     ],
     Profile: [
-      { _id: uid(), _owner: ME, memberId: ME, name: 'Max Mustermann', ort: 'Kernstadt', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'weber.soltau@gmail.com', geburtstag: '', geburtstagSichtbar: false, eintritt: 2019, fahreAb: 'Kernstadt' },
-      { _id: uid(), _owner: ids[1], memberId: ids[1], name: people[1].name, ort: 'Kernstadt', telefon: '0171 0000000', telefonSichtbar: true, emailSichtbar: false, geburtstag: inDays(3).slice(5), geburtstagSichtbar: true, eintritt: 2001 },
-      { _id: uid(), _owner: ids[2], memberId: ids[2], name: people[2].name, ort: 'Harber', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'beispiel@example.com', geburtstag: inDays(20).slice(5), geburtstagSichtbar: true, eintritt: 2016 },
-      { _id: uid(), _owner: ids[4], memberId: ids[4], name: people[4].name, ort: 'Wolterdingen', telefon: '', telefonSichtbar: false, emailSichtbar: false, geburtstag: '', geburtstagSichtbar: false, eintritt: 1986 },
+      { _id: uid(), _owner: ME, memberId: ME, name: 'Max Mustermann', verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'weber.soltau@gmail.com', geburtstag: '', geburtstagSichtbar: false, eintritt: 2019, fahreAb: 'Kernstadt' },
+      { _id: uid(), _owner: ids[1], memberId: ids[1], name: people[1].name, verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '0171 0000000', telefonSichtbar: true, emailSichtbar: false, geburtstag: inDays(3).slice(5), geburtstagSichtbar: true, eintritt: 2001 },
+      { _id: uid(), _owner: ids[2], memberId: ids[2], name: people[2].name, verzeichnisSichtbar: true, ort: 'Harber', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'beispiel@example.com', geburtstag: inDays(20).slice(5), geburtstagSichtbar: true, eintritt: 2016 },
+      { _id: uid(), _owner: ids[4], memberId: ids[4], name: people[4].name, verzeichnisSichtbar: false, ort: 'Wolterdingen', telefon: '', telefonSichtbar: false, emailSichtbar: false, geburtstag: '', geburtstagSichtbar: false, eintritt: 1986 },
+      ...ids.slice(5, 10).map((id, i) => ({ _id: uid(), _owner: id, memberId: id, name: people[5 + i].name, verzeichnisSichtbar: i !== 2, ort: ['Kernstadt', 'Harber', 'Wolterdingen', 'Tetendorf', 'Ahlften'][i], telefon: '', telefonSichtbar: false, emailSichtbar: false, geburtstag: '', geburtstagSichtbar: false, eintritt: 2005 + i })),
     ],
+    // Ratsarbeit (Fraktion): in der Vorschau unverschlüsselt – in der App liegen `daten` verschlüsselt bei Wix
+    RatAufgaben: (() => {
+      const R = (n, b, titel, wer, frist, status = 'offen', notiz = '', von = 1) => ({ _id: 'demo-t' + n, _owner: ids[von], _createdDate: daysAgo(n), b, status, frist, wer, werNamen: wer.map(id => people.find(p => p.memberId === id)?.name || ''), von: ids[von], vonName: people[von].name, daten: JSON.stringify({ titel, notiz }), erinnert: false, erledigtAm: status === 'erledigt' ? daysAgo(1) : '' });
+      const r = i => ids[5 + i];
+      return [
+        R(1, 'stadt', 'Fragen an die Kämmerei zum Haushalt 2027 schicken', [r(0)], inDays(6)),
+        R(2, 'stadt', 'Ortsbegehung Marktstraße – Termin finden', [r(1), ME], inDays(10), 'offen', 'Vorschlag: Samstagvormittag.'),
+        R(3, 'stadt', 'Änderungsantrag „Mehr Bäume in der Marktstraße“ schreiben', [ME], inDays(12), 'offen', 'Antragstext bis Freitag, dann an die Fraktion.'),
+        R(4, 'stadt', 'Bericht aus dem Ausschuss schreiben', [r(2)], inDays(-1)),
+        R(5, 'rat', 'Protokoll Fraktionssitzung hochladen', [r(3)], inDays(-2), 'erledigt'),
+        R(6, 'rat', 'Rednerliste für die Haushaltsdebatte abstimmen', [r(4), ME], inDays(14)),
+        R(7, 'soziales', 'Kita-Bedarfsplanung lesen und Fragen notieren', [r(5), r(1)], inDays(8)),
+        R(8, 'wirtschaft', 'Termin mit der Wirtschaftsförderung vorbereiten', [r(0), r(2)], inDays(5)),
+        R(9, 'schule', 'Fragen zur Ganztags-Vorlage sammeln', [r(2)], inDays(9)),
+        R(10, 'rat', 'Pressemitteilung zur Ratssitzung freigeben', [r(4)], inDays(-5), 'erledigt'),
+      ];
+    })(),
+    RatDokumente: [
+      { _id: 'demo-d1', _owner: ids[8], _createdDate: daysAgo(1), b: 'rat', kat: 'Protokoll', art: 'datei', von: ids[8], vonName: people[8].name, daten: JSON.stringify({ titel: 'Protokoll Fraktionssitzung', name: 'Protokoll-Fraktion.pdf', typ: 'application/pdf' }), dateiId: '', teile: 0, groesse: 240000 },
+      { _id: 'demo-d2', _owner: ids[7], _createdDate: daysAgo(4), b: 'stadt', kat: 'Bericht', art: 'datei', von: ids[7], vonName: people[7].name, daten: JSON.stringify({ titel: 'Bericht Ausschuss Stadtentwicklung', name: 'Bericht-Stadtentwicklung.pdf', typ: 'application/pdf' }), dateiId: '', teile: 0, groesse: 1100000 },
+      { _id: 'demo-d3', _owner: ids[5], _createdDate: daysAgo(6), b: 'stadt', kat: 'Vorlage', art: 'link', von: ids[5], vonName: people[5].name, daten: JSON.stringify({ titel: 'Vorlage Haushalt 2027 (Bürgerinfosystem)', url: 'https://ris.stadt-soltau.de/bi/infobi.asp' }) },
+      { _id: 'demo-d4', _owner: ids[9], _createdDate: daysAgo(30), b: 'rat', kat: 'Sonstiges', art: 'datei', von: ids[9], vonName: people[9].name, daten: JSON.stringify({ titel: 'Geschäftsordnung des Rates', name: 'Geschaeftsordnung.pdf', typ: 'application/pdf' }), dateiId: '', teile: 0, groesse: 320000 },
+      { _id: 'demo-d5', _owner: ids[10], _createdDate: daysAgo(3), b: 'soziales', kat: 'Vorlage', art: 'datei', von: ids[10], vonName: people[10].name, daten: JSON.stringify({ titel: 'Kita-Bedarfsplanung 2027 (Entwurf)', name: 'Kita-Bedarfsplanung.pdf', typ: 'application/pdf' }), dateiId: '', teile: 0, groesse: 2400000 },
+    ],
+    RatDateiTeile: [], RatSchluessel: [],
     Fahrgemeinschaften: [
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
       { _id: uid(), _owner: ids[7], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'suche', ab: 'Wolterdingen', plaetze: 1, zeit: '', memberId: ids[7], name: people[7].name, hinweis: '' },

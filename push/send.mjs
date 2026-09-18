@@ -2,7 +2,9 @@
 //   1. gleicht die Wix-Mitglieder mit der Sammlung AppMitglieder ab (Name, Rollen, „Push aktiv“),
 //   2. führt Aktionen des Vorstands aus (Registrierung freischalten/ablehnen, Buchung annehmen/ablehnen, Nachricht an alle),
 //   3. schickt Push-Nachrichten: neue Beiträge, neue Termine, Erinnerung am Vortag, Registrierungs- und Buchungsanfragen,
-//      Zu-/Absagen – Vorstands-Themen gehen an die in „Wer wird benachrichtigt?“ eingetragenen Personen.
+//      Zu-/Absagen – Vorstands-Themen gehen an die in „Wer wird benachrichtigt?“ eingetragenen Personen,
+//   4. verwaltet die Ratsarbeit der Fraktion: verteilt den Fraktionsschlüssel an die Geräte der Fraktionsmitglieder, räumt Einträge
+//      Unberechtigter weg und erinnert an Aufgaben (neu zugeteilt, Frist in zwei Tagen).
 // Jede Nachricht wird in PushLog vermerkt, damit nichts doppelt verschickt wird.
 //
 //   node push/send.mjs            normaler Lauf
@@ -12,6 +14,7 @@ import webpush from 'web-push';
 import { adminClient, memberClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
 import { evaluateSettings, canSee } from '../src/lib/rights.mjs';
 import { eventType, isPublicType } from '../src/lib/wix.mjs';
+import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, verpacken } from '../src/lib/rat.mjs';
 
 const DRY = process.argv.includes('--dry');
 const TEST = process.argv.includes('--test');
@@ -459,6 +462,82 @@ async function boardPushes(subs, pending, routing, logKeys) {
   } catch (e) { log('Zusagen:', e.message); }
 }
 
+// ---------- Ratsarbeit: Schlüssel verteilen, aufräumen, erinnern ----------
+// Siehe src/lib/rat.mjs. Maßgeblich ist immer `_owner` (von Wix gesetzt), nie ein selbst eingetragenes Feld.
+async function ratSync(st, subs, logKeys) {
+  const fraktion = st.groups.fraktion;
+  let geheim;
+  try {
+    geheim = (await queryAll(client, 'RatGeheim'))[0];
+    if (!geheim) {
+      if (DRY) { log('Ratsarbeit: Fraktionsschlüssel würde angelegt'); return; }
+      geheim = await client.items.insert('RatGeheim', { title: 'Fraktionsschlüssel (nicht löschen – sonst sind alle Aufgaben und Dokumente unlesbar)', schluessel: neuerFraktionsschluessel() });
+      log('Ratsarbeit: Fraktionsschlüssel angelegt (Sammlung RatGeheim – bitte nie löschen)');
+    }
+  } catch (e) { log('Ratsarbeit (Schlüssel):', e.message); return; }
+  const aes = await importAes(geheim.schluessel);
+  // 1) Geräteschlüssel: verpacken für Fraktionsmitglieder, löschen für alle anderen
+  try {
+    const rows = await queryAll(client, 'RatSchluessel');
+    let ok = 0, weg = 0;
+    for (const r of rows) {
+      if (!fraktion.has(r._owner)) { weg++; if (!DRY) await client.items.remove('RatSchluessel', r._id).catch(() => {}); continue; }
+      if (r.status === 'aktiv' && r.verpackt) continue;
+      try {
+        const verpackt = await verpacken(geheim.schluessel, JSON.parse(r.pub || '{}'));
+        if (!DRY) await client.items.update('RatSchluessel', { ...r, verpackt, status: 'aktiv' });
+        ok++;
+      } catch (e) { log(`  Geräteschlüssel von ${r.name || r._owner} unbrauchbar: ${e.message}`); if (!DRY) await client.items.update('RatSchluessel', { ...r, status: 'fehler' }).catch(() => {}); }
+    }
+    log(`Ratsarbeit: ${rows.length} Gerät(e), ${ok} neu freigeschaltet, ${weg} entfernt (nicht in der Fraktion)`);
+  } catch (e) { log('Ratsarbeit (Geräte):', e.message); }
+  // 2) Einträge, die nicht von Fraktionsmitgliedern stammen, entfernen
+  let aufgaben = [], dokumente = [];
+  try {
+    aufgaben = await queryAll(client, 'RatAufgaben'); dokumente = await queryAll(client, 'RatDokumente');
+    for (const [col, list] of [['RatAufgaben', aufgaben], ['RatDokumente', dokumente]]) {
+      for (const it of list.filter(x => !fraktion.has(x._owner))) {
+        log(`  ${col}: Eintrag von ${it.vonName || it._owner} (nicht in der Fraktion) entfernt`);
+        if (!DRY) await client.items.remove(col, it._id).catch(() => {});
+      }
+    }
+    const teile = await queryAll(client, 'RatDateiTeile', q => q.descending('_createdDate'));
+    const dateien = new Set(dokumente.map(d => d.dateiId).filter(Boolean));
+    for (const t of teile) {
+      // Teile Unberechtigter sofort weg; verwaiste Teile (Dokument gelöscht oder Upload abgebrochen) nach einem Tag
+      const fremd = !fraktion.has(t._owner), verwaist = !dateien.has(t.dateiId) && NOW - new Date(t._createdDate).getTime() > 24 * H;
+      if (fremd || verwaist) { if (!DRY) await client.items.remove('RatDateiTeile', t._id).catch(() => {}); }
+    }
+  } catch (e) { log('Ratsarbeit (Aufräumen):', e.message); }
+  // 3) Erinnerungen: neue Aufgabe für dich (48 h), Frist in zwei Tagen; neue Dokumente an die Fraktion
+  const lesen = async it => { try { return await decryptJson(aes, it.daten); } catch (e) { return {}; } };
+  const today = isoDate(NOW), bald = isoDate(NOW + ERINNERUNG_TAGE * 24 * H);
+  const fristText = f => f ? new Date(f + 'T12:00:00').toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit' }) : '';
+  for (const t of aufgaben.filter(x => fraktion.has(x._owner) && x.status !== 'erledigt')) {
+    const wer = (t.wer || []).filter(id => fraktion.has(id));
+    if (!wer.length) continue;
+    const keyNeu = 'rataufgabe:' + t._id;
+    const link = url('/mitglieder/#ratsarbeit/t-' + t._id);
+    if (NOW - new Date(t._createdDate).getTime() <= 48 * H && !logKeys.has(keyNeu)) {
+      const d = await lesen(t);
+      const an = byMembers(subs, wer.filter(id => id !== t._owner));
+      if (an.length) await send(an, { title: 'Neue Aufgabe für dich', body: `${d.titel || 'Aufgabe'} · ${bereichVon(t.b).name}${t.frist ? ' · bis ' + fristText(t.frist) : ''} (von ${t.vonName || '?'})`, tag: keyNeu, url: link }, keyNeu, logKeys);
+      else { logKeys.add(keyNeu); await logKey(keyNeu, { titel: 'ohne Empfänger' }); }
+    }
+    if (t.frist && t.frist <= bald && t.frist >= today && !t.erinnert) {
+      const keyRem = 'raterinnerung:' + t._id; if (logKeys.has(keyRem)) continue;
+      const d = await lesen(t);
+      await send(byMembers(subs, wer), { title: t.frist === today ? 'Heute fällig' : 'Bald fällig: ' + fristText(t.frist), body: `${d.titel || 'Aufgabe'} · ${bereichVon(t.b).name}`, tag: keyRem, url: link }, keyRem, logKeys);
+      if (!DRY) await client.items.update('RatAufgaben', { ...t, erinnert: true }).catch(e => log('  erinnert-Markierung:', e.message));
+    }
+  }
+  for (const d of dokumente.filter(x => fraktion.has(x._owner) && NOW - new Date(x._createdDate).getTime() <= 48 * H)) {
+    const key = 'ratdokument:' + d._id; if (logKeys.has(key)) continue;
+    const inhalt = await lesen(d);
+    await send(byTopic(byMembers(subs, [...fraktion].filter(id => id !== d._owner)), 'mitglieder'), { title: 'Neu in der Ratsarbeit: ' + (inhalt.titel || d.kat || 'Dokument'), body: `${d.kat || 'Dokument'} · ${bereichVon(d.b).name} · von ${d.vonName || '?'}`, tag: key, url: url('/mitglieder/#ratsarbeit/b-' + d.b) }, key, logKeys);
+  }
+}
+
 // ---------- Ablauf ----------
 (async () => {
   log('Push-Dienst startet' + (DRY ? ' (Trockenlauf)' : ''));
@@ -476,5 +555,6 @@ async function boardPushes(subs, pending, routing, logKeys) {
   await contentPushes(st, subs, logKeys);
   await memberPushes(st, subs, logKeys);
   await boardPushes(subs, pending, st.routing, logKeys);
+  await ratSync(st, subs, logKeys);
   log('fertig', stats);
 })().catch(e => { console.error('Push-Dienst abgebrochen:', e.message, e.details ? JSON.stringify(e.details).slice(0, 300) : ''); process.exit(1); });

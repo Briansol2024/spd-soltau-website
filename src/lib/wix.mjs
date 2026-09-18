@@ -156,8 +156,8 @@ export function eventType(title = '', info = '') {
   const t = `${title} ${info}`;
   if (/vorstand/i.test(t)) return 'Vorstand';
   if (/fraktion/i.test(t)) return 'Fraktion';
-  if (/mitglieder|klausur|intern/i.test(t)) return 'Mitglieder';
-  if (/stadtrat|ratssitzung|rat|ausschuss|VA/i.test(t)) return 'Rat';
+  if (/mitglieder|klausur|\bintern/i.test(t)) return 'Mitglieder';
+  if (/stadtrat|ratssitzung|\brat\b|ausschuss|\bVA\b/i.test(t)) return 'Rat';
   return 'Öffentlich';
 }
 

@@ -59,11 +59,30 @@ const SCHEMA = {
   Helfer: [T('listeId', 'Liste-ID'), T('schichtId', 'Schicht'), T('name', 'Name'), T('memberId', 'Mitglieds-ID')],
   Dokumente: [T('titel', 'Titel'), T('kategorie', 'Kategorie'), T('datum', 'Datum'), T('url', 'Link'), T('datei', 'Datei', 'DOCUMENT'), T('beschreibung', 'Beschreibung'), T('von', 'Von')],
   Ratsvorbereitung: [T('gremium', 'Gremium'), T('sitzung', 'Sitzung am'), T('zeit', 'Uhrzeit'), T('titel', 'Titel'), T('link', 'Link'), T('hinweis', 'Hinweis'), T('von', 'Von')],
-  Profile: [T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('ort', 'Ortsteil'), T('telefon', 'Telefon'), T('telefonSichtbar', 'Telefon sichtbar', 'BOOLEAN'), T('email', 'E-Mail'), T('emailSichtbar', 'E-Mail sichtbar', 'BOOLEAN'), T('geburtstag', 'Geburtstag'), T('geburtstagSichtbar', 'Geburtstag sichtbar', 'BOOLEAN'), T('eintritt', 'Eintrittsjahr', 'NUMBER'), T('fahreAb', 'Fährt ab')],
+  Profile: [T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('verzeichnisSichtbar', 'Im Verzeichnis', 'BOOLEAN'), T('ort', 'Ortsteil'), T('telefon', 'Telefon'), T('telefonSichtbar', 'Telefon sichtbar', 'BOOLEAN'), T('email', 'E-Mail'), T('emailSichtbar', 'E-Mail sichtbar', 'BOOLEAN'), T('geburtstag', 'Geburtstag'), T('geburtstagSichtbar', 'Geburtstag sichtbar', 'BOOLEAN'), T('eintritt', 'Eintrittsjahr', 'NUMBER'), T('fahreAb', 'Fährt ab')],
   Fahrgemeinschaften: [T('eventTitel', 'Termin'), T('eventDatum', 'Datum'), T('typ', 'Biete/Suche'), T('ab', 'Ab'), T('plaetze', 'Plätze', 'NUMBER'), T('zeit', 'Abfahrt'), T('name', 'Name'), T('memberId', 'Mitglieds-ID')],
   Eingang: [T('typ', 'Art'), T('key', 'Schlüssel'), T('memberId', 'Für Mitglied'), T('body', 'Text'), T('status', 'Status'), T('payload', 'Daten')],
   Anfragen: [T('typ', 'Art'), T('thema', 'Thema'), T('name', 'Name'), T('email', 'E-Mail'), T('ort', 'Wohnort/Straße'), T('interesse', 'Interesse'), T('nachricht', 'Nachricht'), T('status', 'Status'), T('bearbeitetVon', 'Bearbeitet von'), T('bearbeitetAm', 'Bearbeitet am')],
 };
+// Sammlungen der Ratsarbeit (Working Space der Fraktion) – werden hier angelegt, mit passenden Rechten:
+//   RatGeheim: der Fraktionsschlüssel, nur für den Dienst (Admin). RatSchluessel: Geräteschlüssel der Mitglieder – jedes Mitglied liest
+//   nur seine eigenen Einträge, verpacken/löschen darf nur der Dienst. Aufgaben, Dokumente, Dateiteile: alle Mitglieder, Inhalte verschlüsselt.
+const P = (read, insert, update, remove) => ({ read, insert, update, remove });
+const RAT = {
+  RatGeheim: { displayName: 'Rat – Schlüssel (nur Dienst)', permissions: P('ADMIN', 'ADMIN', 'ADMIN', 'ADMIN'), fields: [T('schluessel', 'Schlüssel')] },
+  RatSchluessel: { displayName: 'Rat – Geräteschlüssel', permissions: P('SITE_MEMBER_AUTHOR', 'SITE_MEMBER', 'ADMIN', 'ADMIN'), fields: [T('memberId', 'Mitglieds-ID'), T('name', 'Name'), T('geraet', 'Gerät'), T('status', 'Status'), T('pub', 'Öffentlicher Schlüssel'), T('verpackt', 'Verpackter Fraktionsschlüssel')] },
+  RatAufgaben: { displayName: 'Rat – Aufgaben', permissions: P('SITE_MEMBER', 'SITE_MEMBER', 'SITE_MEMBER', 'SITE_MEMBER'), fields: [T('b', 'Bereich'), T('status', 'Status'), T('frist', 'Frist'), T('wer', 'Zuständig (IDs)', 'ARRAY_STRING'), T('werNamen', 'Zuständig', 'ARRAY_STRING'), T('von', 'Angelegt von (ID)'), T('vonName', 'Angelegt von'), T('daten', 'Inhalt (verschlüsselt)'), T('erinnert', 'Erinnert', 'BOOLEAN'), T('erledigtAm', 'Erledigt am')] },
+  RatDokumente: { displayName: 'Rat – Dokumente', permissions: P('SITE_MEMBER', 'SITE_MEMBER', 'SITE_MEMBER', 'SITE_MEMBER'), fields: [T('b', 'Bereich'), T('kat', 'Art'), T('art', 'Datei/Link'), T('von', 'Von (ID)'), T('vonName', 'Von'), T('daten', 'Inhalt (verschlüsselt)'), T('dateiId', 'Datei-ID'), T('teile', 'Teile', 'NUMBER'), T('groesse', 'Größe (Bytes)', 'NUMBER')] },
+  RatDateiTeile: { displayName: 'Rat – Dateiteile', permissions: P('SITE_MEMBER', 'SITE_MEMBER', 'ADMIN', 'SITE_MEMBER'), fields: [T('dateiId', 'Datei-ID'), T('nr', 'Nr.', 'NUMBER'), T('daten', 'Daten (verschlüsselt)')] },
+};
+for (const [id, def] of Object.entries(RAT)) {
+  SCHEMA[id] = def.fields;
+  try { await client.collections.getDataCollection(id); continue; } catch (e) { /* fehlt noch */ }
+  try {
+    await client.collections.createDataCollection({ _id: id, displayName: def.displayName, permissions: def.permissions, fields: def.fields });
+    log(`Sammlung ${id} angelegt (${Object.entries(def.permissions).map(([k, v]) => k + ': ' + v).join(', ')})`);
+  } catch (e) { log(`Sammlung ${id} konnte nicht angelegt werden: ${e.message}`); }
+}
 for (const [id, fields] of Object.entries(SCHEMA)) {
   try {
     const col = await client.collections.getDataCollection(id);

@@ -59,3 +59,10 @@ Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml
 | `Stimmen` | Abstimmungen (intern und öffentlich) | jeder darf abstimmen, Mitglieder lesen die Auswertung |
 | `Anfragen` | Kontakt- und Mitgliedsanfragen der Website | jeder darf anlegen, lesen nur Admin/Push-Dienst |
 | `Eingang` | persönliche Kopie jeder Anfrage je zuständiger Person (vom Dienst im Namen des Mitglieds angelegt) | Mitglieder anlegen, eigene lesen/ändern |
+| `RatGeheim` | der Fraktionsschlüssel der Ratsarbeit – **nie löschen**, sonst sind alle Aufgaben und Dokumente unlesbar (legt der Dienst beim ersten Lauf an) | nur Admin/Push-Dienst |
+| `RatSchluessel` | Geräteschlüssel der Mitglieder (öffentlicher Teil) und der dafür verpackte Fraktionsschlüssel; Status neu → aktiv | Mitglieder anlegen + eigene lesen, ändern/löschen nur der Dienst |
+| `RatAufgaben`, `RatDokumente`, `RatDateiTeile` | Aufgaben, Dokumente und Dateiteile der Ratsarbeit – Texte und Dateien verschlüsselt, offen nur Bereich/Frist/Status/Zuständige | Mitglieder lesen, anlegen, ändern, löschen (Dateiteile: ändern nur Dienst) |
+
+Diese fünf Sammlungen legt `node push/setup.mjs` selbst an (mit den Rechten). Der Dienst verteilt bei jedem Lauf den Fraktionsschlüssel an neue Geräte von
+Fraktionsmitgliedern (`gruppe:fraktion`/`gruppe:rat` aus der App), entfernt Geräteschlüssel und Einträge von Personen außerhalb der Fraktion, löscht verwaiste
+Dateiteile nach einem Tag und schickt die Erinnerungen (neue Aufgabe, Frist in zwei Tagen, neues Dokument).

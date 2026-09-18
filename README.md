@@ -90,8 +90,23 @@ Die Demo (`?demo`) heißt jetzt Max Mustermann; `?demo&mitglied` zeigt die Sicht
 
 **Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
-Rat (Tagesordnung mit Einordnung der Fraktion) · Mitglieder (Verzeichnis mit freiwilligen Kontaktdaten, Geburtstage, Jubiläen) · Profil (Angaben, Push, App) ·
+Rat (Tagesordnung mit Einordnung der Fraktion) · **Ratsarbeit** (Working Space der Fraktion, siehe unten) · Mitglieder (Verzeichnis, Geburtstage, Jubiläen) · Profil (Angaben, Freigaben, Push, App) ·
 Vorstand (Reiter: Eingang, Benachrichtigen, Gruppen, Rechte, Sichtbarkeit, Nachricht, WhatsApp).
+
+**Mitgliederverzeichnis = Opt-in:** Im Verzeichnis steht nur, wer es unter Profil → „Was andere Mitglieder von dir sehen“ eingeschaltet hat
+(`Profile.verzeichnisSichtbar`); der Vorstand steht immer drin (er steht auch auf der Website). Telefon, E-Mail und Geburtstag sind eigene Häkchen. Wer noch nicht
+drinsteht, sieht auf Start und im Verzeichnis einen Hinweis.
+
+**Ratsarbeit (`#ratsarbeit`, nur Gruppe Fraktion):** Der Working Space der Ratsfraktion – bewusst ohne Chats (die bleiben in WhatsApp) und so einfach wie möglich:
+*Meine Aufgaben* (alles, was mir zugeteilt ist, nach Frist), *Alle Aufgaben der Fraktion* (nach Bereich oder nach Person) und fünf **Bereiche** – Fraktion/Rat plus die
+Ausschüsse Stadtentwicklung, Soziales, Schule & Kultur, Wirtschaft – jeweils mit Aufgaben (abhaken per Kreis, Frist, überfällig rot, Erledigte einblendbar) und
+Dokumenten (Datei hochladen bis 10 MB oder Link; Protokoll/Bericht/Vorlage/Antrag). Aufgabe und Dokument öffnen als Blatt (Was · Bereich · Wer · Bis wann · Notiz ·
+„Per WhatsApp erinnern“ · Erledigt · Löschen). Am Handy 4. Reiter der App-Leiste (wenn keine Vorstandsrechte), sonst unter „Mehr“/Seitenleiste „Fraktion“; Zähler =
+meine offenen Aufgaben; Karte auf Start. Sichtbar nur für Mitglieder der Gruppe **Fraktion** (Vorstand → Gruppen; Ratsmitglieder zählen automatisch dazu) – auch der
+Vorstand sieht es nur, wenn er dort eingetragen ist. Push: „Neue Aufgabe für dich“, „Bald fällig“ zwei Tage vor der Frist, „Neu in der Ratsarbeit“ bei Dokumenten.
+Datenschutz: Aufgabentexte und Dateien liegen **verschlüsselt** bei Wix (AES-GCM, ein Fraktionsschlüssel), den Schlüssel bekommen nur Geräte von Fraktionsmitgliedern
+vom Push-Dienst (Einzelheiten in `src/lib/rat.mjs` und `push/README.md`). Beim ersten Öffnen auf einem Gerät heißt es deshalb einmal „Dein Zugang wird eingerichtet“
+(bis zu fünf Minuten, die Seite prüft selbst nach). Code: `src/ratsarbeit.js`; Vorschau: `?demo` (Max ist dort Ratsmitglied).
 
 **Gruppen („Wer gehört wozu?“):** Unter Vorstand → Gruppen hakt man je Person **Vorstand**, **Rat** (gewählte Ratsmitglieder) und **Fraktion**
 (alle, die in der Ratsfraktion mitarbeiten – Ratsmitglieder zählen automatisch dazu, hinzugewählte Ausschussmitglieder werden extra angehakt) an. Mitglied ist
