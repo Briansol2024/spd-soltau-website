@@ -155,7 +155,7 @@ $$('form.mock').forEach(f => f.addEventListener('submit', e => {
 
 // ===== Bewegung =====
 const site = $('#site'), header = $('.header') || $('.app-header'), progress = $('#progress'), totop = $('#totop'), heroPh = $('.hero .ph');
-const RV_SEL = '.zb,.section-head,.page-head>*,.card,.event,.ev-mini,.person,.tm,.box,.ziel,.zk,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll,.zinke>*';
+const RV_SEL = '.za,.section-head,.page-head>*,.card,.event,.ev-mini,.person,.tm,.box,.ziel,.zk,.ziele-grid a,.insta .ph,.stat,.col,.quick a,.month,.filter,.themen,.toggle,.article>*,.prose>*,.newsletter>*,form.mock,.footer .grid>*,.footer .claim,.poll,.zinke>*';
 const io = new IntersectionObserver(entries => {
   const vis = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
   vis.forEach((e, i) => { const el = e.target; io.unobserve(el); setTimeout(() => { el.classList.add('in'); setTimeout(() => el.classList.add('done'), 800); }, REDUCED ? 0 : Math.min(i, 10) * 50); });
@@ -305,4 +305,23 @@ if (ubox && SPD.app?.clientId) {
       render();
     });
   })();
+}
+
+// ---------- Ziele: Akkordeon, immer nur eins offen ----------
+const zaList = $('#ziele-list');
+if (zaList) {
+  const items = $$('.za', zaList);
+  const setOpen = (el, open) => { el.classList.toggle('open', open); el.querySelector('.za-head').setAttribute('aria-expanded', String(open)); };
+  const openOnly = (el, scroll = true) => {
+    items.forEach(x => setOpen(x, x === el));
+    if (scroll) setTimeout(() => el.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }), 420);
+  };
+  zaList.addEventListener('click', e => {
+    const head = e.target.closest('.za-head'); if (!head) return;
+    const el = head.closest('.za');
+    if (el.classList.contains('open')) setOpen(el, false); else openOnly(el);
+  });
+  const fromHash = () => { const m = location.hash.match(/^#ziel-(\d+)$/); if (!m) return; const el = document.getElementById('ziel-' + m[1]); if (el) openOnly(el); };
+  addEventListener('hashchange', fromHash); fromHash();
+  document.addEventListener('click', e => { const a = e.target.closest('.zj a'); if (!a) return; e.preventDefault(); history.replaceState(null, '', a.getAttribute('href')); fromHash(); });
 }

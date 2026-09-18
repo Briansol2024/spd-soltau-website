@@ -1,5 +1,5 @@
 // Seitenvorlagen – 1:1 nach Referenz-Entwurf D, mit echten Links und Inhalten aus dem Build.
-import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards, zielBlocks, zielJump } from './render.mjs';
+import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards, zielBlocks, zielJump, zielAccordionFotos } from './render.mjs';
 
 const NAV = [
   ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'],
@@ -401,7 +401,7 @@ export function zielePage(d) {
 <section>
   ${pageHead('Unsere Ziele', 'Der 10-Punkte-<br>Plan', 'Soltau kann mehr. Dafür braucht es klare Prioritäten, verlässliche Entscheidungen und den Mut, wichtige Projekte endlich umzusetzen.')}
   <div class="wrap zj-wrap">${zielJump(d.ziele)}</div>
-  <div class="wrap section zb-list-wrap">${zielBlocks(d.ziele)}</div>
+  <div class="wrap section za-list" id="ziele-list">${zielAccordionFotos(d.ziele)}</div>
   <div class="band-rot"><div class="wrap section versprechen">
     <div>
       <span class="tag tag-schwarz">Unser Versprechen</span>

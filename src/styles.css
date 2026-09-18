@@ -1045,3 +1045,45 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .versprechen{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:40px;align-items:center;color:#fff}
 .versprechen .title{color:#fff;margin-top:14px}
 @container site (max-width:800px){.versprechen{grid-template-columns:minmax(0,1fr);gap:20px}}
+
+/* ===== Ziele: Akkordeon mit Fotostreifen (nur eins offen), Foto und Nummer animiert ===== */
+.za-list{display:grid;gap:10px;padding-top:36px}
+.za{background:var(--grau);scroll-margin-top:84px}
+.za-head{display:block;width:100%;position:relative;border:0;padding:0;background:var(--schwarz);color:#fff;cursor:pointer;text-align:left;overflow:hidden;height:104px;transition:height .55s var(--ease)}
+.za.open .za-head{height:min(420px,52vw)}
+.za-pic{position:absolute;inset:0}
+.za-pic img{width:100%;height:100%;object-fit:cover;display:block;opacity:.72;transform:scale(1.02);transition:opacity .5s,transform 1.2s var(--ease)}
+.za-head:hover .za-pic img{opacity:.85}
+.za.open .za-pic img{opacity:1;transform:scale(1);animation:zaKen 14s ease-in-out .5s infinite alternate}
+@keyframes zaKen{to{transform:scale(1.08)}}
+.za-overlay{position:absolute;inset:0;display:flex;align-items:center;gap:18px;padding:0 22px;background:linear-gradient(90deg,rgba(15,15,15,.78),rgba(15,15,15,.35) 60%,rgba(15,15,15,.15));transition:background .5s}
+.za.open .za-overlay{align-items:flex-end;padding-bottom:22px;background:linear-gradient(180deg,transparent 30%,rgba(15,15,15,.75))}
+.za-num{font:800 44px/1 var(--display);color:#fff;letter-spacing:-.02em;flex-shrink:0;transform-origin:left bottom;transition:font-size .55s var(--ease)}
+.za-num::after{content:"";display:block;width:32px;height:5px;background:var(--rot);transition:width .55s var(--ease),height .55s var(--ease)}
+.za.open .za-num{font-size:clamp(84px,11cqw,150px)}
+.za.open .za-num::after{width:64px;height:8px}
+.za-title{font:700 26px/1 var(--display);text-transform:uppercase;color:#fff;transition:font-size .55s var(--ease)}
+.za.open .za-title{font-size:clamp(30px,4cqw,52px);line-height:.95;text-shadow:0 2px 20px rgba(0,0,0,.4)}
+.za-plus{margin-left:auto;width:36px;height:36px;position:relative;flex-shrink:0}
+.za-plus::before,.za-plus::after{content:"";position:absolute;left:50%;top:50%;width:20px;height:3px;background:#fff;transform:translate(-50%,-50%);transition:transform .3s}
+.za-plus::after{transform:translate(-50%,-50%) rotate(90deg)}
+.za.open .za-plus::after{transform:translate(-50%,-50%) rotate(0)}
+.za-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease)}
+.za.open .za-body{grid-template-rows:1fr}
+.za-inner{overflow:hidden}
+.za-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:28px 48px;padding:28px 32px 34px;opacity:0;transform:translateY(10px);transition:opacity .4s .15s,transform .5s .15s var(--ease)}
+.za.open .za-cols{opacity:1;transform:none}
+.za-intro{font-size:18px;line-height:1.5}
+@container site (max-width:800px){
+  .za-head{height:92px}
+  .za.open .za-head{height:min(300px,62vw)}
+  .za-overlay{padding:0 14px;gap:12px}
+  .za.open .za-overlay{padding-bottom:14px}
+  .za-num{font-size:34px}
+  .za.open .za-num{font-size:72px}
+  .za-title{font-size:20px}
+  .za.open .za-title{font-size:26px}
+  .za-cols{grid-template-columns:minmax(0,1fr);gap:14px;padding:18px 16px 22px}
+  .za-intro{font-size:16.5px}
+}
+@media (prefers-reduced-motion:reduce){.za.open .za-pic img{animation:none}.za-head,.za-num,.za-title,.za-body,.za-cols,.za-pic img{transition:none}}

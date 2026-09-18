@@ -164,3 +164,20 @@ export function zielBlocks(ziele) {
     return `<article class="zb${i % 2 ? ' zb-rev' : ''}" id="ziel-${i + 1}">${pic}<div class="zb-text"><span class="zb-kicker">Punkt ${i + 1} von ${ziele.length}</span><h2 class="title">${esc(z.title)}</h2><p class="zb-intro">${esc(z.intro)}</p><ul class="zb-list">${z.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></article>`;
   }).join('');
 }
+
+// Ziele als Akkordeon (nur eins offen): zugeklappt ein Fotostreifen mit Nummer und Titel, aufgeklappt wächst das Foto,
+// die Nummer wird groß, darunter erscheinen Einleitung und Punkte
+export function zielAccordionFotos(ziele) {
+  return ziele.map((z, i) => {
+    const n = String(i + 1).padStart(2, '0');
+    const src = zielImg(z, 1400, 700), src2 = zielImg(z, 800, 400);
+    const img = src ? `<img src="${src2}" srcset="${src2} 800w, ${src} 1400w" sizes="(max-width: 800px) 100vw, 1240px" alt="${esc(z.img.alt || '')}" loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async">` : '';
+    return `<article class="za${i === 0 ? ' open' : ''}" id="ziel-${i + 1}">
+      <button class="za-head" type="button" aria-expanded="${i === 0}" aria-controls="ziel-${i + 1}-body">
+        <span class="za-pic">${img}</span>
+        <span class="za-overlay"><b class="za-num">${n}</b><span class="za-title">${esc(z.title)}</span><span class="za-plus" aria-hidden="true"></span></span>
+      </button>
+      <div class="za-body" id="ziel-${i + 1}-body"><div class="za-inner"><div class="za-cols"><p class="za-intro">${esc(z.intro)}</p><ul class="zb-list">${z.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></div></div>
+    </article>`;
+  }).join('');
+}
