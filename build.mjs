@@ -13,6 +13,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as fallback from './src/data-fallback.mjs';
+import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
 
@@ -78,6 +79,17 @@ async function loadData() {
   const used = new Set(d.people.flatMap(p => p.themen));
   d.themen = [...fallback.THEMEN_ORDER.filter(t => used.has(t)), ...[...used].filter(t => !fallback.THEMEN_ORDER.includes(t))];
   d.news.sort((a, b) => b.date.localeCompare(a.date));
+  // Kommunalwahl 2026: gewählte Ratsmitglieder und Ersatzpersonen mit Foto/Beruf aus dem Team
+  const norm = n => String(n).toLowerCase().replace(/ç/g, 'c').replace(/é/g, 'e').replace(/-jörg/g, '').replace(/\s+/g, ' ').trim();
+  const byName = new Map(d.people.map(p => [norm(p.name), p]));
+  const enrich = e => { const p = byName.get(norm(e.name)) || {}; return { ...e, job: p.job || '', text: p.text || '', photo: p.photo || null, themen: p.themen || [] }; };
+  d.wahl = WAHL;
+  d.rat = WAHL.gewaehlt.map(enrich);
+  const nr = nachruecker(WAHL, 3);
+  d.nachruecker = { nachStimmen: nr.nachStimmen.map(enrich), nachListe: nr.nachListe.map(enrich) };
+  // Stichwahl-Aufruf nur bis zum Wahltag anzeigen
+  const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
+  d.stichwahl = heute <= STICHWAHL.datum ? STICHWAHL : null;
   return d;
 }
 
@@ -160,6 +172,7 @@ async function main() {
     people: d.people.map(p => ({ name: p.name, job: p.job, role: p.role, text: p.text, themen: p.themen, photo: p.photo })),
     vorstand: d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, text: '', themen: [], photo: v.photo })),
     fraktion: d.fraktion.map(p => ({ name: p.name, job: p.job, role: p.role, text: p.text, themen: p.themen || [], photo: p.photo })),
+    rat: d.rat.map(p => ({ name: p.name, job: p.job, role: p.art === 'direkt' ? `${p.stimmen.toLocaleString('de-DE')} Stimmen · direkt gewählt` : `Listenplatz ${p.listenplatz} · über die Liste gewählt`, text: p.text, themen: [], photo: p.photo })),
     themen: d.themen,
     events: d.events,
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
@@ -172,6 +185,7 @@ async function main() {
     ['index.html', '/', 'Start', '', T.startPage(d)],
     ['aktuelles/index.html', '/aktuelles/', 'Aktuelles', 'Neues aus Rat und Ortsverein: Berichte aus der Fraktion, Pressemitteilungen und Einblicke in unsere Arbeit.', T.aktuellesPage(d)],
     ['termine/index.html', '/termine/', 'Termine', 'Ratssitzungen, Fraktions- und Vorstandssitzungen, Infostände – wann und wo wir uns treffen.', T.terminePage(d)],
+    ['stadtrat-2026/index.html', '/stadtrat-2026/', 'Unsere 11 im Stadtrat', 'Kommunalwahl 2026: Die elf gewählten SPD-Ratsmitglieder für Soltau, die Sitzverteilung im neuen Rat und wer nachrückt.', T.stadtratPage(d)],
     ['fraktion/index.html', '/fraktion/', 'Fraktion', 'Die SPD-Ratsfraktion im Stadtrat Soltau: Mitglieder, Anträge und Entscheidungen erklärt.', T.fraktionPage(d)],
     ['ortsverein/index.html', '/ortsverein/', 'Ortsverein', 'Der SPD Ortsverein Soltau: Vorstand, Team und der Rote Bahnhof.', T.ortsvereinPage(d)],
     ['ziele/index.html', '/ziele/', 'Unsere Ziele', 'Der 10-Punkte-Plan der SPD Soltau für die Wahlperiode 2026 bis 2031.', T.zielePage(d)],

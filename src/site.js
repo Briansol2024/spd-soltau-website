@@ -68,7 +68,7 @@ kt?.addEventListener('click', e => {
 
 // ---------- Personen-Fenster ----------
 const dlg = $('#person-dialog');
-const findPerson = name => [...(SPD.people || []), ...(SPD.vorstand || []), ...(SPD.fraktion || [])].find(p => p.name === name);
+const findPerson = name => [...(SPD.rat || []), ...(SPD.people || []), ...(SPD.vorstand || []), ...(SPD.fraktion || [])].find(p => p.name === name);
 document.addEventListener('click', e => {
   const b = e.target.closest('.person'); if (!b || !dlg) return;
   const p = findPerson(b.dataset.name); if (!p) return;

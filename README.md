@@ -15,6 +15,7 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Ratsfraktion | CMS-Sammlung „Stadtrat“ (ID `Team1`) | Dashboard → CMS |
 | Instagram-Kacheln | Zwischenspeicher der Wix-Instagram-App (`@vanyadoing/instagram/ig-media`) – Bilder werden beim Bauen auf den eigenen Host kopiert | Instagram posten, Wix-App bleibt verbunden |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
+| Wahlergebnis 2026 (Seite „Unsere 11 im Stadtrat“), Stichwahl-Aufruf | `src/data-wahl2026.mjs` – Fotos/Berufe kommen automatisch aus der Kandidat*innen-Sammlung | hier im Projekt |
 
 Die Seite wird **alle 30 Minuten** automatisch neu gebaut (GitHub Actions). Neue Beiträge oder Termine
 erscheinen also spätestens nach einer halben Stunde – oder sofort, wenn man den Workflow von Hand startet.
@@ -89,6 +90,10 @@ npm run serve:protected      # http://localhost:8081
 3. In GitHub unter *Settings → Pages* die Domain eintragen und HTTPS erzwingen.
 
 Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wixsite-Adresse erreichbar.
+
+## Zeitgesteuert
+
+- Der Aufruf zur Landrats-Stichwahl (Sebastian Zinke) erscheint automatisch nur bis einschließlich 27.09.2026 (`STICHWAHL.datum`).
 
 ## Noch offen (bewusst für später)
 

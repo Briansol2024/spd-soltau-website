@@ -59,7 +59,7 @@ ${content}
         <p style="margin-top:16px;max-width:36ch">SPD Ortsverein Soltau<br>Am Bahnhof 1t · 29614 Soltau</p>
         <p style="margin-top:12px"><a href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Instagram @spd_soltau</a></p>
       </div>
-      <div><h4>Politik</h4><ul><li><a href="${url('/aktuelles/')}">Aktuelles</a></li><li><a href="${url('/fraktion/')}">Ratsfraktion</a></li><li><a href="${url('/ziele/')}">10-Punkte-Plan</a></li><li><a href="${url('/termine/')}">Termine</a></li></ul></div>
+      <div><h4>Politik</h4><ul><li><a href="${url('/aktuelles/')}">Aktuelles</a></li><li><a href="${url('/fraktion/')}">Ratsfraktion</a></li><li><a href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a></li><li><a href="${url('/ziele/')}">10-Punkte-Plan</a></li><li><a href="${url('/termine/')}">Termine</a></li></ul></div>
       <div><h4>Ortsverein</h4><ul><li><a href="${url('/ortsverein/')}">Wer wir sind</a></li><li><a href="${url('/mitmachen/')}">Mitglied werden</a></li><li><a href="${url('/kontakt/')}">Kontakt</a></li></ul></div>
       <div><h4>SPD</h4><ul><li><a href="https://www.spd.de" target="_blank" rel="noopener">SPD Deutschland</a></li><li><a href="https://www.spd-niedersachsen.de" target="_blank" rel="noopener">SPD Niedersachsen</a></li></ul></div>
     </div>
@@ -121,14 +121,15 @@ export function startPage(d) {
         <h1><span class="ln"><span>Moin!</span></span><span class="ln"><em class="sub">Herzlich willkommen.</em></span></h1>
         <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
         <div class="hero-actions">
-          <a class="btn btn-rot" href="${url('/ziele/')}">Unsere 10 Punkte</a>
+          <a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a>
           <a class="btn btn-line-weiss" href="${url('/mitmachen/')}">Mitmachen</a>
         </div>
       </div>
       ${heroPhoto(d.site)}
     </div>
   </div>
-  <div class="ticker" aria-label="Nächste Termine"><div class="ticker-track" id="ticker">${tickerItems(d.events).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>'}</div></div>
+  <div class="ticker" aria-label="Nächste Termine"><div class="ticker-track" id="ticker">${((d.stichwahl ? `<span>So 27. Sep – Stichwahl Landrat: Sebastian Zinke wählen</span>` : '') + tickerItems(d.events)).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>'}</div></div>
+  ${d.stichwahl ? zinkeBand(d) : ''}
 
   <div class="wrap" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
@@ -309,6 +310,12 @@ export function fraktionPage(d) {
           <dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd>
         </dl>
         <a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Fraktion kontaktieren</a>
+      </div>
+      <div class="box box-rot">
+        <span class="tag tag-schwarz" style="justify-self:start">Ab 1. November 2026</span>
+        <h3>Die neue Fraktion</h3>
+        <p class="small">Bei der Kommunalwahl am 13. September wurden elf SPD-Ratsmitglieder gewählt – erstmals stärkste Fraktion im Rat.</p>
+        <a class="btn btn-weiss" href="${url('/stadtrat-2026/')}" style="justify-self:start">Unsere 11 im Stadtrat</a>
       </div>
       <div class="box">
         <h3>Anträge &amp; Anfragen</h3>
@@ -516,6 +523,84 @@ export function notFoundPage(d) {
   ${pageHead('404', 'Seite nicht<br>gefunden')}
   <div class="wrap section prose">
     <p>Diese Seite gibt es nicht (mehr). Vielleicht hilft die <a href="${url('/')}">Startseite</a> oder das Menü weiter.</p>
+  </div>
+</section>`;
+}
+
+// ---------- Landrats-Stichwahl: Unterstützung für Sebastian Zinke (nur bis zum Wahltag) ----------
+function zinkeBand(d) {
+  const z = d.stichwahl;
+  return `
+  <div class="band-rot zinke">
+    <div class="wrap zinke-grid">
+      <div class="zinke-photo"><img src="${url(z.foto)}" alt="${esc(z.kandidat)}" loading="lazy" decoding="async"><span class="small">${esc(z.fotoQuelle)}</span></div>
+      <div class="zinke-text">
+        <span class="tag tag-schwarz">Stichwahl am ${esc(z.datumText)}</span>
+        <h2 class="title">Sebastian Zinke<br>als Landrat.</h2>
+        <p class="lead">Im ersten Wahlgang lag Sebastian Zinke mit ${z.ersterWahlgang.prozent.toLocaleString('de-DE')} Prozent vorn. Am 27. September entscheidet die Stichwahl, wer den Heidekreis in den nächsten Jahren führt. Wir unterstützen ihn – und bitten Sie um Ihre Stimme.</p>
+        <p>${esc(z.kurz)}</p>
+        <ul class="zinke-punkte">${z.schwerpunkte.map(([t, x]) => `<li><b>${esc(t)}</b><span>${esc(x)}</span></li>`).join('')}</ul>
+        <div class="hero-actions">
+          <a class="btn btn-schwarz" href="${esc(z.website)}" target="_blank" rel="noopener">Mehr über Sebastian Zinke</a>
+          <a class="btn btn-line-weiss" href="${esc(z.wahlinfo)}" target="_blank" rel="noopener">Briefwahl &amp; Wahllokale</a>
+        </div>
+        <p class="small" style="opacity:.85">Wahllokale am 27. September von 8 bis 18 Uhr. Wer nicht vor Ort sein kann, beantragt die Briefwahlunterlagen bei der Stadt Soltau.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---------- Kommunalwahl 2026: Unsere 11 im Stadtrat ----------
+const mandatCard = p => `<button class="person" type="button" data-name="${esc(p.name)}">${p.photo && p.photo.url ? `<div class="avatar has-img"><img src="${esc(p.photo.url)}" alt="${esc(p.name)}" loading="lazy" decoding="async"><span></span></div>` : `<div class="avatar"><span>${esc(p.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span></div>`}<div class="plate"><b>${esc(p.name)}</b><small>${esc(p.job)}</small><span class="rolle">${p.art === 'direkt' ? `${p.stimmen.toLocaleString('de-DE')} Stimmen · direkt` : `Listenplatz ${p.listenplatz} · Liste`}</span></div></button>`;
+
+export function stadtratPage(d) {
+  const w = d.wahl, nr = d.nachruecker;
+  const max = Math.max(...w.sitze.map(x => x[1]));
+  const small = p => `<button class="person" type="button" data-name="${esc(p.name)}">${p.photo && p.photo.url ? `<div class="avatar has-img"><img src="${esc(p.photo.url)}" alt="${esc(p.name)}" loading="lazy" decoding="async"><span></span></div>` : `<div class="avatar"><span>${esc(p.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span></div>`}<div class="plate"><b>${esc(p.name)}</b><small>${esc(p.job)}</small><span class="rolle">${p.stimmen.toLocaleString('de-DE')} Stimmen · Listenplatz ${p.listenplatz}</span></div></button>`;
+  return `
+<section>
+  ${pageHead('Kommunalwahl 2026', 'Unsere 11<br>im Stadtrat', 'Am 13. September haben die Soltauerinnen und Soltauer gewählt. 9.268 Stimmen und 30,8 Prozent machen die SPD zum ersten Mal zur stärksten Fraktion im Rat – mit elf von 34 Sitzen. Danke für dieses Vertrauen. Die neue Wahlperiode beginnt am 1. November 2026.')}
+  <div class="band-rot"><div class="wrap" style="padding-block:40px">
+    <div class="stats">
+      <div class="stat"><b>9.268</b><span>Stimmen für die SPD</span></div>
+      <div class="stat"><b>30,8 %</b><span>Stärkste Kraft in Soltau</span></div>
+      <div class="stat"><b>11</b><span>von 34 Sitzen im Rat</span></div>
+      <div class="stat"><b>58,8 %</b><span>Wahlbeteiligung</span></div>
+    </div>
+  </div></div>
+  <div class="wrap section">
+    <div class="section-head"><h2 class="title">Die gewählten<br>Ratsmitglieder</h2><span class="muted">Reihenfolge nach Stimmen · Klick öffnet das Kurzprofil</span></div>
+    <div class="people rat" id="rat">${d.rat.map(mandatCard).join('')}</div>
+    <p class="small muted" style="margin-top:16px">Acht Sitze wurden über die persönlichen Stimmen vergeben („direkt“), drei über die Reihenfolge der Liste – so sieht es das niedersächsische Kommunalwahlrecht vor.</p>
+  </div>
+  <div class="band-grau"><div class="wrap section split">
+    <div>
+      <div class="section-head"><h2 class="title">Wer nachrückt</h2></div>
+      <p style="margin-bottom:18px">Scheidet ein Ratsmitglied aus, rückt eine Ersatzperson nach. Für die acht direkt gewählten Sitze gilt die Reihenfolge der Stimmen, für die drei Listensitze die Reihenfolge der Liste.</p>
+      <h3 style="font:800 22px/1 var(--display);text-transform:uppercase;margin-bottom:12px">Nach Stimmen</h3>
+      <div class="ansprech" style="margin-bottom:28px">${nr.nachStimmen.map(small).join('')}</div>
+      <h3 style="font:800 22px/1 var(--display);text-transform:uppercase;margin-bottom:12px">Nach Liste</h3>
+      <div class="ansprech">${nr.nachListe.map(small).join('')}</div>
+    </div>
+    <div style="display:grid;gap:20px">
+      <div class="box box-schwarz">
+        <h3>Sitzverteilung im neuen Rat</h3>
+        <ul class="seats">${w.sitze.map(([p, n]) => `<li><span class="seats-name">${esc(p)}</span><span class="seats-bar"><i style="width:${Math.round(n / max * 100)}%"></i></span><span class="seats-n">${n}</span></li>`).join('')}</ul>
+        <p class="small" style="opacity:.8">34 Sitze insgesamt · Wahlbeteiligung 58,8 %</p>
+      </div>
+      <div class="box">
+        <h3>Zum Ergebnis</h3>
+        <p class="small">Vorläufiges amtliches Endergebnis der Stadt Soltau, Stand ${esc(w.stand)}. Die verbindliche Reihenfolge der Ersatzpersonen stellt der Wahlausschuss mit dem amtlichen Endergebnis fest.</p>
+        <a class="btn btn-line" href="${esc(w.quelle)}" target="_blank" rel="noopener" style="justify-self:start">Amtliches Ergebnis</a>
+      </div>
+    </div>
+  </div></div>
+  <div class="wrap section">
+    <div class="section-head"><h2 class="title">Alle 27 Kandidatinnen<br>und Kandidaten</h2><a class="more" href="${url('/ortsverein/')}">Das ganze Team</a></div>
+    <div class="ergebnis-tabelle"><table>
+      <thead><tr><th>Platz</th><th>Name</th><th>Liste</th><th>Stimmen</th><th></th></tr></thead>
+      <tbody>${w.alle.map(([name, st, lp], i) => { const g = w.gewaehlt.find(x => x.name === name); return `<tr class="${g ? 'gewaehlt' : ''}"><td>${i + 1}</td><td>${esc(name)}</td><td>${lp}</td><td>${st.toLocaleString('de-DE')}</td><td>${g ? `<span class="badge badge-mit">${g.art === 'direkt' ? 'gewählt' : 'gewählt (Liste)'}</span>` : ''}</td></tr>`; }).join('')}</tbody>
+    </table></div>
   </div>
 </section>`;
 }
