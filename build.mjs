@@ -6,6 +6,8 @@
 //   BASE_PATH       z. B. /spd-soltau-website, wenn die Seite unter einem Unterpfad liegt (GitHub Pages ohne eigene Domain)
 //   NOINDEX=1       Suchmaschinen aussperren (Testphase)
 //   HERO_IMAGE      URL des Hero-Fotos, SITE_EMAIL Kontaktadresse, PROGRAMM_PDF Link zum Wahlprogramm
+//   LAUNCH_AT       Startzeitpunkt der neuen Website (ISO mit Zeitzone, z. B. 2026-09-22T00:00:00+02:00): die Countdown-Seite /bald/
+//                   zeigt darauf hin; liegt der Zeitpunkt beim Bauen noch in der Zukunft, ist sie zusätzlich die Startseite
 //   CNAME           eigene Domain für GitHub Pages (schreibt dist/CNAME)
 //   VAPID_PUBLIC_KEY öffentlicher Schlüssel für Push-Benachrichtigungen (siehe push/setup.mjs)
 
@@ -17,6 +19,7 @@ import * as fallback from './src/data-fallback.mjs';
 import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
+import { countdownPage } from './src/countdown.mjs';
 import esbuild from 'esbuild';
 import { createHash } from 'node:crypto';
 
@@ -304,6 +307,10 @@ async function main() {
     ['transparenz/index.html', '/transparenz/', 'Transparenz', 'Transparenzbekanntmachung zur Kommunalwahl 2026.', T.transparenzPage(d)],
   ];
   for (const [rel, pth, title, desc, html] of pages) await page(rel, pth, title, desc, html);
+  // Countdown-Seite: immer unter /bald/ (ohne Passwort); bis LAUNCH_AT außerdem als Startseite (der halbstündliche Build löst sie ab)
+  const launchAt = env.LAUNCH_AT || '2026-09-22T00:00:00+02:00';
+  await write('bald/index.html', countdownPage(d, { launchAt }));
+  if (env.LAUNCH_AT && Date.parse(env.LAUNCH_AT) > Date.now()) { await write('index.html', countdownPage(d, { launchAt, atRoot: true })); console.log('[build] Startseite = Countdown bis', env.LAUNCH_AT); }
   for (const n of d.news) await page(`aktuelles/${n.slug}/index.html`, `/aktuelles/${n.slug}/`, n.title, n.teaser, T.beitragPage(d, n), { ogImage: n.img?.url || null });
   await write('404.html', T.layout({ site, path: '/404', title: 'Seite nicht gefunden', description: '', content: T.notFoundPage(d), clientData, noindex: true }));
 

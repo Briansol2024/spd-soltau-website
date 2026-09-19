@@ -2,7 +2,8 @@
 # Läuft bei jedem Push, alle 30 Minuten (holt neue Beiträge/Termine) und manuell.
 #
 # Einstellungen im Repository (Settings → Secrets and variables → Actions):
-#   Variables: WIX_CLIENT_ID, SITE_URL, BASE_PATH (leer bei eigener Domain), CNAME, HERO_IMAGE, SITE_EMAIL, NOINDEX, VAPID_PUBLIC_KEY
+#   Variables: WIX_CLIENT_ID, SITE_URL, BASE_PATH (leer bei eigener Domain), CNAME, HERO_IMAGE, SITE_EMAIL, NOINDEX, VAPID_PUBLIC_KEY,
+#              LAUNCH_AT (Countdown-Startseite bis zu diesem Zeitpunkt; der 30-Minuten-Build tauscht sie danach automatisch aus)
 #   Secrets:   PREVIEW_PASSWORD  (gesetzt = Testphase mit Passwort; entfernen = Seite ist offen)
 name: Website bauen & veröffentlichen
 
@@ -44,6 +45,7 @@ jobs:
           NOINDEX: ${{ vars.NOINDEX }}
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           ICS_TOKEN: ${{ vars.ICS_TOKEN }}
+          LAUNCH_AT: ${{ vars.LAUNCH_AT }}
       - name: Passwortschutz (Testphase)
         run: node protect.mjs
         env:

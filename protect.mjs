@@ -47,4 +47,9 @@ if (r.status !== 0) { console.error('[protect] StatiCrypt fehlgeschlagen'); proc
 const nested = path.join(OUT, 'dist');
 await cp(nested, OUT, { recursive: true, force: true });
 await rm(nested, { recursive: true, force: true });
+// Die Countdown-Seite (/bald/ und ggf. die Startseite) bleibt ohne Passwort – sie ist für alle gedacht
+for (const rel of ['bald/index.html', 'index.html']) {
+  const src = path.join(SRC, rel);
+  if (existsSync(src) && readFileSync(src, 'utf8').includes('data-countdown')) { await cp(src, path.join(OUT, rel), { force: true }); console.log('[protect] offen gelassen:', rel); }
+}
 console.log('[protect] Fertig: dist-protected/ ist passwortgeschützt.');
