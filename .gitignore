@@ -11,3 +11,6 @@ video/hilfe/tmp/
 video/hilfe/*.log
 video/hilfe/music.wav
 video/hilfe/proben/
+video/insta/tmp/
+video/insta/out/
+video/insta/*.log

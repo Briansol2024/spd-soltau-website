@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Insta-Bühne</title>
+<style>
+/* Bühne 1080×1920 (Reels/Stories). Alle Bewegungen sind reine CSS-Animationen mit festen Zeiten – render.mjs pausiert sie und
+   springt Bild für Bild (document.getAnimations → currentTime), dadurch ist jedes Bild exakt und unabhängig vom Rechner. */
+@font-face{font-family:'TheSans SPD';font-weight:400;src:url('../fonts/thesans-regular.ttf')}
+@font-face{font-family:'TheSans SPD';font-weight:700;src:url('../fonts/thesans-bold.ttf')}
+@font-face{font-family:'TheSans SPD Versal';font-weight:800;src:url('../fonts/thesans-versal-extrabold.ttf')}
+:root{--rot:#E3000F;--schwarz:#0F0F0F;--weiss:#fff;--display:'TheSans SPD Versal','TheSans SPD',Arial,sans-serif;--body:'TheSans SPD',Arial,sans-serif;--spring:cubic-bezier(.2,.9,.25,1.25);--ease:cubic-bezier(.2,.7,.2,1)}
+*{box-sizing:border-box}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden}
+body{background:transparent;font-family:var(--body);color:#fff;position:relative}
+body.gruen{background:#00B140}
+body.rot{background:var(--rot)}
+.sr{position:absolute;left:-9999px}
+
+/* ---------- Intro: MOIN, SOLTAU! ---------- */
+.intro{position:absolute;inset:0;display:grid;place-items:center;text-align:center;animation:introOut .6s var(--ease) 3.4s both}
+.intro .eyebrow{font:700 34px/1 var(--body);letter-spacing:.34em;text-transform:uppercase;margin-bottom:26px;animation:fadeDown .7s var(--ease) 1.1s both}
+.intro h1{margin:0;font:800 250px/.86 var(--display);text-transform:uppercase;letter-spacing:-.01em}
+.intro h1 .ln{display:block;overflow:hidden;padding:.06em 0}
+.intro h1 i{display:inline-block;font-style:normal;animation:moinIn 1s var(--spring) both;transform-origin:50% 100%}
+.intro h1 i.rot{color:var(--rot)}
+.intro .tag{display:inline-block;margin-top:40px;background:var(--rot);color:#fff;font:800 30px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;padding:20px 28px 17px;animation:popIn .6s var(--spring) 1.5s both}
+@keyframes moinIn{0%{transform:translateY(115%) rotate(8deg);opacity:0}55%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes bang{0%,100%{transform:none}30%{transform:translateY(-14%) rotate(-8deg) scale(1.12)}60%{transform:translateY(3%) rotate(5deg) scale(.96)}80%{transform:translateY(-4%) rotate(-2deg)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes introOut{to{opacity:0;transform:scale(1.08);filter:blur(14px)}}
+.intro h1 i.bang{animation:moinIn 1s var(--spring) .8s both,bang .9s ease-in-out 1.9s}
+
+/* ---------- Outro / Schlusskarte ---------- */
+.outro{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.outro .box{display:grid;justify-items:center;gap:26px;animation:popIn .8s var(--spring) .1s both}
+.outro img{width:420px;height:auto;animation:fadeDown .8s var(--ease) .2s both}
+.outro .claim{font:800 96px/1 var(--display);text-transform:uppercase;letter-spacing:-.01em;animation:fadeDown .8s var(--ease) .6s both}
+.outro .claim b{color:var(--rot)}
+body.rot .outro .claim b{color:var(--schwarz)}
+.outro .url{font:800 70px/1 var(--display);letter-spacing:.02em;background:#fff;color:var(--rot);padding:22px 34px 18px;animation:popIn .7s var(--spring) 1s both}
+.outro .insta{display:flex;align-items:center;gap:16px;font:700 38px/1 var(--body);letter-spacing:.08em;animation:fadeDown .8s var(--ease) 1.4s both}
+.outro .insta svg{width:44px;height:44px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.outro .cta{font:700 34px/1.3 var(--body);opacity:.9;animation:fadeDown .8s var(--ease) 1.8s both;max-width:760px}
+.outro .strich{width:0;height:10px;background:var(--rot);animation:strich .9s var(--ease) 1.2s both}
+body.rot .outro .strich{background:#fff}
+@keyframes strich{to{width:360px}}
+
+/* ---------- Bauchbinde (unten links) ---------- */
+.binde{position:absolute;left:0;bottom:440px;display:grid;justify-items:start}
+.binde .name{position:relative;overflow:hidden;background:var(--rot);color:#fff;font:800 78px/1 var(--display);text-transform:uppercase;letter-spacing:-.005em;padding:26px 44px 20px 60px;animation:bindeIn .7s var(--spring) .2s both,bindeOut .5s var(--ease) 5.3s both}
+.binde .rolle{background:var(--schwarz);color:#fff;font:700 38px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;padding:20px 40px 18px 60px;animation:bindeIn .7s var(--spring) .38s both,bindeOut .5s var(--ease) 5.2s both}
+.binde .kante{width:14px;height:100%;position:absolute;left:0;top:0;background:#fff;animation:kante .5s var(--ease) .5s both}
+@keyframes bindeIn{from{transform:translateX(-110%)}to{transform:none}}
+@keyframes bindeOut{to{transform:translateX(-110%)}}
+@keyframes kante{from{transform:scaleY(0)}to{transform:none}}
+
+/* ---------- Wort-Popper (neben der Person) ---------- */
+.wort{position:absolute;top:0;bottom:0;width:640px;display:grid;align-content:center;gap:10px;padding:0 40px}
+.wort.links{left:0;justify-items:start;text-align:left}
+.wort.rechts{right:100px;justify-items:end;text-align:right}
+.wort .z{display:inline-block;font:800 140px/.92 var(--display);text-transform:uppercase;letter-spacing:-.015em;color:#fff;animation:wortIn .6s var(--spring) both,wortOut .45s var(--ease) 2.55s both}
+.wort .z.rot{color:var(--rot);text-shadow:none}
+.wort .z.box{background:var(--rot);color:#fff;padding:14px 26px 6px;text-shadow:none}
+.wort .z.klein{font-size:64px;letter-spacing:.08em;font-family:var(--body);font-weight:700;color:#fff}
+.wort .z.mittel{font-size:96px}
+.wort .unter{height:14px;background:var(--rot);width:0;animation:unter .5s var(--ease) .45s both,wortOut .45s var(--ease) 2.55s both}
+.wort.rechts .unter{justify-self:end}
+@keyframes wortIn{from{opacity:0;transform:translateY(60px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes wortOut{to{opacity:0;transform:translateY(-40px) scale(.96);filter:blur(8px)}}
+@keyframes unter{to{width:260px}}
+</style>
+</head>
+<body>
+<script>
+// Aufbau je nach Adresse: ?clip=intro|outro|binde|wort  &bg=gruen|rot|keins  &name=…&rolle=…  &text=Zeile|Zeile  &seite=links|rechts
+const q = new URLSearchParams(location.search);
+const clip = q.get('clip') || 'intro';
+const bg = q.get('bg') || 'gruen';
+if (bg !== 'keins') document.body.classList.add(bg);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const letters = (word, delay0, step, rotIdx = []) => [...word].map((ch, i) => `<i class="${rotIdx.includes(i) ? 'rot' : ''}${i === word.length - 1 && /[!,]/.test(ch) && clip === 'intro' && word.endsWith('!') ? ' bang' : ''}" style="animation-delay:${(delay0 + i * step).toFixed(2)}s${i === word.length - 1 && word.endsWith('!') ? ',1.9s' : ''}">${esc(ch)}</i>`).join('');
+let html = '';
+if (clip === 'intro') {
+  html = `<div class="intro"><div>
+    <p class="eyebrow">Die neue spd-soltau.de</p>
+    <h1 aria-label="Moin, Soltau!"><span class="ln">${letters('Moin,', .1, .07, [4])}</span><span class="ln">${letters('Soltau!', .5, .07, [6])}</span></h1>
+    <span class="tag">${esc(q.get('text') || 'Aus Liebe zu Soltau')}</span>
+  </div></div>`;
+} else if (clip === 'outro') {
+  html = `<div class="outro"><div class="box">
+    <img src="../../dist/assets/images/logo-spd-soltau-weiss.png" alt="SPD Soltau">
+    <p class="claim">Aus Liebe<br>zu <b>Soltau</b></p>
+    <span class="strich"></span>
+    <span class="url">spd-soltau.de</span>
+    <span class="insta"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg>@spd_soltau</span>
+    ${q.get('text') ? `<p class="cta">${esc(q.get('text'))}</p>` : ''}
+  </div></div>`;
+} else if (clip === 'binde') {
+  html = `<div class="binde"><span class="name">${esc(q.get('name') || 'Vorname Name')}<span class="kante"></span></span><span class="rolle">${esc(q.get('rolle') || 'SPD Soltau')}</span></div>`;
+} else if (clip === 'wort') {
+  const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
+  const zeilen = (q.get('text') || 'Neue|Website').split('|');
+  html = `<div class="wort ${seite}">${zeilen.map((z, i) => { const m = z.match(/^([*#_-])?(.*)$/); const cls = { '*': 'rot', '#': 'box', '_': 'klein', '-': 'mittel' }[m[1]] || ''; return `<span class="z ${cls}" style="animation-delay:${(.1 + i * .16).toFixed(2)}s,2.55s">${esc(m[2])}</span>`; }).join('')}<span class="unter"></span></div>`;
+}
+document.body.insertAdjacentHTML('beforeend', html);
+// Bild-für-Bild-Steuerung für render.mjs
+window.__anims = null;
+window.seek = t => {
+  if (!window.__anims) { window.__anims = document.getAnimations(); window.__anims.forEach(a => a.pause()); }
+  window.__anims.forEach(a => { a.currentTime = t; });
+};
+</script>
+</body>
+</html>
