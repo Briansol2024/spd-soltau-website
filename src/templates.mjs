@@ -138,7 +138,7 @@ ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new D
 const pageEnd = () => `
 <div class="wrap section page-end">
   <div class="cols boxes end-boxes">
-    <a class="box foto" href="${url('/ortsverein/')}">${motiv('team')}
+    <a class="box foto" href="${url('/ortsverein/')}">${motiv('vorstand')}
       <span class="tag">Ortsverein</span>
       <h3>Unser Vorstand</h3>
       <p class="small">Wer den Ortsverein führt, wo wir uns treffen und wie Sie uns erreichen.</p>
@@ -179,7 +179,7 @@ const pageEnd = () => `
 
 // Symbolbilder als Abschnitts-Hintergrund (Wunsch Vorsitz: nicht nur Rot/Schwarz/Weiß). Eigene Fotos aus Beiträgen und dem Drohnenflug,
 // liegen unter src/images/motiv-*.jpg; der Abschnitt bekommt die Klasse „foto“ (dunkler Verlauf) oder „foto foto-rot“ (SPD-Rot getönt).
-const MOTIVE = ['drohne', 'infostand', 'kirche', 'rathaus', 'reithalle', 'schule', 'team', 'wirtschaft', 'altesrathaus', 'rathausnacht', 'marktstrasse', 'hagen', 'bahnhofsgebaeude', 'heide', 'allee', 'zeitungen'];
+const MOTIVE = ['drohne', 'infostand', 'kirche', 'rathaus', 'reithalle', 'schule', 'vorstand', 'wirtschaft', 'altesrathaus', 'rathausnacht', 'marktstrasse', 'hagen', 'bahnhofsgebaeude', 'heide', 'allee', 'zeitungen'];
 // Fremde Fotos (Wikimedia Commons, CC BY-SA 4.0) – Nennung unter Impressum → Bildnachweise
 const MOTIV_CREDITS = [
   ['altesrathaus', 'Altes Rathaus Soltau', 'Tournasol7', 'https://commons.wikimedia.org/wiki/File:Old_town_hall_of_Soltau_(2).jpg'],
@@ -452,7 +452,7 @@ export function ortsvereinPage(d) {
   const people = d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, photo: v.photo, text: '' }));
   const chairs = byRole(people).filter(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
   return teamPage({
-    tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand', foto: 'team',
+    tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand', foto: 'vorstand',
     lead: 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.',
     stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], ['16 + 1', 'Ortschaften und Kernstadt'], ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(d.people.length), 'Kandidatinnen und Kandidaten 2026']],
     people, teamTitle: 'Vorstand', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
@@ -716,7 +716,7 @@ export function stadtratPage(d) {
   return `
 <section>
   ${pageHead('Kommunalwahl 2026', 'Unsere 11<br>im Stadtrat', 'Am 13. September haben die Soltauerinnen und Soltauer gewählt. 9.268 Stimmen und 30,8 Prozent machen die SPD zum ersten Mal zur stärksten Fraktion im Rat – mit elf von 34 Sitzen. Danke für dieses Vertrauen. Die neue Wahlperiode beginnt am 1. November 2026.', 'rathausnacht')}
-  <div class="band-rot foto foto-rot">${motiv('team')}<div class="wrap" style="padding-block:40px">
+  <div class="band-rot foto foto-rot">${motiv('vorstand')}<div class="wrap" style="padding-block:40px">
     <div class="stats">
       <div class="stat"><b>9.268</b><span>Stimmen für die SPD</span></div>
       <div class="stat"><b>30,8 %</b><span>Stärkste Kraft in Soltau</span></div>
