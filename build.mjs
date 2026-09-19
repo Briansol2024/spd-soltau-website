@@ -6,8 +6,9 @@
 //   BASE_PATH       z. B. /spd-soltau-website, wenn die Seite unter einem Unterpfad liegt (GitHub Pages ohne eigene Domain)
 //   NOINDEX=1       Suchmaschinen aussperren (Testphase)
 //   HERO_IMAGE      URL des Hero-Fotos, SITE_EMAIL Kontaktadresse, PROGRAMM_PDF Link zum Wahlprogramm
-//   LAUNCH_AT       Startzeitpunkt der neuen Website (ISO mit Zeitzone, z. B. 2026-09-22T18:00:00+02:00): die Countdown-Seite /bald/
-//                   zeigt darauf hin; liegt der Zeitpunkt beim Bauen noch in der Zukunft, ist sie zusätzlich die Startseite
+//   LAUNCH_AT       Startzeitpunkt der neuen Website (ISO mit Zeitzone, z. B. 2026-09-22T18:00:00+02:00). Davor: Countdown-Seite als Startseite,
+//                   echte Startseite unter /start/, Passwort und NOINDEX gelten. Ab dem Zeitpunkt (der 30-Minuten-Build erledigt das): echte Startseite,
+//                   kein Passwort, kein NOINDEX – und WELCOME_HOURS lang (Standard 24) begrüßt die Countdown-Seite (Null + Konfetti) jeden Erstbesucher
 //   CNAME           eigene Domain für GitHub Pages (schreibt dist/CNAME)
 //   VAPID_PUBLIC_KEY öffentlicher Schlüssel für Push-Benachrichtigungen (siehe push/setup.mjs)
 
@@ -57,7 +58,12 @@ const site = {
   heroVideoId: env.HERO_VIDEO_ID === '' ? '' : (env.HERO_VIDEO_ID || 'e83cbb_ce49e360e15046c897e24239d59c4de6'),
   heroPoster: '',
 };
-const noindex = env.NOINDEX === '1';
+// Startzeitpunkt: davor Vorschau (Passwort, NOINDEX, Countdown vorn), ab dann offen – dazwischen 24 h Willkommensfenster
+const LAUNCH_AT = env.LAUNCH_AT || '2026-09-22T18:00:00+02:00';
+const launchTs = Date.parse(LAUNCH_AT);
+const launched = !!env.LAUNCH_AT && launchTs <= Date.now();
+const welcomeEnd = launchTs + Number(env.WELCOME_HOURS || 24) * 3600000;
+const noindex = env.NOINDEX === '1' && !launched;
 // Geheimnis im Dateinamen des internen Kalender-Abos (ICS_TOKEN in .env, sonst abgeleitet)
 const icsToken = env.ICS_TOKEN || createHash('sha256').update('spd-ics-' + (env.WIX_CLIENT_ID || '')).digest('hex').slice(0, 20);
 
@@ -289,7 +295,7 @@ async function main() {
     write(rel, T.layout({ site, path: pth, title, description, content, clientData, noindex, ...extra }));
 
   const pages = [
-    ['index.html', '/', 'Start', '', T.startPage(d)],
+    ['index.html', '/', 'Start', '', T.startPage(d), { welcome: env.LAUNCH_AT && Date.now() < welcomeEnd ? [launchTs, welcomeEnd] : null }],
     ['aktuelles/index.html', '/aktuelles/', 'Aktuelles', 'Neues aus Rat und Ortsverein: Berichte aus der Fraktion, Pressemitteilungen und Einblicke in unsere Arbeit.', T.aktuellesPage(d)],
     ['termine/index.html', '/termine/', 'Termine', 'Ratssitzungen, Fraktions- und Vorstandssitzungen, Infostände – wann und wo wir uns treffen.', T.terminePage(d)],
     ['stadtrat-2026/index.html', '/stadtrat-2026/', 'Unsere 11 im Stadtrat', 'Kommunalwahl 2026: Die elf gewählten SPD-Ratsmitglieder für Soltau, die Sitzverteilung im neuen Rat und wer nachrückt.', T.stadtratPage(d)],
@@ -306,11 +312,12 @@ async function main() {
     ['datenschutz/index.html', '/datenschutz/', 'Datenschutz', 'Datenschutzhinweise der Website des SPD Ortsvereins Soltau.', T.datenschutzPage(d)],
     ['transparenz/index.html', '/transparenz/', 'Transparenz', 'Transparenzbekanntmachung zur Kommunalwahl 2026.', T.transparenzPage(d)],
   ];
-  for (const [rel, pth, title, desc, html] of pages) await page(rel, pth, title, desc, html);
+  for (const [rel, pth, title, desc, html, extra] of pages) await page(rel, pth, title, desc, html, extra || {});
   // Countdown-Seite: immer unter /bald/ (ohne Passwort); bis LAUNCH_AT außerdem als Startseite (der halbstündliche Build löst sie ab)
-  const launchAt = env.LAUNCH_AT || '2026-09-22T18:00:00+02:00';
+  const launchAt = LAUNCH_AT;
   await write('bald/index.html', countdownPage(d, { launchAt }));
-  if (env.LAUNCH_AT && Date.parse(env.LAUNCH_AT) > Date.now()) {
+  if (launched) console.log('[build] Start erreicht (' + LAUNCH_AT + ') – echte Startseite' + (Date.now() < welcomeEnd ? ', Willkommensfenster bis ' + new Date(welcomeEnd).toISOString() : ''));
+  if (env.LAUNCH_AT && !launched) {
     // Echte Startseite bleibt unter /start/ erreichbar (mit Passwort) – der Knopf „Anmelden“ auf dem Countdown führt dorthin
     await page('start/index.html', '/start/', 'Start', '', T.startPage(d), { noindex: true });
     await write('index.html', countdownPage(d, { launchAt, atRoot: true }));

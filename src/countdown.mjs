@@ -130,7 +130,9 @@ body.live .cd-box::before{background:#fff}
 </div>
 <script>
 (() => {
-  const ZIEL = Date.parse(document.body.dataset.countdown);
+  const WILLKOMMEN = new URLSearchParams(location.search).has('willkommen'); // Erstbesuch nach dem Start: Null + Konfetti, dann zur Website
+  const ZIEL = WILLKOMMEN ? Date.now() - 1 : Date.parse(document.body.dataset.countdown);
+  const merken = () => { try { localStorage.setItem('spd-willkommen', '1'); } catch (e) { /* egal */ } };
   const START = ZIEL - 3 * 86400000; // Balken: die letzten drei Tage
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = s => document.querySelector(s);
@@ -148,13 +150,13 @@ body.live .cd-box::before{background:#fff}
     if (!rest && !live) online();
   };
   const online = () => {
-    live = true; document.body.classList.add('live');
+    live = true; document.body.classList.add('live'); merken();
     $('#tag').textContent = 'Jetzt online';
     $('#sub').innerHTML = 'Die neue Website ist <b>da</b>.';
-    $('#wann').textContent = document.body.hasAttribute('data-root') ? 'Einen Moment – die Seite wird gerade aufgeschaltet …' : 'Viel Spaß beim Entdecken!';
+    $('#wann').textContent = document.body.hasAttribute('data-root') ? 'Einen Moment – die Seite wird gerade aufgeschaltet …' : WILLKOMMEN ? 'Seit ${esc(datum)}, ${esc(uhr)} Uhr online – viel Spaß beim Entdecken!' : 'Viel Spaß beim Entdecken!';
     $('#go').hidden = false; $('#note').textContent = '';
     if (!REDUCED) konfetti();
-    if (document.body.hasAttribute('data-root')) {
+    if (document.body.hasAttribute('data-root') && !WILLKOMMEN) {
       // Startseite ist noch der Countdown: nachsehen, ob der Build schon durch ist, dann neu laden
       $('#go').addEventListener('click', e => { e.preventDefault(); location.reload(); });
       const pruefen = async () => { try { const t = await (await fetch(location.pathname, { cache: 'no-store' })).text(); if (!t.includes('data-countdown')) { location.reload(); return; } } catch (e) { /* später wieder */ } setTimeout(pruefen, 20000); };

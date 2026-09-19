@@ -7,7 +7,7 @@ const NAV = [
   ['/ziele/', 'Ziele'], ['/mitmachen/', 'Mitmachen'], ['/kontakt/', 'Kontakt'],
 ];
 
-export function layout({ site, path, title, description, content, clientData = {}, noindex = false, ogImage = null }) {
+export function layout({ site, path, title, description, content, clientData = {}, noindex = false, ogImage = null, welcome = null }) {
   const fullTitle = path === '/' ? `${site.name} – ${site.claim}` : `${title} – ${site.name}`;
   const canonical = site.url ? `${site.url}${path}` : '';
   return `<!doctype html>
@@ -25,6 +25,7 @@ ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ''}
 ${canonical ? `<meta property="og:url" content="${esc(canonical)}">` : ''}
 ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}">` : ''}
 <meta name="theme-color" content="#E3000F">
+${welcome ? `<script>(function(){try{var n=Date.now();if(n>=${welcome[0]}&&n<${welcome[1]}&&!localStorage.getItem('spd-willkommen')){location.replace('${url('/bald/')}?willkommen=1')}}catch(e){}})()</script>` : ''}
 <link rel="icon" href="${url('/assets/favicon.svg')}" type="image/svg+xml">
 <link rel="manifest" href="${url('/manifest.webmanifest')}">
 <link rel="apple-touch-icon" href="${url('/assets/icons/apple-touch-icon.png')}">

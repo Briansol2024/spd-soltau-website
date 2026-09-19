@@ -17,7 +17,10 @@ if (!process.env.PREVIEW_PASSWORD && existsSync(path.join(__dirname, '.env'))) {
   const m = readFileSync(path.join(__dirname, '.env'), 'utf8').match(/^\s*PREVIEW_PASSWORD\s*=\s*(.*?)\s*$/m);
   if (m) process.env.PREVIEW_PASSWORD = m[1].replace(/^"(.*)"$/, '$1');
 }
-const pw = process.env.PREVIEW_PASSWORD;
+// Ab dem Startzeitpunkt (LAUNCH_AT, siehe build.mjs) ist die Seite offen – auch wenn das Passwort noch gesetzt ist
+const gestartet = process.env.LAUNCH_AT && Date.parse(process.env.LAUNCH_AT) <= Date.now();
+const pw = gestartet ? '' : process.env.PREVIEW_PASSWORD;
+if (gestartet) console.log('[protect] Startzeitpunkt erreicht – kein Passwortschutz.');
 
 await rm(OUT, { recursive: true, force: true });
 if (!pw) {
