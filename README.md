@@ -233,6 +233,13 @@ nicht mehr existierende Microsoft-365-Postfach und wird mit dem neuen Postfach e
 
 - Der Aufruf zur Landrats-Stichwahl (Sebastian Zinke) erscheint automatisch nur bis einschließlich 27.09.2026 (`STICHWAHL.datum`).
 
+## Gestaltung: Symbolbilder statt Farbbänder
+
+Wunsch des Vorsitzes (19.09.2026): nicht durchgehend Rot/Schwarz/Weiß, sondern abschnittsweise eigene Fotos als Hintergrund. `motiv(name)` in
+`src/templates.mjs` legt ein Bild aus `src/images/motiv-*.jpg` (1600 × 900, eigene Fotos aus Beiträgen und dem Drohnenflug) hinter einen Abschnitt;
+die Klasse `foto` sorgt für den dunklen Verlauf, `foto foto-rot` für die SPD-rote Tönung (Zahlenbänder). Jeder Seitenkopf hat sein Motiv (`pageHead(…, foto)`),
+die drei Kästen am Seitenende sind Fotokästen, das Newsletter-Band ist hell. Neue Motive: Bild nach `src/images/motiv-<name>.jpg`, Name in `MOTIVE` eintragen.
+
 ## Rechtliches
 
 Impressum (§ 5 DDG, § 18 MStV), Datenschutzerklärung (Hosting GitHub Pages, Wix, Formulare, Newsletter, Mitgliederbereich inkl. Art. 9, Push, reCAPTCHA, Gerätespeicher,

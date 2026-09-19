@@ -138,27 +138,27 @@ ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new D
 const pageEnd = () => `
 <div class="wrap section page-end">
   <div class="cols boxes end-boxes">
-    <a class="box box-schwarz" href="${url('/ortsverein/')}">
+    <a class="box foto" href="${url('/ortsverein/')}">${motiv('team')}
       <span class="tag">Ortsverein</span>
       <h3>Unser Vorstand</h3>
       <p class="small">Wer den Ortsverein führt, wo wir uns treffen und wie Sie uns erreichen.</p>
       <span class="btn btn-rot">Vorstand kennenlernen</span>
     </a>
-    <a class="box box-rot" href="${url('/fraktion/')}">
-      <span class="tag tag-schwarz">Stadtrat</span>
+    <a class="box foto" href="${url('/fraktion/')}">${motiv('rathaus')}
+      <span class="tag">Stadtrat</span>
       <h3>Unsere Ratsfraktion</h3>
       <p class="small">Die SPD im Rat der Stadt Soltau: Ratsmitglieder, Themen, Anträge.</p>
-      <span class="btn btn-weiss">Zur Fraktion</span>
+      <span class="btn btn-rot">Zur Fraktion</span>
     </a>
-    <a class="box" href="${url('/roter-bahnhof/')}">
+    <a class="box foto" href="${url('/roter-bahnhof/')}">${motiv('bahnhof')}
       <span class="tag">Treffpunkt</span>
       <h3>Roter Bahnhof buchen</h3>
       <p class="small">Unser Treffpunkt am Bahnhof steht auch Vereinen und Gruppen offen. Termin anfragen – wir melden uns.</p>
-      <span class="btn btn-schwarz">Anfrage stellen</span>
+      <span class="btn btn-rot">Anfrage stellen</span>
     </a>
   </div>
 </div>
-<div class="band-rot">
+<div class="band-grau band-newsletter">
   <div class="wrap section newsletter">
     <div style="display:grid;gap:12px">
       <h2 class="title">Nichts verpassen.</h2>
@@ -169,7 +169,7 @@ const pageEnd = () => `
         <label for="nl-mail" style="position:absolute;left:-9999px">E-Mail-Adresse</label>
         <input id="nl-mail" name="email" type="email" required placeholder="E-Mail-Adresse" autocomplete="email">
         <input type="hidden" name="typ" value="anmeldung"><input type="hidden" name="quelle" value="startseite">
-        <button class="btn btn-schwarz" type="submit">Anmelden</button>
+        <button class="btn btn-rot" type="submit">Anmelden</button>
       </div>
       <p class="note" hidden></p>
       <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung über den Link in Ihrer E-Mail (auch im Spam-Ordner nachsehen).</p>
@@ -177,8 +177,12 @@ const pageEnd = () => `
   </div>
 </div>`;
 
-const pageHead = (tag, h1, lead) => `
-  <div class="page-head"><div class="wrap">
+// Symbolbilder als Abschnitts-Hintergrund (Wunsch Vorsitz: nicht nur Rot/Schwarz/Weiß). Eigene Fotos aus Beiträgen und dem Drohnenflug,
+// liegen unter src/images/motiv-*.jpg; der Abschnitt bekommt die Klasse „foto“ (dunkler Verlauf) oder „foto foto-rot“ (SPD-Rot getönt).
+const MOTIVE = ['drohne', 'infostand', 'kirche', 'poststrasse', 'rathaus', 'reithalle', 'schule', 'team', 'wirtschaft'];
+const motiv = (name, eager = false) => `<img class="foto-bg" src="${url(name === 'bahnhof' ? '/assets/images/luftbild-roter-bahnhof.jpg' : `/assets/images/motiv-${MOTIVE.includes(name) ? name : 'drohne'}.jpg`)}" alt="" width="1600" height="900" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
+const pageHead = (tag, h1, lead, foto = 'drohne') => `
+  <div class="page-head foto">${motiv(foto, true)}<div class="wrap">
     <span class="tag">${esc(tag)}</span>
     <h1 class="title">${h1}</h1>
     ${lead ? `<p class="lead">${esc(lead)}</p>` : ''}
@@ -214,7 +218,7 @@ export function startPage(d) {
   </div>
   <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}"><div class="ticker-track" id="ticker">${band}</div></div>
 
-  ${d.stichwahl ? `<div class="band-schwarz zinke-band"><div class="wrap section zinke">
+  ${d.stichwahl ? `<div class="band-schwarz zinke-band foto">${motiv('reithalle')}<div class="wrap section zinke">
     <a class="zinke-banner" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener"><img src="${url('/assets/images/zinke-banner.jpg')}" alt="Keine halben Sachen. Ein Landkreis, ein Landrat – Zinke, Heidekreis" width="1536" height="768" loading="lazy" decoding="async"></a>
     <div class="zinke-text">
       <div>
@@ -238,7 +242,7 @@ export function startPage(d) {
     ${d.stadt ? `<p class="quick-stand">Aus Rat &amp; Rathaus: automatisch aus den öffentlichen Seiten der Stadt Soltau · Stand ${esc(standText(d.stadt.stand))}</p>` : ''}
   </div>
 
-  <div class="band-rot">
+  <div class="band-rot foto foto-rot">${motiv('drohne')}
     <div class="wrap" style="padding-block:40px">
       <span class="tag tag-schwarz" style="margin-bottom:18px">Soltau in Zahlen</span>
       <div class="stats">
@@ -305,7 +309,7 @@ export function ratRathausPage(d) {
   const leer = t => `<p class="muted small">${t}</p>`;
   return `
 <section>
-  ${pageHead('Automatisch aktuell', 'Aus Rat &amp;<br>Rathaus', 'Was die Stadt Soltau öffentlich bekannt gibt – Sitzungen, Amtsblatt, Meldungen aus dem Rathaus und Verfahren, bei denen Sie mitreden können. Gesammelt an einem Ort, alle 30 Minuten neu.')}
+  ${pageHead('Automatisch aktuell', 'Aus Rat &amp;<br>Rathaus', 'Was die Stadt Soltau öffentlich bekannt gibt – Sitzungen, Amtsblatt, Meldungen aus dem Rathaus und Verfahren, bei denen Sie mitreden können. Gesammelt an einem Ort, alle 30 Minuten neu.', 'rathaus')}
   <div class="wrap section rr-page">
     ${s.mitreden.length ? `<div class="rr-mitreden">${RR_ICON.mitreden}<div><span class="tag">Jetzt mitreden</span>${s.mitreden.map(m => `<p><b>${esc(m.titel)}</b> – ${esc(m.text)}${m.bis ? ` <a class="rr-frist" href="${esc(m.url)}" target="_blank" rel="noopener">Stellung nehmen · bis ${esc(kurz(m.bis))}</a>` : ''}</p>`).join('')}</div></div>` : ''}
     <div class="rr-cols">
@@ -337,7 +341,7 @@ export function aktuellesPage(d) {
   const labels = { Fraktion: 'Aus der Fraktion', Ortsverein: 'Ortsverein', Pressemitteilung: 'Presse' };
   return `
 <section>
-  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein')}
+  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein', 'poststrasse')}
   <div class="wrap section">
     <div class="filter" role="group" aria-label="Beiträge filtern">
       <button class="chip" data-cat="alle" aria-pressed="true">Alle</button>
@@ -359,7 +363,7 @@ export function beitragPage(d, n) {
     ${n.teaser ? `<p class="lead">${esc(n.teaser)}</p>` : ''}
     ${photo(n.img, n.imgLabel || n.title)}
     <div class="body">${n.bodyHtml || ''}</div>
-    <div class="box box-schwarz"><b style="font:800 26px/1 var(--display);text-transform:uppercase;color:#fff">Fragen zu diesem Beitrag?</b><p class="small">Schreiben Sie uns – wir antworten in der Regel innerhalb einer Woche.</p><a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Anliegen senden</a></div>
+    <div class="box foto">${motiv('kirche')}<b style="font:800 26px/1 var(--display);text-transform:uppercase;color:#fff">Fragen zu diesem Beitrag?</b><p class="small">Schreiben Sie uns – wir antworten in der Regel innerhalb einer Woche.</p><a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Anliegen senden</a></div>
   </div>
 </section>`;
 }
@@ -367,13 +371,13 @@ export function beitragPage(d, n) {
 export function terminePage(d) {
   return `
 <section>
-  ${pageHead('Termine', 'Wann und wo<br>wir uns treffen', 'Ratssitzungen sind öffentlich – kommen Sie vorbei. Fraktions- und Vorstandssitzungen sind für Mitglieder offen.')}
+  ${pageHead('Termine', 'Wann und wo<br>wir uns treffen', 'Ratssitzungen sind öffentlich – kommen Sie vorbei. Fraktions- und Vorstandssitzungen sind für Mitglieder offen.', 'reithalle')}
   <div class="wrap section split">
     <div>
       <label class="toggle"><input type="checkbox" id="only-public"> Nur öffentliche Termine</label>
       <div id="all-events">${eventsGrouped(d.events, true)}</div>
     </div>
-    <div class="box box-schwarz">
+    <div class="box foto">${motiv('reithalle')}
       <h3>Orte</h3>
       <dl>
         <dt>Roter Bahnhof</dt><dd>Am Bahnhof 1t – Treffpunkt des Ortsvereins</dd>
@@ -389,11 +393,11 @@ export function terminePage(d) {
 }
 
 // Ortsverein und Fraktion haben dieselbe Struktur (Wunsch Vorsitz): Kopf → Zahlenband → Team nach Funktion → zwei Kästen → Beiträge
-function teamPage({ tag, h1, lead, stats, people, teamTitle, teamHint, boxA, boxB, news, newsTitle }) {
+function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, boxA, boxB, news, newsTitle }) {
   return `
 <section>
-  ${pageHead(tag, h1, lead)}
-  <div class="band-rot"><div class="wrap" style="padding-block:40px">
+  ${pageHead(tag, h1, lead, foto)}
+  <div class="band-rot foto foto-rot">${motiv('drohne')}<div class="wrap" style="padding-block:40px">
     <div class="stats">${stats.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>
   </div></div>
   <div class="wrap section">
@@ -403,7 +407,7 @@ function teamPage({ tag, h1, lead, stats, people, teamTitle, teamHint, boxA, box
   <div class="wrap section" style="padding-top:0">
     <div class="cols cols-2">${boxA}${boxB}</div>
   </div>
-  <div class="band-schwarz"><div class="wrap section">
+  <div class="band-schwarz foto">${motiv('kirche')}<div class="wrap section">
     <div class="section-head"><h2 class="title">${newsTitle}</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
     <div class="news">${news.map(newsCard).join('')}</div>
   </div></div>
@@ -413,11 +417,11 @@ function teamPage({ tag, h1, lead, stats, people, teamTitle, teamHint, boxA, box
 export function fraktionPage(d) {
   const chair = byRole(d.fraktion).find(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
   return teamPage({
-    tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat',
+    tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat', foto: 'poststrasse',
     lead: 'Seit dem 13. September 2026 erstmals stärkste Fraktion im Rat der Stadt Soltau. Wir erklären Entscheidungen, bleiben ansprechbar und setzen den 10-Punkte-Plan um.',
     stats: [['Nr. 1', 'Erstmals stärkste Fraktion'], ['11', 'Gewählte Ratsmitglieder'], ['1. Nov.', 'Beginn der Wahlperiode 2026–31'], ['10', 'Punkte für Soltau']],
     people: d.fraktion, teamTitle: 'Ratsmitglieder', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
-    boxA: `<div class="box box-schwarz">
+    boxA: `<div class="box foto">${motiv('rathaus')}
         <h3>Fraktionsvorsitz</h3>
         <p><b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(chair ? chair.name : 'Birhat Kaçar')}</b><br><span class="small">${esc(chair ? chair.role : 'Fraktionsvorsitzender, stellv. Bürgermeister')}</span></p>
         <dl><dt>Sitzungen</dt><dd>Vor jeder Ratssitzung, Altes Rathaus</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
@@ -437,11 +441,11 @@ export function ortsvereinPage(d) {
   const people = d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, photo: v.photo, text: '' }));
   const chairs = byRole(people).filter(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
   return teamPage({
-    tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand',
+    tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand', foto: 'team',
     lead: 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.',
     stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], ['16 + 1', 'Ortschaften und Kernstadt'], ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(d.people.length), 'Kandidatinnen und Kandidaten 2026']],
     people, teamTitle: 'Vorstand', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
-    boxA: `<div class="box box-schwarz">
+    boxA: `<div class="box foto">${motiv('infostand')}
         <h3>Vorsitz</h3>
         <p>${chairs.map(c => `<b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(c.name)}</b><br><span class="small">${esc(c.role)}</span>`).join('<br><br>') || '<span class="small">Wird eingetragen.</span>'}</p>
         <dl><dt>Treffpunkt</dt><dd>Roter Bahnhof, Am Bahnhof 1t</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
@@ -459,9 +463,9 @@ export function ortsvereinPage(d) {
 export function zielePage(d) {
   return `
 <section>
-  ${pageHead('Unsere Ziele', 'Der 10-Punkte-<br>Plan', 'Soltau kann mehr. Dafür braucht es klare Prioritäten, verlässliche Entscheidungen und den Mut, wichtige Projekte endlich umzusetzen.')}
+  ${pageHead('Unsere Ziele', 'Der 10-Punkte-<br>Plan', 'Soltau kann mehr. Dafür braucht es klare Prioritäten, verlässliche Entscheidungen und den Mut, wichtige Projekte endlich umzusetzen.', 'schule')}
   <div class="wrap section za-list" id="ziele-list">${zielAccordionFotos(d.ziele)}</div>
-  <div class="band-rot"><div class="wrap section versprechen">
+  <div class="band-rot foto foto-rot">${motiv('wirtschaft')}<div class="wrap section versprechen">
     <div>
       <span class="tag tag-schwarz">Unser Versprechen</span>
       <h2 class="title">Entscheiden.<br>Finanzieren.<br>Umsetzen.</h2>
@@ -477,7 +481,7 @@ export function zielePage(d) {
 export function mitmachenPage(d) {
   return `
 <section>
-  ${pageHead('Mitmachen', 'Soltau<br>mitgestalten', 'Ob Mitgliedschaft, Newsletter oder ein Nachmittag am Infostand – jede Unterstützung zählt.')}
+  ${pageHead('Mitmachen', 'Soltau<br>mitgestalten', 'Ob Mitgliedschaft, Newsletter oder ein Nachmittag am Infostand – jede Unterstützung zählt.', 'infostand')}
   <div class="wrap section split">
     <form class="form wix-form" id="form-mitglied" data-collection="Anfragen" novalidate>
       <input type="hidden" name="typ" value="mitglied">
@@ -514,7 +518,7 @@ export function mitmachenPage(d) {
           <li><b>Veranstaltungen</b><span class="small muted">Auf- und Abbau</span></li>
         </ul>
       </div>
-      <div class="box box-schwarz">
+      <div class="box foto">${motiv('infostand')}
         <h3>Spenden</h3>
         <p class="small">Unsere Arbeit finanziert sich aus Mitgliedsbeiträgen und Spenden. Spendenbescheinigungen stellen wir gern aus.</p>
       </div>
@@ -526,7 +530,7 @@ export function mitmachenPage(d) {
 export function kontaktPage(d) {
   return `
 <section>
-  ${pageHead('Kontakt', 'Ihr<br>Anliegen', 'Ein Schlagloch in Ihrer Straße, eine Frage zu einer Ratsentscheidung, Kritik oder Lob – wir antworten.')}
+  ${pageHead('Kontakt', 'Ihr<br>Anliegen', 'Ein Schlagloch in Ihrer Straße, eine Frage zu einer Ratsentscheidung, Kritik oder Lob – wir antworten.', 'bahnhof')}
   <div class="wrap section split">
     <form class="form wix-form" id="form-kontakt" data-collection="Anfragen" novalidate>
       <input type="hidden" name="typ" value="kontakt"><input type="hidden" name="thema" id="k-thema" value="Straßen &amp; Verkehr">
@@ -547,7 +551,7 @@ export function kontaktPage(d) {
       <p class="form-ok" hidden>Danke! Ihr Anliegen ist angekommen. Wir melden uns – in der Regel innerhalb einer Woche.</p>
     </form>
     <div style="display:grid;gap:20px">
-      <div class="box box-schwarz">
+      <div class="box foto">${motiv('rathaus')}
         <h3>SPD Ortsverein Soltau</h3>
         <dl>
           <dt>Adresse</dt><dd>Am Bahnhof 1t<br>29614 Soltau</dd>
@@ -576,7 +580,7 @@ const legal = (tag, h1, html) => `
 export function newsletterPage(d) {
   return `
 <section>
-  ${pageHead('Newsletter', 'Nichts<br>verpassen', 'Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.')}
+  ${pageHead('Newsletter', 'Nichts<br>verpassen', 'Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.', 'kirche')}
   <div class="wrap section" style="max-width:720px">
     <div id="abo-status" class="mb-card"><p>Einen Moment …</p></div>
     <div class="box" style="margin-top:28px">
@@ -697,8 +701,8 @@ export function stadtratPage(d) {
   const small = p => `<button class="person" type="button" data-name="${esc(p.name)}">${p.photo && p.photo.url ? `<div class="avatar has-img"><img src="${esc(p.photo.url)}" alt="${esc(p.name)}" loading="lazy" decoding="async"><span></span></div>` : `<div class="avatar"><span>${esc(p.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span></div>`}<div class="plate"><b>${esc(p.name)}</b><small>${esc(p.job)}</small><span class="rolle">${p.stimmen.toLocaleString('de-DE')} Stimmen · Listenplatz ${p.listenplatz}</span></div></button>`;
   return `
 <section>
-  ${pageHead('Kommunalwahl 2026', 'Unsere 11<br>im Stadtrat', 'Am 13. September haben die Soltauerinnen und Soltauer gewählt. 9.268 Stimmen und 30,8 Prozent machen die SPD zum ersten Mal zur stärksten Fraktion im Rat – mit elf von 34 Sitzen. Danke für dieses Vertrauen. Die neue Wahlperiode beginnt am 1. November 2026.')}
-  <div class="band-rot"><div class="wrap" style="padding-block:40px">
+  ${pageHead('Kommunalwahl 2026', 'Unsere 11<br>im Stadtrat', 'Am 13. September haben die Soltauerinnen und Soltauer gewählt. 9.268 Stimmen und 30,8 Prozent machen die SPD zum ersten Mal zur stärksten Fraktion im Rat – mit elf von 34 Sitzen. Danke für dieses Vertrauen. Die neue Wahlperiode beginnt am 1. November 2026.', 'rathaus')}
+  <div class="band-rot foto foto-rot">${motiv('team')}<div class="wrap" style="padding-block:40px">
     <div class="stats">
       <div class="stat"><b>9.268</b><span>Stimmen für die SPD</span></div>
       <div class="stat"><b>30,8 %</b><span>Stärkste Kraft in Soltau</span></div>
@@ -721,7 +725,7 @@ export function stadtratPage(d) {
       <div class="ansprech">${nr.nachListe.map(small).join('')}</div>
     </div>
     <div style="display:grid;gap:20px">
-      <div class="box box-schwarz">
+      <div class="box foto">${motiv('poststrasse')}
         <h3>Sitzverteilung im neuen Rat</h3>
         <ul class="seats">${w.sitze.map(([p, n]) => `<li><span class="seats-name">${esc(p)}</span><span class="seats-bar"><i style="width:${Math.round(n / max * 100)}%"></i></span><span class="seats-n">${n}</span></li>`).join('')}</ul>
         <p class="small" style="opacity:.8">34 Sitze insgesamt · Wahlbeteiligung 58,8 %</p>
@@ -759,7 +763,7 @@ export function mitgliederPage(d) {
 export function roterBahnhofPage(d) {
   return `
 <section>
-  ${pageHead('Roter Bahnhof', 'Unseren Treffpunkt<br>anfragen', 'Am Bahnhof 1t, 29614 Soltau. Vereine, Initiativen und Gruppen können den Roten Bahnhof für Treffen und kleine Veranstaltungen anfragen.')}
+  ${pageHead('Roter Bahnhof', 'Unseren Treffpunkt<br>anfragen', 'Am Bahnhof 1t, 29614 Soltau. Vereine, Initiativen und Gruppen können den Roten Bahnhof für Treffen und kleine Veranstaltungen anfragen.', 'reithalle')}
   <div class="wrap section split">
     <form class="form wix-form" id="form-buchung" data-collection="Buchungen" novalidate>
       <div class="form-fields" style="display:grid;gap:18px">
@@ -790,7 +794,7 @@ export function roterBahnhofPage(d) {
       <p class="form-ok" hidden>Danke! Ihre Anfrage ist bei uns eingegangen. Der Vorstand meldet sich in Kürze.</p>
     </form>
     <div style="display:grid;gap:20px">
-      <div class="box box-schwarz">
+      <div class="box foto">${motiv('bahnhof')}
         <h3>Der Rote Bahnhof</h3>
         <dl>
           <dt>Adresse</dt><dd>Am Bahnhof 1t, 29614 Soltau</dd>

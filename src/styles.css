@@ -1471,3 +1471,25 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .karte-label b{font:800 18px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
 .karte-label span{font-size:13px;color:#ddd}
 .karte-credit{position:absolute;right:8px;bottom:6px;font-size:10px;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+
+/* ===== Symbolbilder als Abschnitts-Hintergrund (statt reiner Rot/Schwarz-Bänder) ===== */
+.foto{position:relative;isolation:isolate;color:#fff;overflow:hidden}
+.foto>.foto-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transform:scale(1.02)}
+.foto::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(15,15,15,.58) 0%,rgba(15,15,15,.72) 60%,rgba(15,15,15,.84) 100%)}
+.foto.foto-rot::before{background:linear-gradient(180deg,rgba(200,0,14,.86) 0%,rgba(160,0,10,.9) 100%)}
+.foto h1,.foto h2,.foto h3,.foto .title,.foto .lead,.foto p,.foto .more,.foto dt,.foto dd{color:#fff}
+.foto .lead{color:rgba(255,255,255,.9)}
+.foto .card p{color:rgba(255,255,255,.85)}
+.page-head.foto{padding-block:64px 56px}
+.page-head.foto .lead{color:rgba(255,255,255,.92)}
+.box.foto{color:#fff;background:var(--schwarz);min-height:240px}
+.box.foto h3{color:#fff}
+.box.foto p{color:rgba(255,255,255,.9)}
+.box.foto dt{color:rgba(255,255,255,.75)}
+.box.foto::before{background:linear-gradient(180deg,rgba(15,15,15,.45) 0%,rgba(15,15,15,.8) 100%)}
+.box.foto>.foto-bg{transition:transform .8s var(--ease)}
+a.box.foto:hover>.foto-bg{transform:scale(1.07)}
+.box.foto .tag{background:var(--rot);color:#fff}
+.band-newsletter .title{color:var(--ink)}
+.band-newsletter p{color:var(--text)}
+@media (prefers-reduced-motion:reduce){.box.foto>.foto-bg{transition:none}}
