@@ -59,12 +59,12 @@ export const VISIBILITY = [
   ['helfer', 'Helferlisten'],
   ['umfragen', 'Umfragen'],
   ['dokumente', 'Dokumente'],
-  ['rat', 'Ratsvorbereitung'],
+  ['rat', 'Sitzungen (Ratsvorbereitung mit Haltung der Fraktion)'],
   ['versammlung', 'Versammlungen'],
   ['wahlkampf', 'Wahlkampf'],
   ['mitglieder', 'Mitgliederverzeichnis'],
 ];
-export const VISIBILITY_DEFAULT = { 'termine:Vorstand': [], 'termine:Fraktion': ['fraktion'] }; // Schlüssel → Gruppen (sonst: alle)
+export const VISIBILITY_DEFAULT = { 'termine:Vorstand': [], 'termine:Fraktion': ['fraktion'], rat: ['rat', 'fraktion'] }; // Schlüssel → Gruppen (sonst: alle); Vorstand und Verwalter sehen immer alles
 
 export const RIGHT_KEYS = RIGHTS.map(r => r[0]);
 export const TOPIC_KEYS = BOARD_TOPICS.map(t => t[0]);

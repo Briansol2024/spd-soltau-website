@@ -103,8 +103,8 @@ export const HELP_TOPICS = [
     steps: {
       alle: [
         'Nach der Anmeldung siehst du „Start“: die nächsten Termine, offene Umfragen, neue Dokumente und Geburtstage.',
-        'Die wichtigsten Bereiche findest du {leiste}: Start, Termine, Umfragen und Dokumente.',
-        'Über {mehr} erreichst du alle weiteren Bereiche: Dokumente, Ratsvorbereitung, Mitglieder, Profil und mehr.',
+        'Die wichtigsten Bereiche findest du {leiste}: Start, Termine, Mitmachen und Wissen – wer in Fraktion oder Vorstand ist, sieht dort stattdessen Ratsarbeit oder Vorstand.',
+        'Über {mehr} erreichst du alle Bereiche in Gruppen: Für alle, Rat & Fraktion, Organisation und Persönlich – jeder sieht nur, was er braucht.',
         'Der Globus-Knopf oben rechts bringt dich zur Website. Über den schwarzen Streifen „Zurück zum Mitgliederbereich“ kommst du wieder in die App.',
         'Deine Initialen oben rechts führen zu deinem Profil. Abmelden findest du ganz unten in der Bereichsliste.',
       ],
@@ -176,7 +176,7 @@ export const HELP_TOPICS = [
     n: '09', id: 'umfragen', group: 'Mitmachen', title: 'Umfragen: abstimmen',
     intro: 'Sommerfest-Termin, Themen für den Rat, Meinungsbild – mit einem Tipp stimmst du ab.',
     steps: { alle: [
-      '{tippe} {leiste} auf „Umfragen“ – oder direkt auf eine offene Umfrage auf der Startseite.',
+      '{tippe} {leiste} auf „Mitmachen“ – Umfragen ist der erste Reiter – oder direkt auf eine offene Umfrage auf der Startseite.',
       '{tippe} auf deine Antwort – die Stimme zählt sofort und du siehst das Zwischenergebnis.',
       'Bei Mehrfachauswahl hakst du mehrere Antworten an – dann {tippe} auf „Auswahl speichern“.',
       'Du kannst deine Stimme bis zum Ende der Umfrage noch ändern. Abgeschlossene Umfragen stehen darunter.',
@@ -186,7 +186,7 @@ export const HELP_TOPICS = [
     n: '10', id: 'dokumente', group: 'Mitmachen', title: 'Dokumente und Ratsvorbereitung',
     intro: 'Protokolle, Anträge, Vorlagen – und die Tagesordnung der nächsten Ratssitzung mit der Einordnung der Fraktion.',
     steps: { alle: [
-      'Öffne {mehr} und {tippe} auf „Dokumente“.',
+      'Öffne {mehr} und {tippe} auf „Dokumente & Wissen“.',
       'Die Dokumente sind nach Art sortiert: Protokolle, Anträge, Beschlüsse, Vorlagen. {tippe} auf einen Titel, um es zu öffnen.',
       'Über {mehr} findest du auch „Ratsvorbereitung“.',
       'Dort steht die Tagesordnung der nächsten Sitzung – jeder Punkt mit der Einordnung der SPD-Fraktion.',

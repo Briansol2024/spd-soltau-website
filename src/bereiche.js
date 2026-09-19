@@ -200,8 +200,7 @@ export function makeBereiche(ctx) {
     if (sub === 'grundwissen') return grundwissen(v);
     if (sub.startsWith('g-')) { const t = themaById(sub.slice(2)); if (t) return grundwissenThema(v, t); }
     const q0 = decodeURIComponent(sub.replace(/^s-/, ''));
-    v.innerHTML = `${sectionHead('Wissen', 'Grundwissen zum Lernen – und die Suche über alles, was du sehen darfst')}
-    ${grundwissenKarte()}
+    v.innerHTML = `${sectionHead('Suche', 'Dokumente, Sitzungen, Versammlungen, Beiträge, Anträge, Jahresplan, Grundwissen – alles, was du sehen darfst')}
     <form class="form wissen-form" id="f-wissen" novalidate><div class="field"><label for="w-q">Suchbegriff</label><input id="w-q" type="search" value="${esc(q0)}" placeholder="z. B. Haushalt, Radweg, Kita, Satzung" autocomplete="off"></div></form>
     <div class="mb-tabs wissen-chips">${['Protokoll', 'Antrag', 'Beschluss', 'Haushalt', 'Satzung', 'Kita', 'Radweg'].map(w => `<button type="button" class="chip" data-q="${esc(w)}">${esc(w)}</button>`).join('')}</div>
     <div id="w-erg"><p class="small muted">Tippe einen Begriff ein – gesucht wird in allem, was du sehen darfst.</p></div>`;
@@ -227,10 +226,6 @@ export function makeBereiche(ctx) {
   const gwGelesen = () => gwStand().gelesen;
   const gwNaechstes = () => GRUNDWISSEN.find(t => !gwGelesen().includes(t.id));
   const absaetze = text => text.split('\n').map(a => `<p>${esc(a).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</p>`).join('');
-  function grundwissenKarte() {
-    const n = gwGelesen().length, next = gwNaechstes();
-    return `<a class="rz-bereich gw-karte" href="#wissen/grundwissen"><span class="rz-kachel">${next ? esc(next.nr) : '✓'}</span><span class="rz-txt"><b>Grundwissen für neue Ratsmitglieder</b><small>${n ? `${n} von ${GRUNDWISSEN.length} Themen gelesen` + (next ? ` · weiter mit ${esc(next.nr)} ${esc(next.titel)}` : ' · alles gelesen') : `Schritt für Schritt in die Ratsarbeit – ${GRUNDWISSEN.length} kurze Themen, die aufeinander aufbauen`}</small></span>${ICON.chev}</a>`;
-  }
   function grundwissenStartKarte() {
     const n = gwGelesen().length, next = gwNaechstes();
     if (!next) return '';
@@ -239,8 +234,7 @@ export function makeBereiche(ctx) {
   function grundwissen(v) {
     const st = gwStand(), n = st.gelesen.length, next = gwNaechstes();
     const minuten = GRUNDWISSEN.reduce((sum, t) => sum + t.minuten, 0);
-    v.innerHTML = `<p class="small"><a href="#wissen">← Wissen</a></p>
-    ${sectionHead('Grundwissen', `Schritt für Schritt in die Ratsarbeit – ${GRUNDWISSEN.length} Themen, die aufeinander aufbauen`)}
+    v.innerHTML = `${sectionHead('Grundwissen', `Schritt für Schritt in die Ratsarbeit – ${GRUNDWISSEN.length} Themen, die aufeinander aufbauen`)}
     <div class="gw-stand"><div class="gw-balken" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="${GRUNDWISSEN.length}"><i style="width:${Math.round(n / GRUNDWISSEN.length * 100)}%"></i></div><b>${n} von ${GRUNDWISSEN.length} gelesen</b>${next ? `<a class="btn btn-rot" href="#wissen/g-${esc(next.id)}">${n ? 'Weiter mit' : 'Anfangen mit'} ${esc(next.nr)} · ${esc(next.titel)}</a>` : '<span class="badge badge-mit">Alles gelesen</span>'}</div>
     <p class="small muted">Jedes Thema dauert nur ein paar Minuten, alle zusammen etwa ${minuten}: kurz erklärt, dazu die Stellen im Gesetz und kostenlose Broschüren zum Nachlesen. Am Ende jedes Themas hakst du es ab – der Stand bleibt auf diesem Gerät.</p>
     ${STUFEN.map(stufe => `<section class="mb-sub help-group"><h4 class="doc-cat">${esc(stufe)}</h4><div class="gw-liste">${GRUNDWISSEN.filter(t => t.stufe === stufe).map(t => `<a class="gw-schritt ${st.gelesen.includes(t.id) ? 'gelesen' : ''}" href="#wissen/g-${esc(t.id)}"><b>${esc(t.nr)}</b><span><span class="gw-titel">${esc(t.titel)}</span><small>${esc(t.kurz)} · ${t.minuten} Min.</small></span><i class="gw-hak" aria-label="${st.gelesen.includes(t.id) ? 'gelesen' : 'noch offen'}"></i></a>`).join('')}</div></section>`).join('')}

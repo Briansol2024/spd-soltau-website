@@ -1393,7 +1393,6 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .prose ul{padding-left:22px;display:grid;gap:8px}
 
 /* ===== Grundwissen: Lernpfad in Schritten ===== */
-.gw-karte{margin-bottom:18px}
 .gw-stand{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 14px}
 .gw-balken{flex:1 1 160px;height:10px;background:var(--grau);overflow:hidden}
 .gw-balken i{display:block;height:100%;background:var(--rot);transition:width .3s}
@@ -1423,3 +1422,9 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .gw-quelle small{color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .gw-fertig{margin-bottom:18px}
 .gw-fertig .btn.share svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== Sammel-Bereiche (Mitmachen, Dokumente & Wissen): Reiterleiste über dem Inhalt ===== */
+.mb-hub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 20px;padding-bottom:14px;border-bottom:2px solid var(--linie)}
+.mb-hub-name{flex-basis:100%;font:700 11px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.mb-hub .chip{display:inline-flex;align-items:center;min-height:40px;text-decoration:none}
+.mb-hub .chip[aria-current]{background:var(--schwarz);border-color:var(--schwarz);color:#fff}

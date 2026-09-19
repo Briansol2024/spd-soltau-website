@@ -351,12 +351,38 @@ async function loadSettings() {
 const anyRight = () => RIGHTS.some(([k]) => me.can(k));
 const inFraktion = () => !!settings?.groups.fraktion.has(me.id); // Ratsarbeit: nur die Gruppe Fraktion (Vorstand → Gruppen), nicht der Vorstand als solcher
 const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitglieder: 'mitglieder', versammlung: 'versammlung', wahlkampf: 'wahlkampf' };
-const secVisible = k => k === 'hilfe' || (k === 'ratsarbeit' ? inFraktion() : (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege')) && (!SEC_VIS[k] || me.sees(SEC_VIS[k])));
+const secVisible = k => {
+  if (k === 'hilfe') return true;
+  if (k === 'ratsarbeit') return inFraktion();
+  if (k === 'vorstand') return anyRight();
+  if (k === 'beitraege') return me.can('beitraege');
+  if (k === 'wahlkampf') return me.can('wahlkampf') || me.sees('wahlkampf');
+  return !SEC_VIS[k] || me.sees(SEC_VIS[k]);
+};
+// Sammel-Bereiche: mehrere Bereiche unter einem Menüpunkt, oben im Inhalt als Reiter – so bleibt das Menü kurz, alle Links (#umfragen, #versammlung …) gelten weiter
+const HUBS = {
+  mitmachen: { label: 'Mitmachen', tabs: [['umfragen', 'Umfragen', '#umfragen'], ['ideen', 'Ideen', '#ideen'], ['versammlung', 'Versammlungen', '#versammlung'], ['wahlkampf', 'Wahlkampf', '#wahlkampf']] },
+  wissen: { label: 'Dokumente & Wissen', tabs: [['dokumente', 'Dokumente', '#dokumente'], ['grundwissen', 'Grundwissen', '#wissen/grundwissen'], ['wissen', 'Suche', '#wissen']] },
+};
+const HUB_OF = { umfragen: 'mitmachen', ideen: 'mitmachen', versammlung: 'mitmachen', wahlkampf: 'mitmachen', dokumente: 'wissen', wissen: 'wissen' };
+const hubTabs = h => HUBS[h].tabs.filter(([k]) => secVisible(k === 'grundwissen' ? 'wissen' : k));
+const hubHome = h => hubTabs(h)[0]?.[2] || '#start';
+function hubStrip(key) {
+  document.getElementById('mb-hub')?.remove();
+  const h = HUB_OF[key]; if (!h) return;
+  const tabs = hubTabs(h); if (tabs.length < 2) return;
+  const sub = location.hash.split('/')[1] || '';
+  const active = key === 'wissen' && (sub === 'grundwissen' || sub.startsWith('g-')) ? 'grundwissen' : key;
+  const el = document.createElement('nav'); el.id = 'mb-hub'; el.className = 'mb-hub'; el.setAttribute('aria-label', HUBS[h].label);
+  el.innerHTML = `<span class="mb-hub-name">${HUBS[h].label}</span>${tabs.map(([k, l, href]) => `<a class="chip" href="${href}" ${k === active ? 'aria-current="page"' : ''}>${l}</a>`).join('')}`;
+  $('#mb-view')?.before(el);
+}
 const visibleEvents = () => (SPD.events || []).filter(ev => me.sees('termine:' + (ev.typ || 'Öffentlich')));
 
 const ICON = {
   web: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
   home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>',
+  hand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12M11 5.5v-2a1.5 1.5 0 1 1 3 0V12M14 5.5a1.5 1.5 0 0 1 3 0V12M17 7.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2.7L3.7 14a1.5 1.5 0 0 1 .5-2 1.9 1.9 0 0 1 2.3.3L8 13.7"/></svg>',
   cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
   poll: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
   doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>',
@@ -384,17 +410,19 @@ const ICON = {
   search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
 };
 // Gruppierte Bereichsliste – am PC als Seitenleiste, am Handy im „Mehr“-Blatt
+// Für alle: fünf Einträge. Arbeitsbereiche nur für die, die sie brauchen (Rat/Fraktion, Vorstand und Rechte). Jahresplan-Aufgaben erreichen Zuständige über die Startseite.
 function navGroups() {
-  const sec = (k, l, icon) => secVisible(k) ? [k, l, icon] : null;
+  const sec = (k, l, icon, ok = secVisible(k), href = '#' + k) => ok ? [k, l, icon, href] : null;
+  const vorstand = !!settings?.board.has(me.id);
   return [
-    ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('umfragen', 'Umfragen', ICON.poll), sec('ideen', 'Ideen', ICON.idea), sec('dokumente', 'Dokumente', ICON.doc), sec('rat', 'Sitzungen', ICON.rat), sec('versammlung', 'Versammlungen', ICON.vote), sec('wahlkampf', 'Wahlkampf', ICON.flag), sec('planung', 'Jahresplan', ICON.list), sec('wissen', 'Wissen', ICON.search), sec('mitglieder', 'Mitglieder', ICON.users)]],
-    ['Fraktion', [sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
-    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('hilfe', 'Hilfe & Anleitungen', ICON.help)]],
-    ['Vorstand', [sec('vorstand', 'Vorstand', ICON.inbox)]],
+    ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
+    ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
+    ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
+    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help)]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
 function navList() {
-  return `${navGroups().map(([title, items]) => `<div class="mb-group"><div class="mb-group-title">${title}</div>${items.map(([k, l, icon]) => `<a href="#${k}" data-sec="${k}">${icon}<span>${l}</span><b class="mb-badge" data-badge="${k}" hidden></b></a>`).join('')}</div>`).join('')}
+  return `${navGroups().map(([title, items]) => `<div class="mb-group"><div class="mb-group-title">${title}</div>${items.map(([k, l, icon, href]) => `<a href="${href}" data-sec="${k}">${icon}<span>${l}</span><b class="mb-badge" data-badge="${k}" hidden></b></a>`).join('')}</div>`).join('')}
   <button type="button" class="mb-logout" data-logout>${ICON.out}<span>Abmelden</span></button>`;
 }
 function renderShell() {
@@ -416,13 +444,13 @@ function renderShell() {
   const meBtn = document.getElementById('app-me');
   if (meBtn) { meBtn.textContent = me.name.split(/\s+/).map(x => x[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || '·'; meBtn.hidden = false; meBtn.title = `${me.name} – Mein Profil`; }
   try { localStorage.setItem('spd-me', JSON.stringify({ name: me.name })); } catch (e) { /* egal */ }
-  const fourth = anyRight() ? ['vorstand', 'Vorstand', ICON.inbox] : inFraktion() ? ['ratsarbeit', 'Ratsarbeit', ICON.tasks] : secVisible('dokumente') ? ['dokumente', 'Dokumente', ICON.doc] : ['profil', 'Profil', ICON.user];
+  const fourth = anyRight() ? ['vorstand', 'Vorstand', ICON.inbox, '#vorstand'] : inFraktion() ? ['ratsarbeit', 'Ratsarbeit', ICON.tasks, '#ratsarbeit'] : ['wissen', 'Wissen', ICON.doc, hubHome('wissen')];
   const bar = document.createElement('nav'); bar.className = 'mb-tabbar'; bar.setAttribute('aria-label', 'App-Leiste');
   bar.innerHTML = `
     <a href="#start" data-tab="start">${ICON.home}<span>Start</span></a>
     <a href="#termine" data-tab="termine">${ICON.cal}<span>Termine</span></a>
-    <a href="#umfragen" data-tab="umfragen">${ICON.poll}<span>Umfragen</span></a>
-    <a href="#${fourth[0]}" data-tab="${fourth[0]}">${fourth[2]}<span>${fourth[1]}</span>${fourth[0] === 'vorstand' || fourth[0] === 'ratsarbeit' ? `<b class="mb-badge" data-badge="${fourth[0]}" hidden></b>` : ''}</a>
+    <a href="${hubHome('mitmachen')}" data-tab="mitmachen">${ICON.hand}<span>Mitmachen</span></a>
+    <a href="${fourth[3]}" data-tab="${fourth[0]}">${fourth[2]}<span>${fourth[1]}</span>${fourth[0] === 'vorstand' || fourth[0] === 'ratsarbeit' ? `<b class="mb-badge" data-badge="${fourth[0]}" hidden></b>` : ''}</a>
     <button type="button" data-tab="mehr" id="mb-more" aria-expanded="false" aria-controls="mb-sheet">${ICON.more}<span>Mehr</span></button>`;
   const sheet = document.createElement('div'); sheet.className = 'mb-sheet'; sheet.id = 'mb-sheet'; sheet.hidden = true;
   sheet.innerHTML = `<div class="mb-sheet-panel" role="dialog" aria-label="Weitere Bereiche"><div class="mb-sheet-head"><b>Bereiche</b><button type="button" class="mb-sheet-close" aria-label="Schließen">${ICON.close}</button></div><nav class="mb-sheet-nav">${navList()}</nav></div>`;
@@ -449,13 +477,15 @@ async function route() {
   if (key === 'mehr') { key = 'start'; $('#mb-more', document.body)?.click(); }
   if (!RENDER[key] || !secVisible(key)) key = 'start';
   if (key !== 'ratsarbeit') ratsarbeit.blattZu(false);
-  document.querySelectorAll('.mb-side a[data-sec],.mb-sheet a[data-sec]').forEach(a => { if (a.dataset.sec === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  document.querySelectorAll('.mb-tabbar [data-tab]').forEach(a => { if (a.dataset.tab === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const navKey = HUB_OF[key] || key;
+  document.querySelectorAll('.mb-side a[data-sec],.mb-sheet a[data-sec]').forEach(a => { if (a.dataset.sec === navKey) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('.mb-tabbar [data-tab]').forEach(a => { if (a.dataset.tab === navKey) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   // Beim Wechsel des Bereichs nach oben zum Inhalt – bei Aktionen innerhalb eines Bereichs (Zusage, Helferliste …) bleibt die Scrollposition
   if (route.lastKey !== key) window.scrollTo({ top: Math.min(window.scrollY, (document.querySelector('.mb-main')?.getBoundingClientRect().top || 0) + window.scrollY - 80), behavior: 'auto' });
   route.lastKey = key;
   let v = $('#mb-view'); if (!v) return;
   const fresh = document.createElement('div'); fresh.id = 'mb-view'; fresh.className = v.className; v.replaceWith(fresh); v = fresh;
+  hubStrip(key);
   v.innerHTML = '<p class="muted">Lade …</p>';
   try { await RENDER[key](v); } catch (err) { v.innerHTML = `<p class="note note-err">Das konnte nicht geladen werden: ${esc(errText(err))}</p>`; }
   const sub = location.hash.split('/')[1]; if (sub && key !== 'vorstand' && key !== 'ratsarbeit') document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
