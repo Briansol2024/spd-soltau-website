@@ -1,6 +1,6 @@
 // Countdown-Seite („Wartungsseite“) bis zum Start der neuen Website: eigenständige Seite ohne Layout,
 // Drohnenvideo von Soltau als Hintergrund, große laufende Zahlen, Ticker mit dem, was kommt, Konfetti um Punkt null.
-// Liegt immer unter /bald/ (ohne Passwortschutz); mit LAUNCH_AT in der Zukunft wird sie zusätzlich zur Startseite
+// Liegt immer unter /bald/ (ohne Passwortschutz); mit LAUNCH_AT in der Zukunft wird sie zusätzlich zur Startseite (echte Startseite dann unter /start/, Knopf „Anmelden“)
 // und der stündliche/halbstündliche Build tauscht sie um Punkt null gegen die echte Startseite (die Seite lädt dann selbst nach).
 import { esc, url } from './render.mjs';
 
@@ -47,7 +47,11 @@ body{margin:0;background:var(--schwarz);color:var(--weiss);font-family:var(--bod
 @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(12vmax,-8vmax) scale(1.15)}}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(18px,4vw,48px)}
 .top img{display:block;height:56px;width:auto}
+.top-r{display:flex;align-items:center;gap:14px}
 .top .tag{font:800 12px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;background:var(--rot);padding:9px 12px 8px;animation:fadeDown .8s var(--ease) both .3s}
+.login{display:inline-flex;align-items:center;gap:6px;color:#fff;opacity:.7;font:700 12px/1 var(--display);letter-spacing:.18em;text-transform:uppercase;text-decoration:none;padding:8px 4px;transition:opacity .2s}
+.login:hover{opacity:1}
+.login svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 main{display:grid;place-items:center;padding:10px clamp(18px,4vw,48px) 28px;text-align:center}
 .eyebrow{font:700 clamp(13px,1.6vw,16px)/1 var(--body);letter-spacing:.28em;text-transform:uppercase;opacity:.85;animation:fadeDown .8s var(--ease) both .4s}
 h1{font:800 clamp(64px,12vw,150px)/.88 var(--display);text-transform:uppercase;margin:12px 0 4px;letter-spacing:-.01em;text-wrap:balance}
@@ -98,7 +102,7 @@ body.live .cd-box::before{background:#fff}
 <div class="stage">
   <header class="top">
     <img src="${url('/assets/images/logo-spd-soltau-weiss.png')}" alt="SPD Soltau" width="88" height="60">
-    <span class="tag" id="tag">Bald online</span>
+    <span class="top-r"><a class="login" href="${atRoot ? url('/start/index.html') : url('/index.html')}" title="Vorschau für den Vorstand – mit Passwort"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Anmelden</a><span class="tag" id="tag">Bald online</span></span>
   </header>
   <main>
     <div>
