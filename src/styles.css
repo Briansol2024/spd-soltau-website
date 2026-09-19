@@ -7,7 +7,7 @@
   --w:1240px;
 }
 *{box-sizing:border-box}
-[hidden]{display:none}
+[hidden]{display:none!important}
 body{margin:0;background:var(--weiss);color:var(--text);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4{overflow-wrap:break-word;margin:0;color:var(--ink);text-wrap:balance}
 p{margin:0}
@@ -266,7 +266,7 @@ dialog::backdrop{background:rgba(15,15,15,.7)}
 .footer .logo-box{background:var(--rot);color:#fff}
 .footer .bottom{border-top:1px solid #333;margin-top:40px;padding-top:18px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:14px}
 
-@media (prefers-reduced-motion:reduce){*{transition:none;animation:none}.ticker-track{width:auto;flex-wrap:wrap}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.ticker-track{width:auto;flex-wrap:wrap}}
 
 #site{container:site / inline-size}
 
@@ -731,10 +731,10 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .mb-side a span,.mb-sheet-nav a span{flex:1}
 .mb-side a:hover,.mb-sheet-nav a:hover{background:#fff}
 .mb-side a[aria-current],.mb-sheet-nav a[aria-current]{border-left-color:var(--rot);background:#fff;font-weight:700}
-.mb-logout{color:var(--muted);margin-top:10px;border-top:1px solid var(--linie);font-weight:600}
+.mb-logout{color:var(--muted);margin-top:10px;border-top:1px solid var(--linie)!important;font-weight:600}
 .mb-logout svg{stroke:currentColor}
 .mb-badge{display:inline-block;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:var(--rot);color:#fff;font:700 11px/20px var(--body);text-align:center}
-.mb-badge[hidden]{display:none}
+.mb-badge[hidden]{display:none!important}
 .mb-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));height:calc(64px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;background:#fff;border-top:1px solid var(--linie);box-shadow:0 -6px 20px rgba(0,0,0,.06)}
 .mb-tabbar a,.mb-tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;border:0;background:transparent;color:var(--text);font:700 11px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;cursor:pointer;padding:0;min-width:0}
 .mb-tabbar svg{stroke:currentColor}
@@ -754,7 +754,7 @@ body.sheet-open{overflow:hidden}
 @media (min-width:900px){
   .mb-layout{grid-template-columns:250px minmax(0,1fr);gap:40px}
   .mb-side{display:block;position:sticky;top:76px;background:var(--grau);padding:10px 0}
-  .mb-tabbar,.mb-sheet{display:none}
+  .mb-tabbar,.mb-sheet{display:none!important}
   body.has-tabbar{padding-bottom:0}
 }
 .mb-section{padding-block:36px;border-top:2px solid var(--schwarz)}
@@ -898,7 +898,7 @@ body.sheet-open{overflow:hidden}
 .app-globe svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .app-globe:hover{background:#fff;color:var(--schwarz)}
 .app-me{width:38px;height:38px;border-radius:50%;background:var(--rot);color:#fff;display:inline-flex;align-items:center;justify-content:center;font:700 13px/1 var(--body);text-decoration:none;flex-shrink:0}
-.app-me[hidden]{display:none}
+.app-me[hidden]{display:none!important}
 .app-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:20px var(--gutter,16px);margin-top:40px;border-top:1px solid var(--linie);font-size:13px;color:var(--muted)}
 .app-footer a{color:var(--muted)}
 /* Website aus der App heraus: Streifen zurück zum Mitgliederbereich (Standalone oder nach Klick auf den Globus) */
