@@ -1,0 +1,16 @@
+{
+  "titel": "Soltau, wir haben eine neue Website (Instagram, öffentlich)",
+  "hinweis": "Kurz und schnell. Du rechts, Handy links, Text oben. Intro und Outro aus dem Grundkit (intro-gruen.mp4, outro-gruen.mp4).",
+  "clips": [
+    { "id": "neue-website", "dauer": 3, "q": { "clip": "gross", "pos": "oben", "gr": "m", "text": "Neue|*Website.*" } },
+    { "id": "anliegen", "dauer": 5, "q": { "clip": "gross", "pos": "oben", "gr": "m", "label": "Schlagloch? Kita? Ratsbeschluss?", "text": "Ich habe|*ein Anliegen*" } },
+    { "id": "rathaus", "dauer": 5, "q": { "clip": "liste", "titel": "Live aus Rat & Rathaus", "text": "Nächste Sitzungen|Amtsblatt|Baustellen|Beteiligungen" } },
+    { "id": "termine", "dauer": 4, "q": { "clip": "gross", "pos": "oben", "gr": "m", "text": "Termine|*abonnieren*" } },
+    { "id": "elf", "dauer": 4, "q": { "clip": "gross", "pos": "oben", "text": "*11* Sitze|im Rat" } },
+    { "id": "danke", "dauer": 3, "q": { "clip": "stempel", "text": "Danke" } },
+    { "id": "newsletter", "dauer": 4, "q": { "clip": "gross", "pos": "oben", "gr": "m", "label": "Einmal im Monat", "text": "*Newsletter*" } },
+    { "id": "ab-dienstag", "dauer": 5, "q": { "clip": "aufruf", "datum": "Dienstag", "monat": "18 Uhr", "name": "spd-soltau.de", "text": "Bis dahin läuft der Countdown" } },
+    { "id": "ohne", "dauer": 5, "q": { "clip": "liste", "titel": "spd-soltau.de", "text": "Ohne Cookies|Ohne Werbung|Ohne Anmeldung" } },
+    { "id": "aus-liebe", "dauer": 4, "q": { "clip": "gross", "pos": "unten", "gr": "m", "text": "Aus Liebe|zu *Soltau.*" } }
+  ]
+}

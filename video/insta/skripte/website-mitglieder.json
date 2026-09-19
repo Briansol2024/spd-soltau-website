@@ -1,0 +1,155 @@
+{
+  "titel": "Guckt mal, was wir jetzt haben – Website und Mitgliederbereich (für Mitglieder)",
+  "hinweis": "Du rechts im Bild, Handy-Rahmen links (skripte/handy.json → handy-01-rahmen.png). Text-Einblendungen liegen oben, damit sie weder dich noch das Handy verdecken.",
+  "clips": [
+    {
+      "id": "guckt-mal",
+      "dauer": 3,
+      "q": {
+        "clip": "wort",
+        "seite": "links",
+        "text": "Guckt|*mal."
+      }
+    },
+    {
+      "id": "ein-ort",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "text": "Alles an|*einem Ort.*"
+      }
+    },
+    {
+      "id": "website",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "label": "Vorne",
+        "text": "spd-soltau.de"
+      }
+    },
+    {
+      "id": "registrieren",
+      "dauer": 6,
+      "q": {
+        "clip": "liste",
+        "titel": "In drei Schritten",
+        "text": "Registrieren|Code aus der Mail|Wir schalten dich frei"
+      }
+    },
+    {
+      "id": "termine",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "text": "Zusagen mit|*einem Tipp.*"
+      }
+    },
+    {
+      "id": "stammtisch",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "label": "Jeden 3. Freitag",
+        "text": "Wo treffen|wir uns?"
+      }
+    },
+    {
+      "id": "idee",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "text": "Deine Idee →|*unser Antrag.*"
+      }
+    },
+    {
+      "id": "versammlung",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "text": "Abstimmen|*per Handy.*"
+      }
+    },
+    {
+      "id": "grundwissen",
+      "dauer": 6,
+      "q": {
+        "clip": "liste",
+        "titel": "Grundwissen in 10 Schritten",
+        "text": "Wie Soltau regiert wird|Deine Rechte und Pflichten|Die Fraktion|…"
+      }
+    },
+    {
+      "id": "fraktion",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "label": "Für Rat und Fraktion",
+        "text": "Sitzungen &|*Ratsarbeit*"
+      }
+    },
+    {
+      "id": "einstellen",
+      "dauer": 5,
+      "q": {
+        "clip": "liste",
+        "titel": "Einmal einstellen",
+        "text": "Push-Benachrichtigungen an|App auf den Startbildschirm"
+      }
+    },
+    {
+      "id": "datenschutz",
+      "dauer": 5,
+      "q": {
+        "clip": "liste",
+        "titel": "Datenschutz",
+        "text": "Verschlüsselt|Freiwillig|Bei uns"
+      }
+    },
+    {
+      "id": "hilfe",
+      "dauer": 4,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "text": "Hilfe-Videos|*für jedes Handy*"
+      }
+    },
+    {
+      "id": "teilen",
+      "dauer": 3,
+      "q": {
+        "clip": "gross",
+        "pos": "oben",
+        "gr": "m",
+        "text": "*Teilen*"
+      }
+    },
+    {
+      "id": "aufruf",
+      "dauer": 6,
+      "q": {
+        "clip": "aufruf",
+        "datum": "Jetzt",
+        "monat": "registrieren",
+        "name": "Mitgliederbereich",
+        "text": "spd-soltau.de/mitglieder · Code eingeben · wir schalten dich frei"
+      }
+    }
+  ]
+}

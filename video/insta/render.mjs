@@ -80,7 +80,7 @@ let list = clips();
 if (args[0] === 'skript' && args[1]) {
   const { readFileSync } = await import('node:fs');
   const m = JSON.parse(readFileSync(path.join(__dirname, 'skripte', args[1] + '.json'), 'utf8'));
-  list = m.clips.map((c, i) => ({ id: `${args[1]}-${String(i + 1).padStart(2, '0')}-${c.id}`, dauer: c.dauer || 4, q: c.q, opak: !!c.opak }));
+  list = m.clips.map((c, i) => ({ id: `${args[1]}-${String(i + 1).padStart(2, '0')}-${c.id}`, dauer: c.dauer || 4, q: c.q, opak: !!c.opak, png: !!c.png }));
 }
 if (args[0] === 'skript') { /* oben */ } else if (args[0] === 'binde' && args[1]) list = [{ id: 'binde-' + slug(args[1]), dauer: 6.0, q: { clip: 'binde', name: args[1], rolle: args[2] || 'SPD Soltau' } }];
 else if (args[0] === 'wort' && args[1]) list = [{ id: `wort-${slug(args[1].replace(/[|*#_-]/g, ' '))}-${args[2] === 'rechts' ? 'rechts' : 'links'}`, dauer: 3.0, q: { clip: 'wort', text: args[1], seite: args[2] || 'links' } }];
@@ -91,6 +91,15 @@ const browser = await chromium.launch({ channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const t0 = Date.now();
 for (const c of list) {
+  if (c.png) {
+    // Standbild mit Transparenz (letzter Frame) – z. B. Handy-Rahmen als PNG für CapCut
+    await page.goto(`${STAGE}?${new URLSearchParams({ ...c.q, bg: 'keins' })}`);
+    await page.evaluate(async () => { await document.fonts.ready; });
+    await page.evaluate(t => window.seek(t), c.dauer * 1000);
+    await page.screenshot({ path: path.join(OUT, `${c.id}.png`), omitBackground: true, type: 'png' });
+    console.log(`[insta] ${c.id} → ${c.id}.png`);
+    continue;
+  }
   const dir = await render(page, c);
   const files = encode(c, dir);
   await rm(dir, { recursive: true, force: true });

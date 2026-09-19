@@ -79,6 +79,9 @@ body.rot .outro .strich{background:#fff}
 .gross{font:800 108px/.95 var(--display);text-transform:uppercase;color:#fff;letter-spacing:-.01em;text-wrap:balance;animation:wortIn .6s var(--spring) both .15s}
 .gross b{color:var(--rot)}
 .gross.xl{font-size:150px}
+.gross.m{font-size:84px}
+.mitte.oben{padding-top:190px}
+.mitte.unten{padding-bottom:400px}
 .raus{animation:wortOut .45s var(--ease) both var(--raus)}
 /* Frage: zwei Antworten gegeneinander */
 .vs{display:grid;gap:22px;width:100%;margin-top:30px}
@@ -140,6 +143,18 @@ body.rot .outro .strich{background:#fff}
 .aufruf .sub{font:700 40px/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#fff;animation:fadeDown .6s var(--ease) both 1s}
 .aufruf .foto{width:520px;height:520px;border-radius:50%;object-fit:cover;object-position:top;border:14px solid #fff;box-shadow:0 30px 70px rgba(0,0,0,.45);animation:popIn .7s var(--spring) both}
 
+/* ---------- Handy-Rahmen (Bildschirm bleibt frei/grün – Bildschirmaufnahme liegt in CapCut darunter) ---------- */
+.handy{position:absolute;left:var(--hx,60px);top:var(--hy,440px);width:var(--hw,470px);height:calc(var(--hw,470px) * 2.09);background:transparent;border-radius:calc(var(--hw,470px) * .13);box-shadow:inset 0 0 0 3px #3a3a3a,inset 0 0 0 16px #151515,inset 0 0 0 18px #000,0 40px 80px rgba(0,0,0,.45);animation:handyRein .7s var(--spring) both}
+.handy::before{display:none}
+.handy .screen{position:absolute;inset:16px;border-radius:calc(var(--hw,470px) * .105);background:var(--screen,transparent)}
+.handy .cam{position:absolute;left:50%;top:30px;width:22px;height:22px;border-radius:50%;background:#000;transform:translateX(-50%);box-shadow:inset 0 0 0 3px #222}
+.handy .btn{position:absolute;right:-6px;width:6px;background:#2a2a2a;border-radius:0 4px 4px 0}
+.handy .btn.b1{top:22%;height:110px}.handy .btn.b2{top:34%;height:70px}
+.handy .btnl{position:absolute;left:-6px;top:26%;width:6px;height:60px;background:#2a2a2a;border-radius:4px 0 0 4px}
+.handy .label{position:absolute;left:0;right:0;bottom:-70px;text-align:center;font:800 26px/1 var(--display);letter-spacing:.18em;text-transform:uppercase;color:#fff;animation:fadeDown .5s var(--ease) both .6s}
+@keyframes handyRein{from{opacity:0;transform:translateX(-120px) rotate(-6deg)}to{opacity:1;transform:none}}
+body.gruen .handy .screen{background:#00B140}
+
 </style>
 </head>
 <body>
@@ -197,9 +212,14 @@ if (clip === 'intro') {
     <p class="szene-text" style="--textab:2.4s;bottom:360px">Unabhängigkeit muss man <b>beweisen</b>.</p></div>`;
 } else if (clip === 'aufruf') {
   html = `<div class="aufruf">${q.get('foto') ? `<img class="foto" src="${esc(q.get('foto'))}" alt="">` : ''}<span class="datum">${esc(q.get('datum') || '27.')} <b>${esc(q.get('monat') || 'September')}</b></span><span class="name">${esc(q.get('name') || 'Sebastian Zinke')}</span><span class="sub">${esc(q.get('text') || 'Stichwahl · Landrat für alle im Heidekreis')}</span></div>`;
+} else if (clip === 'handy') {
+  // Position/Größe per Adresse: &x=60&y=440&w=470 (Pixel im 1080×1920-Bild) &label=Text
+  const st = [q.get('x') && `--hx:${q.get('x')}px`, q.get('y') && `--hy:${q.get('y')}px`, q.get('w') && `--hw:${q.get('w')}px`].filter(Boolean).join(';');
+  html = `<div class="handy" style="${st}"><div class="screen"></div><span class="cam"></span><span class="btn b1"></span><span class="btn b2"></span><span class="btnl"></span>${q.get('label') ? `<span class="label">${esc(q.get('label'))}</span>` : ''}</div>`;
 } else if (clip === 'gross') {
   const zeilen = (q.get('text') || 'So funktionieren|Parteien nicht.').split('|');
-  html = `<div class="mitte"><p class="gross ${q.get('gr') === 'xl' ? 'xl' : ''}">${zeilen.map(z => z.replace(/\*(.+?)\*/g, '<b>$1</b>')).join('<br>')}</p></div>`;
+  const pos = { oben: 'oben', unten: 'unten' }[q.get('pos')] || '';
+  html = `<div class="mitte ${pos}">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<p class="gross ${q.get('gr') === 'xl' ? 'xl' : q.get('gr') === 'm' ? 'm' : ''}">${zeilen.map(z => z.replace(/\*(.+?)\*/g, '<b>$1</b>')).join('<br>')}</p></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
 if (clip === 'gegen') document.querySelectorAll('.gegen .z:not(.bleibt)').forEach((z, i) => { z.style.setProperty('--d', (1.0 + i * .9).toFixed(2) + 's'); });

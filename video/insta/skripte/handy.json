@@ -1,0 +1,31 @@
+{
+  "titel": "Handy-Rahmen",
+  "clips": [
+    {
+      "id": "rahmen",
+      "dauer": 2,
+      "png": true,
+      "q": {
+        "clip": "handy"
+      }
+    },
+    {
+      "id": "rahmen-rein",
+      "dauer": 3,
+      "q": {
+        "clip": "handy"
+      }
+    },
+    {
+      "id": "rahmen-mitte",
+      "dauer": 2,
+      "png": true,
+      "q": {
+        "clip": "handy",
+        "x": "270",
+        "y": "300",
+        "w": "540"
+      }
+    }
+  ]
+}
