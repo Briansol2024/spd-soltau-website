@@ -555,7 +555,12 @@ export function kontaktPage(d) {
           <dt>Instagram</dt><dd><a href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener" style="color:#fff">@spd_soltau</a></dd>
         </dl>
       </div>
-      <a class="ph ph-hell" style="min-height:240px;text-decoration:none" href="https://www.openstreetmap.org/search?query=Am%20Bahnhof%201t%2C%2029614%20Soltau" target="_blank" rel="noopener"><span>Karte öffnen: Roter Bahnhof, Am Bahnhof 1t (OpenStreetMap)</span></a>
+      <a class="karte" href="https://www.openstreetmap.org/?mlat=52.9833&amp;mlon=9.8310#map=18/52.9833/9.8310" target="_blank" rel="noopener" aria-label="Karte öffnen: Roter Bahnhof, Am Bahnhof 1t, 29614 Soltau (OpenStreetMap)">
+        <img src="${url('/assets/images/luftbild-roter-bahnhof.jpg')}" alt="Luftbild: der Rote Bahnhof am Bahnhof Soltau" width="1200" height="800" loading="lazy" decoding="async">
+        <span class="karte-pin" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22z" fill="#E3000F" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="9.5" r="2.6" fill="#fff"/></svg></span>
+        <span class="karte-label"><b>Roter Bahnhof</b><span>Am Bahnhof 1t · Karte öffnen</span></span>
+        <small class="karte-credit">Luftbild: LGLN (2026), CC BY 4.0</small>
+      </a>
     </div>
   </div>
 </section>`;
@@ -643,7 +648,7 @@ export function datenschutzPage(d) {
     <h2>7. Inhalte der Stadt Soltau, Instagram und externe Links</h2>
     <p>Der Bereich „Aus Rat &amp; Rathaus“ zeigt Überschriften, Termine und Links, die unser Bau-Roboter regelmäßig von den öffentlichen Seiten der Stadt Soltau abruft – dabei werden keine Daten von Ihnen verarbeitet. Instagram-Beiträge zeigen wir als selbst gespeicherte Vorschaubilder; erst beim Klick auf einen Beitrag gelangen Sie zu Instagram (Meta Platforms Ireland Ltd.), wo deren Datenschutzbestimmungen gelten. Gleiches gilt für alle anderen externen Links.</p>
     <h2>8. Schriften, Karten, Cookies</h2>
-    <p>Schriften werden von unserem eigenen Server geladen (keine Google Fonts). Wir binden keine Kartendienste und keine Social-Media-Plugins ein. Technisch notwendige Speicherung auf Ihrem Gerät erfolgt nur im Mitgliederbereich (siehe 6) und für den Passwortschutz der Testversion; Werbe- oder Tracking-Cookies setzen wir nicht. Ein Cookie-Banner ist daher nicht erforderlich.</p>
+    <p>Schriften werden von unserem eigenen Server geladen (keine Google Fonts). Wir binden keine Kartendienste und keine Social-Media-Plugins ein; das Luftbild auf der Kontaktseite ist ein bei uns gespeichertes Bild (Quelle: Landesamt für Geoinformation und Landesvermessung Niedersachsen, CC BY 4.0), der Kartenlink führt erst nach Klick zu OpenStreetMap. Technisch notwendige Speicherung auf Ihrem Gerät erfolgt nur im Mitgliederbereich (siehe 6) und für den Passwortschutz der Testversion; Werbe- oder Tracking-Cookies setzen wir nicht. Ein Cookie-Banner ist daher nicht erforderlich.</p>
     <p><b>Reichweitenmessung ohne Cookies:</b> Um zu wissen, welche Seiten gelesen werden, zählen wir Seitenaufrufe. Dabei übermittelt Ihr Browser an unser Redaktionssystem (Wix) die aufgerufene Seite, die Herkunft nur als Domain (z. B. „google.com“ oder „direkt“), die Geräteklasse (Handy, Tablet, PC), die Browsersprache, die Bildschirmbreite gerundet und die Ladezeit. Es werden keine IP-Adressen gespeichert, keine Kennungen vergeben und keine Cookies gesetzt; einzelne Personen sind nicht erkennbar. Die Einzeleinträge werden innerhalb weniger Minuten zu Tageszahlen zusammengefasst und gelöscht. Rechtsgrundlage ist unser berechtigtes Interesse an der Verbesserung der Website (Art. 6 Abs. 1 lit. f DSGVO).</p>
     <h2>9. Ihre Rechte</h2>
     <p>Sie haben das Recht auf Auskunft über Ihre gespeicherten Daten (Art. 15 DSGVO), auf Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21). Eine erteilte Einwilligung können Sie jederzeit mit Wirkung für die Zukunft widerrufen. Wenden Sie sich dafür an die oben genannte Adresse.</p>

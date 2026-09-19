@@ -161,7 +161,7 @@ function relativize(html, rel) {
 async function write(rel, html) {
   const file = path.join(OUT, rel);
   await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, rel.endsWith('.html') && !BASE ? relativize(html, rel) : html, 'utf8');
+  await writeFile(file, rel.endsWith('.html') && !BASE && rel !== '404.html' ? relativize(html, rel) : html, 'utf8');
 }
 
 async function copyFonts() {
