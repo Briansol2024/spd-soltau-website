@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fast richtig – spd-soltau.de</title>
+<meta name="description" content="spdsoltau.de? Fast! Die Website der SPD Soltau heißt spd-soltau.de – mit Bindestrich.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://spd-soltau.de/">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23E3000F'/%3E%3Crect x='14' y='28' width='36' height='9' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:'TheSans SPD';font-weight:400;font-display:swap;src:url(fonts/thesans-spd-regular.woff2) format('woff2')}
+@font-face{font-family:'TheSans SPD';font-weight:700;font-display:swap;src:url(fonts/thesans-spd-bold.woff2) format('woff2')}
+@font-face{font-family:'TheSans SPD Versal';font-weight:800;font-display:swap;src:url(fonts/thesans-spd-versal-extrabold.woff2) format('woff2')}
+:root{--rot:#E3000F;--schwarz:#0F0F0F;--display:'TheSans SPD Versal','TheSans SPD','Segoe UI',Arial,sans-serif;--body:'TheSans SPD','Segoe UI',Arial,sans-serif;--ease:cubic-bezier(.2,.7,.2,1);--spring:cubic-bezier(.2,.9,.25,1.25)}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--schwarz);color:#fff;font-family:var(--body);font-size:18px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.bg{position:fixed;inset:0;z-index:-1;background:#0F0F0F url(soltau.jpg) center/cover no-repeat}
+.bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,15,15,.6),rgba(15,15,15,.92)),radial-gradient(60% 50% at 50% 100%,rgba(227,0,15,.5),transparent 70%)}
+.stage{min-height:100svh;display:grid;grid-template-rows:auto 1fr auto}
+.top{display:flex;align-items:center;justify-content:space-between;padding:18px clamp(18px,4vw,48px)}
+.top img{height:56px;width:auto;display:block}
+.top .tag{font:800 12px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;background:var(--rot);padding:9px 12px 8px}
+main{display:grid;place-items:center;text-align:center;padding:16px clamp(18px,4vw,48px) 40px}
+.eyebrow{font:700 clamp(13px,1.6vw,16px)/1 var(--body);letter-spacing:.28em;text-transform:uppercase;opacity:.85;animation:fadeDown .7s var(--ease) both .2s}
+.url{font:800 clamp(40px,9.5vw,132px)/1 var(--display);letter-spacing:-.01em;margin:18px 0 10px;display:inline-flex;align-items:baseline;white-space:nowrap}
+.url span{display:inline-block;animation:fadeDown .7s var(--ease) both .3s}
+.url .strich{display:inline-block;width:0;overflow:visible;position:relative;height:1em;vertical-align:baseline;animation:aufmachen .6s var(--spring) both 1.3s}
+.url .strich i{position:absolute;left:.06em;top:.55em;display:block;width:.5em;height:.14em;background:var(--rot);border-radius:.03em;transform-origin:50% 50%;animation:strichRein .8s var(--spring) both 1.5s,strichWackel 5s ease-in-out 3.5s infinite}
+@keyframes aufmachen{to{width:.62em}}
+@keyframes strichRein{0%{transform:translateY(-3em) rotate(-540deg) scale(.4);opacity:0}70%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes strichWackel{0%,88%,100%{transform:none}91%{transform:translateY(-.06em) rotate(-9deg)}94%{transform:translateY(.02em) rotate(6deg)}97%{transform:rotate(-2deg)}}
+h1{font:800 clamp(28px,4.5vw,56px)/1.05 var(--display);text-transform:uppercase;margin:6px 0 14px;text-wrap:balance;animation:fadeDown .8s var(--ease) both 2.2s}
+h1 b{color:var(--rot)}
+p.sub{max-width:44ch;margin:0 auto 26px;font-size:clamp(16px,1.8vw,20px);opacity:.9;animation:fadeDown .8s var(--ease) both 2.5s}
+.acts{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeDown .8s var(--ease) both 2.8s}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:56px;padding:0 26px;border:2px solid #fff;background:transparent;color:#fff;font:800 16px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s,color .2s,transform .2s var(--ease)}
+.btn:hover{background:#fff;color:var(--schwarz);transform:translateY(-2px)}
+.btn.rot{background:var(--rot);border-color:var(--rot)}
+.btn.rot:hover{background:#fff;border-color:#fff;color:var(--rot)}
+.auto{margin-top:18px;font-size:14px;opacity:.75;animation:fadeIn 1s both 3.2s}
+.auto b{font-variant-numeric:tabular-nums}
+.auto button{background:none;border:0;color:#fff;font:inherit;text-decoration:underline;cursor:pointer;padding:0;margin-left:6px}
+footer{padding:14px clamp(18px,4vw,48px) 22px;font-size:13px;opacity:.7;text-align:center;animation:fadeIn 1s both 3.4s}
+footer a{color:#fff}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.url .strich{width:.62em}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<div class="stage">
+  <header class="top"><img src="logo.png" alt="SPD Soltau" width="88" height="60"><span class="tag">Fast richtig</span></header>
+  <main>
+    <div>
+      <p class="eyebrow">Sie haben getippt: spdsoltau.de</p>
+      <div class="url" aria-label="spd-soltau.de"><span>spd</span><span class="strich"><i></i></span><span>soltau.de</span></div>
+      <h1>Da fehlte nur ein <b>kleiner Strich.</b></h1>
+      <p class="sub">Die Website der SPD Soltau heißt <b>spd-soltau.de</b> – mit Bindestrich. Kein Problem, wir bringen Sie hin.</p>
+      <div class="acts"><a class="btn rot" id="go" href="https://spd-soltau.de/">Zur richtigen Website</a><a class="btn" href="https://spd-soltau.de/kontakt/">Kontakt</a></div>
+      <p class="auto" id="auto">Weiterleitung in <b id="sek">9</b> Sekunden<button type="button" id="stop">anhalten</button></p>
+    </div>
+  </main>
+  <footer>SPD Ortsverein Soltau · <a href="https://spd-soltau.de/impressum/">Impressum</a> · <a href="https://spd-soltau.de/datenschutz/">Datenschutz</a></footer>
+</div>
+<script>
+(() => {
+  // Ziel: dieselbe Adresse mit Bindestrich, falls der Pfad dort existiert (Startseite ist immer sicher)
+  const ziel = 'https://spd-soltau.de/';
+  let rest = 9, timer = null;
+  const sek = document.getElementById('sek'), auto = document.getElementById('auto');
+  const tick = () => { rest--; sek.textContent = rest; if (rest <= 0) { clearInterval(timer); location.replace(ziel); } };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(tick, 1000); else auto.hidden = true;
+  document.getElementById('stop').addEventListener('click', () => { clearInterval(timer); auto.innerHTML = 'Weiterleitung angehalten – <a href="' + ziel + '" style="color:#fff">hier geht es zur Website</a>.'; });
+})();
+</script>
+</body>
+</html>
