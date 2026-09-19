@@ -20,7 +20,12 @@ export const RIGHTS = [
   ['dokumente', 'Dokumente einstellen'],
   ['rat', 'Ratsvorbereitung pflegen'],
   ['nachrichten', 'Nachricht an alle senden'],
-  ['freigaben', 'Eingang bearbeiten (Registrierungen freischalten, Buchungen und Anfragen)'],
+  ['freigaben', 'Anliegen bearbeiten (Registrierungen freischalten, Buchungen und Anfragen)'],
+  ['versammlung', 'Versammlungen anlegen und leiten (Abstimmungen, Protokoll)'],
+  ['wahlkampf', 'Wahlkampf: Straßenlisten und Plakat-Standorte anlegen'],
+  ['newsletter', 'Newsletter schreiben und verschicken'],
+  ['presse', 'Pressekontakte pflegen und Pressemitteilungen verschicken'],
+  ['planung', 'Jahresplan: Planungen und Vorlagen anlegen'],
   ['verwaltung', 'Vorstand, Rechte und Benachrichtigungen festlegen'],
 ];
 
@@ -54,6 +59,8 @@ export const VISIBILITY = [
   ['umfragen', 'Umfragen'],
   ['dokumente', 'Dokumente'],
   ['rat', 'Ratsvorbereitung'],
+  ['versammlung', 'Versammlungen'],
+  ['wahlkampf', 'Wahlkampf'],
   ['mitglieder', 'Mitgliederverzeichnis'],
 ];
 export const VISIBILITY_DEFAULT = { 'termine:Vorstand': [], 'termine:Fraktion': ['fraktion'] }; // Schlüssel → Gruppen (sonst: alle)

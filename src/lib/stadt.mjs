@@ -48,7 +48,23 @@ export async function fetchSitzungen() {
       }
     } catch (e) { /* Kalender nicht erreichbar – Link auf den Monat bleibt */ }
   }
+  // Tagesordnung der Sitzungen, die schon eine haben (öffentlicher Teil: „Ö 1 …“), für die Ratsvorbereitung in der App
+  for (const s of out.filter(x => x.tagesordnung).slice(0, 6)) {
+    try { s.tops = await fetchTagesordnung(s.url); } catch (e) { s.tops = []; }
+  }
   return out;
+}
+export async function fetchTagesordnung(url) {
+  const html = await get(url);
+  const tops = [];
+  for (const row of html.split('<tr').slice(1)) {
+    const nr = row.match(/class="badge">([^<]+)<\/span>/); const titel = row.match(/smc-card-header-title-simple">([\s\S]*?)<\/div>/);
+    if (!nr || !titel) continue;
+    const n = text(nr[1]); if (!/^Ö/.test(n)) continue; // nur der öffentliche Teil
+    const vorlage = row.match(/href="(vo0050\.asp\?__kvonr=\d+)"[^>]*>([^<]+)</);
+    tops.push({ nr: n.replace(/^Ö\s*/, ''), titel: text(titel[1]), vorlage: vorlage ? text(vorlage[2]) : '', vorlageUrl: vorlage ? RIS + vorlage[1] : '' });
+  }
+  return tops;
 }
 
 // ---- soltau.de: Neuigkeiten / Bauleitplanung / Baustellen (alle als „NewsItem“ aufgebaut) ----

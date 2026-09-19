@@ -1,12 +1,17 @@
 // Ratsarbeit – der Working Space der Fraktion im Mitgliederbereich: Meine Aufgaben, Bereiche (Fraktion/Rat + vier Ausschüsse)
-// mit Aufgaben und Dokumenten, „Alle Aufgaben“ nach Bereich oder Person. Ohne Chats – gesprochen wird in WhatsApp.
+// mit Aufgaben und Dokumenten, „Alle Aufgaben“ nach Bereich oder Person, Anträge (Entwurf → Abstimmung in der Fraktion →
+// eingereicht → entschieden, mit Druck-/PDF-Ansicht und Übergabe an „Beiträge“). Ohne Chats – gesprochen wird in WhatsApp.
 // Sichtbar nur für Mitglieder der Gruppe „Fraktion“ (Vorstand → Gruppen). Inhalte liegen verschlüsselt bei Wix, siehe lib/rat.mjs.
-import { BEREICHE, bereichVon, DOK_ARTEN, TEIL_BYTES, MAX_DATEI, encryptJson, decryptJson, encryptBytes, decryptBytes, neuesGeraet, auspacken } from './lib/rat.mjs';
+import { BEREICHE, bereichVon, DOK_ARTEN, TEIL_BYTES, MAX_DATEI, encryptBytes, decryptBytes } from './lib/rat.mjs';
 
+export const GREMIEN = ['Rat der Stadt Soltau', 'Verwaltungsausschuss', 'Bauausschuss', 'Finanzausschuss', 'Sozialausschuss', 'Schulausschuss', 'Kulturausschuss', 'Feuerschutzausschuss'];
+const ANTRAG_STATUS = [['entwurf', 'Entwurf'], ['abstimmung', 'In der Fraktion abstimmen'], ['eingereicht', 'Eingereicht'], ['beschlossen', 'Beschlossen'], ['abgelehnt', 'Abgelehnt'], ['zurueckgezogen', 'Zurückgezogen']];
+const statusLabel = k => (ANTRAG_STATUS.find(x => x[0] === k) || [k, k])[1];
 export function makeRatsarbeit(ctx) {
-  const { db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, route, sectionHead, nl2br } = ctx;
+  const { db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, route, sectionHead, nl2br, schluessel } = ctx;
   const me = () => ctx.me, people = () => ctx.people, settings = () => ctx.settings;
-  const state = { key: null, sicht: { gruppierung: 'bereich', erlZeigen: false }, timer: null, tasks: [], docs: [] };
+  const state = { sicht: { gruppierung: 'bereich', erlZeigen: false }, timer: null, tasks: [], docs: [], antraege: [] };
+  const key = () => schluessel.key('fraktion');
   const heute = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
   const inDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const fmtFrist = f => f ? new Date(f + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '';
@@ -19,28 +24,14 @@ export function makeRatsarbeit(ctx) {
   const nachFrist = (a, b) => (a.frist || '9').localeCompare(b.frist || '9');
   const groesse = n => n > 1e6 ? (n / 1e6).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
 
-  // ---- Schlüssel: Vorschau ohne Verschlüsselung, sonst Fraktionsschlüssel dieses Geräts ----
-  const encJson = obj => DEMO ? JSON.stringify(obj) : encryptJson(state.key, obj);
-  const decJson = async s => { try { return DEMO ? JSON.parse(s || '{}') : await decryptJson(state.key, s); } catch (e) { return { titel: '(nicht lesbar – anderer Schlüssel)', unlesbar: true }; } };
-  async function geraet() {
-    let g = store.get('spd-rat-geraet');
-    if (!g?.priv) { g = await neuesGeraet(); store.set('spd-rat-geraet', g); }
-    return g;
-  }
-  // → 'ok' | 'wartet' | 'fehler'
-  async function schluessel() {
-    if (DEMO || state.key) return 'ok';
-    const g = await geraet();
-    const rows = await db.list('RatSchluessel', { eq: { geraet: g.id }, limit: 5 });
-    const row = rows[0];
-    if (!row) { await db.insert('RatSchluessel', { title: `${me().name} · ${g.id}`, memberId: me().id, name: me().name, geraet: g.id, pub: JSON.stringify(g.pub), status: 'neu' }); return 'wartet'; }
-    if (row.status === 'aktiv' && row.verpackt) { try { state.key = await auspacken(row.verpackt, g.priv); return 'ok'; } catch (e) { return 'fehler'; } }
-    return row.status === 'fehler' ? 'fehler' : 'wartet';
-  }
+  // ---- Schlüssel: Vorschau ohne Verschlüsselung, sonst Fraktionsschlüssel dieses Geräts (src/schluessel.js) ----
+  const encJson = obj => schluessel.encJson('fraktion', obj);
+  const decJson = s => schluessel.decJson('fraktion', s);
   async function laden() {
-    const [tasks, docs] = await Promise.all([db.list('RatAufgaben', { limit: 500 }).catch(() => []), db.list('RatDokumente', { desc: '_createdDate', limit: 500 }).catch(() => [])]);
+    const [tasks, docs, antraege] = await Promise.all([db.list('RatAufgaben', { limit: 500 }).catch(() => []), db.list('RatDokumente', { desc: '_createdDate', limit: 500 }).catch(() => []), db.list('RatAntraege', { desc: '_createdDate', limit: 300 }).catch(() => [])]);
     state.tasks = await Promise.all(tasks.map(async t => ({ ...t, wer: t.wer || [], ...(await decJson(t.daten)) })));
     state.docs = await Promise.all(docs.map(async d => ({ ...d, ...(await decJson(d.daten)) })));
+    state.antraege = await Promise.all(antraege.map(async a => ({ ...a, zustimmung: a.zustimmung || [], ...(await decJson(a.daten)) })));
   }
 
   // ---- Bausteine ----
@@ -60,6 +51,11 @@ export function makeRatsarbeit(ctx) {
         <h4 class="rz-h">Meine Aufgaben <span>${meine.length ? meine.length + ' offen' : 'nichts offen'}</span></h4>
         <div class="rz-liste">${meine.map(t => zeile(t, true)).join('') || '<div class="rz-leer">Du hast gerade nichts Offenes.</div>'}</div>
         <a class="btn btn-line rz-breit" href="#ratsarbeit/alle">${ICON.list}Alle Aufgaben der Fraktion (${alleOffen} offen)</a>
+      </div>
+      <div class="rz-block">
+        <h4 class="rz-h">Anträge <span>${state.antraege.filter(a => ['entwurf', 'abstimmung'].includes(a.status)).length} in Arbeit</span></h4>
+        <div class="rz-liste">${state.antraege.filter(a => ['entwurf', 'abstimmung'].includes(a.status)).slice(0, 3).map(antragZeile).join('') || '<div class="rz-leer">Kein Antrag in Arbeit.</div>'}</div>
+        <a class="btn btn-line rz-breit" href="#ratsarbeit/antraege">${ICON.edit}Alle Anträge (${state.antraege.length})</a>
       </div>
       <div class="rz-block">
         <h4 class="rz-h">Bereiche</h4>
@@ -102,7 +98,87 @@ export function makeRatsarbeit(ctx) {
     </div>`;
   }
 
-  // ---- Blatt (Aufgabe/Dokument) – hängt am body, damit es über der App-Leiste liegt ----
+  // ---- Anträge der Fraktion ----
+  const antragZeile = a => `<a class="rz-dok" href="#ratsarbeit/a-${esc(a._id)}"><span class="rz-ico${a.status === 'abstimmung' ? ' link' : ''}">${ICON.edit}</span><span class="rz-txt"><b>${esc(a.titel || 'Antrag')}</b><small>${esc(statusLabel(a.status))}${a.status === 'abstimmung' ? ` · ${a.zustimmung.length} dafür` : ''} · ${esc(a.gremium || '')}${a.sitzung ? ' · ' + fmtFrist(a.sitzung) : ''} · ${esc(a.vonName || '')}</small></span></a>`;
+  function antraege() {
+    const grp = (keys, titel) => { const l = state.antraege.filter(a => keys.includes(a.status)); return l.length ? `<div class="rz-gruppe"><h4 class="rz-g">${titel} <span>${l.length}</span></h4>${l.map(antragZeile).join('')}</div>` : ''; };
+    return `<div class="rz-seite" data-antraege>
+      <p class="small rz-zurueck"><a href="#ratsarbeit">← Ratsarbeit</a></p>
+      ${sectionHead('Anträge', 'Entwurf → Abstimmung in der Fraktion → eingereicht → entschieden')}
+      <button class="btn btn-rot rz-breit" type="button" data-neu="antrag">${ICON.plus}Neuer Antrag</button>
+      ${grp(['abstimmung'], 'In der Fraktion abstimmen') + grp(['entwurf'], 'Entwürfe') + grp(['eingereicht'], 'Eingereicht') + grp(['beschlossen', 'abgelehnt', 'zurueckgezogen'], 'Entschieden') || '<div class="rz-leer">Noch kein Antrag. Der erste dauert fünf Minuten: Titel, Beschlussvorschlag, Begründung – fertig.</div>'}
+      <p class="small muted">Ein Antrag wird hier geschrieben und in der Fraktion abgestimmt (Daumen hoch), dann als PDF gedruckt und bei der Verwaltung eingereicht. Mit „Als Beitrag vorbereiten“ wird daraus mit einem Klick der Entwurf für „Aktuelles“.</p>
+    </div>`;
+  }
+  const antragText = a => `Antrag der SPD-Fraktion: ${a.titel}\n${a.gremium || ''}${a.sitzung ? ', Sitzung am ' + fmtTag(a.sitzung) : ''}\nBeschlussvorschlag: ${a.beschluss || ''}\nIn der App: ${appLink('#ratsarbeit/a-' + a._id)}`;
+  function druckAntrag(a) {
+    document.getElementById('druck')?.remove();
+    const el = document.createElement('div'); el.id = 'druck'; el.className = 'druck';
+    const heute = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+    el.innerHTML = `<div class="druck-kopf"><b>SPD-Fraktion im Rat der Stadt Soltau</b><span>Am Bahnhof 1t · 29614 Soltau · www.spd-soltau.de</span></div>
+      <p class="druck-an">An den Bürgermeister der Stadt Soltau<br>zur Weiterleitung an ${esc(a.gremium || 'den Rat der Stadt Soltau')}</p>
+      <p class="druck-datum">Soltau, ${heute}</p>
+      <h1>Antrag${a.sitzung ? ` zur Sitzung am ${esc(fmtTag(a.sitzung))}` : ''}</h1>
+      <h2>${esc(a.titel || '')}</h2>
+      <h3>Beschlussvorschlag</h3><div class="druck-text">${nl2br(a.beschluss || '')}</div>
+      <h3>Begründung</h3><div class="druck-text">${nl2br(a.begruendung || '')}</div>
+      <p class="druck-unterschrift">Für die SPD-Fraktion<br><br><br>${esc(a.vonName || me().name)}</p>`;
+    document.body.appendChild(el); document.body.classList.add('drucken');
+    const fertig = () => { el.remove(); document.body.classList.remove('drucken'); window.removeEventListener('afterprint', fertig); };
+    window.addEventListener('afterprint', fertig);
+    setTimeout(() => window.print(), 50);
+    setTimeout(fertig, 60000);
+  }
+  function antragBlatt(id) {
+    const a = id ? state.antraege.find(x => x._id === id) : { b: 'rat', status: 'entwurf', gremium: GREMIEN[0], sitzung: '', titel: '', beschluss: '', begruendung: '', zustimmung: [] };
+    if (!a) return;
+    const dafuer = a.zustimmung.includes(me().id);
+    const offen = ['entwurf', 'abstimmung'].includes(a.status);
+    blatt(id ? 'Antrag' : 'Neuer Antrag', `
+      <div class="field"><label for="an-titel">Worum geht es? (Betreff)</label><input id="an-titel" type="text" value="${esc(a.titel)}" placeholder="z. B. Mehr Bäume in der Marktstraße" maxlength="140"></div>
+      <div class="mb-2">
+        <div class="field"><label for="an-gremium">Gremium</label><input id="an-gremium" type="text" list="gremien-liste" value="${esc(a.gremium || '')}"><datalist id="gremien-liste">${GREMIEN.map(g => `<option value="${esc(g)}">`).join('')}</datalist></div>
+        <div class="field"><label for="an-sitzung">Für die Sitzung am</label><input id="an-sitzung" type="date" value="${esc(a.sitzung || '')}"></div>
+      </div>
+      <div class="field"><label for="an-b">Bereich</label><select id="an-b">${BEREICHE.map(b => `<option value="${b.id}" ${b.id === a.b ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="an-beschluss">Beschlussvorschlag – was soll der Rat beschließen?</label><textarea id="an-beschluss" rows="4" placeholder="Der Rat der Stadt Soltau beschließt, …">${esc(a.beschluss || '')}</textarea></div>
+      <div class="field"><label for="an-begr">Begründung</label><textarea id="an-begr" rows="6" placeholder="Warum ist das wichtig? Kurz und konkret.">${esc(a.begruendung || '')}</textarea></div>
+      ${id ? `<p class="small muted">Status: <b>${esc(statusLabel(a.status))}</b>${a.status === 'abstimmung' ? ` · ${a.zustimmung.length} von ${fraktion().length} dafür${a.zustimmung.length ? ': ' + esc(a.zustimmung.map(x => vorname(nameOf(x))).join(', ')) : ''}` : ''} · angelegt von ${esc(a.vonName || '–')} am ${fmtTag(a._createdDate)}${a.eingereichtAm ? ` · eingereicht ${fmtTag(a.eingereichtAm)}` : ''}</p>` : ''}
+      <div class="mb-actions">
+        ${offen || !id ? `<button class="btn btn-rot" type="button" id="an-speichern">${id ? 'Speichern' : 'Antrag anlegen'}</button>` : ''}
+        ${id && a.status === 'entwurf' ? `<button class="btn btn-schwarz btn-sm" type="button" data-status="abstimmung">In der Fraktion abstimmen</button>` : ''}
+        ${id && a.status === 'abstimmung' ? `<button class="btn ${dafuer ? 'btn-schwarz' : 'btn-line'} btn-sm" type="button" id="an-dafuer">👍 ${dafuer ? 'Ich bin dafür' : 'Dafür stimmen'}</button><button class="btn btn-line btn-sm" type="button" data-status="eingereicht">Eingereicht ✓</button>` : ''}
+        ${id && a.status === 'eingereicht' ? `<button class="btn btn-line btn-sm" type="button" data-status="beschlossen">Beschlossen</button><button class="btn btn-line btn-sm" type="button" data-status="abgelehnt">Abgelehnt</button>` : ''}
+      </div>
+      ${id ? `<div class="mb-actions">
+        <button class="btn btn-line btn-sm" type="button" id="an-druck">${ICON.doc}Drucken / als PDF</button>
+        <button class="btn btn-line btn-sm" type="button" id="an-beitrag">${ICON.edit}Als Beitrag vorbereiten</button>
+        <button class="btn btn-line btn-sm share" type="button" id="an-teilen">${ctx.SHARE_ICON}Teilen</button>
+        ${offen ? `<button class="linkbtn" type="button" data-status="zurueckgezogen">Zurückziehen</button>` : ''}<button class="linkbtn" type="button" id="an-loeschen">Löschen</button>
+      </div>` : ''}`, el => {
+      const lesen = () => ({ titel: $('#an-titel', el).value.trim(), gremium: $('#an-gremium', el).value.trim(), sitzung: $('#an-sitzung', el).value, b: $('#an-b', el).value, beschluss: $('#an-beschluss', el).value.trim(), begruendung: $('#an-begr', el).value.trim() });
+      const rawA = x => { const { titel, beschluss, begruendung, unlesbar, ...rest } = x; return rest; };
+      const speichern = async (extra = {}) => {
+        const v = lesen(); if (!v.titel) { $('#an-titel', el).focus(); return; }
+        const btn = $('#an-speichern', el); busy(btn, true);
+        try {
+          const data = { ...rawA(a), title: 'Antrag', b: v.b, gremium: v.gremium, sitzung: v.sitzung, status: a.status || 'entwurf', daten: await encJson({ titel: v.titel, beschluss: v.beschluss, begruendung: v.begruendung }), ...extra };
+          if (id) await db.update('RatAntraege', data); else await db.insert('RatAntraege', { ...data, von: me().id, vonName: me().name, zustimmung: [] });
+          blattZu(); await route();
+        } catch (err) { msg($('#rz-msg', el), 'Nicht gespeichert: ' + ctx.errText(err)); busy(btn, false); }
+      };
+      $('#an-speichern', el)?.addEventListener('click', () => speichern());
+      $$('[data-status]', el).forEach(b => b.addEventListener('click', () => speichern({ status: b.dataset.status, ...(b.dataset.status === 'eingereicht' ? { eingereichtAm: new Date().toISOString() } : {}) })));
+      $('#an-dafuer', el)?.addEventListener('click', () => { const z = new Set(a.zustimmung); if (z.has(me().id)) z.delete(me().id); else z.add(me().id); speichern({ zustimmung: [...z] }); });
+      $('#an-druck', el)?.addEventListener('click', () => druckAntrag({ ...a, ...lesen() }));
+      $('#an-beitrag', el)?.addEventListener('click', () => { const v = lesen(); store.set('spd-beitrag-entwurf', { titel: `SPD beantragt: ${v.titel}`, teaser: (v.beschluss || '').slice(0, 280), text: `Die SPD-Fraktion hat ${v.gremium ? 'für ' + v.gremium : 'für den Rat'}${v.sitzung ? ' (Sitzung am ' + fmtTag(v.sitzung) + ')' : ''} folgenden Antrag gestellt:\n\n## Beschlussvorschlag\n\n${v.beschluss}\n\n## Begründung\n\n${v.begruendung}` }); blattZu(false); location.hash = '#beitraege'; });
+      $('#an-teilen', el)?.addEventListener('click', () => ctx.shareText(antragText({ ...a, ...lesen() })));
+      $('#an-loeschen', el)?.addEventListener('click', async () => { if (!confirm('Antrag wirklich löschen?')) return; try { await db.remove('RatAntraege', id); blattZu(); await route(); } catch (err) { msg($('#rz-msg', el), ctx.errText(err)); } });
+      setTimeout(() => $('#an-titel', el).focus(), 60);
+    });
+  }
+
+  // ---- Blatt (Aufgabe/Dokument/Antrag) – hängt am body, damit es über der App-Leiste liegt ----
   function blatt(titel, inner, wire) {
     blattZu(false);
     const el = document.createElement('div'); el.className = 'rz-blatt'; el.id = 'rz-blatt';
@@ -113,7 +189,7 @@ export function makeRatsarbeit(ctx) {
   }
   function blattZu(zurueck = true) {
     document.getElementById('rz-blatt')?.remove(); document.body.classList.remove('sheet-open');
-    if (zurueck && /^#ratsarbeit\/[td]-/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search + (state.zurueckHash || '#ratsarbeit'));
+    if (zurueck && /^#ratsarbeit\/[tda]-/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search + (state.zurueckHash || '#ratsarbeit'));
   }
   const waAufgabe = t => `📌 Aufgabe (${bereichVon(t.b).name}): ${t.titel}\n${namen(t)}${t.frist ? ' · bis ' + fmtFrist(t.frist) : ''}\nIn der App: ${appLink('#ratsarbeit/t-' + t._id)}`;
   const raw = t => { const { titel, notiz, unlesbar, name, typ, url, ...rest } = t; return rest; };
@@ -160,7 +236,7 @@ export function makeRatsarbeit(ctx) {
             const teile = await db.list('RatDateiTeile', { eq: { dateiId: d.dateiId }, asc: 'nr', limit: 200 });
             if (teile.length !== d.teile) throw new Error(`Datei unvollständig (${teile.length} von ${d.teile} Teilen)`);
             const parts = [];
-            for (const [i, teil] of teile.entries()) { msg($('#rz-msg', el), `Entschlüssele … Teil ${i + 1} von ${teile.length}`, 'info'); parts.push(await decryptBytes(state.key, teil.daten)); }
+            for (const [i, teil] of teile.entries()) { msg($('#rz-msg', el), `Entschlüssele … Teil ${i + 1} von ${teile.length}`, 'info'); parts.push(await decryptBytes(key(), teil.daten)); }
             const blob = new Blob(parts, { type: d.typ || 'application/octet-stream' });
             const objUrl = URL.createObjectURL(blob);
             const file = new File([blob], d.name || 'Dokument', { type: blob.type });
@@ -212,7 +288,7 @@ export function makeRatsarbeit(ctx) {
               const buf = new Uint8Array(await f.arrayBuffer()); teile = Math.ceil(buf.length / TEIL_BYTES) || 1;
               for (let i = 0; i < teile; i++) {
                 msg(note, `Verschlüssele und lade hoch … Teil ${i + 1} von ${teile}`, 'info');
-                await db.insert('RatDateiTeile', { title: `${dateiId} ${i}`, dateiId, nr: i, daten: await encryptBytes(state.key, buf.subarray(i * TEIL_BYTES, (i + 1) * TEIL_BYTES)) });
+                await db.insert('RatDateiTeile', { title: `${dateiId} ${i}`, dateiId, nr: i, daten: await encryptBytes(key(), buf.subarray(i * TEIL_BYTES, (i + 1) * TEIL_BYTES)) });
               }
             }
             await db.insert('RatDokumente', { ...base, daten: await encJson({ titel, name: f.name, typ: f.type }), dateiId, teile, groesse: f.size });
@@ -227,29 +303,26 @@ export function makeRatsarbeit(ctx) {
   async function sec(v) {
     clearTimeout(state.timer);
     const sub = location.hash.split('/')[1] || '';
-    const status = await schluessel().catch(e => { v.innerHTML = `<p class="note note-err">Schlüssel konnte nicht geprüft werden: ${esc(ctx.errText(e))}</p>`; return null; });
+    const status = await schluessel.laden('fraktion').catch(e => { v.innerHTML = `<p class="note note-err">Schlüssel konnte nicht geprüft werden: ${esc(ctx.errText(e))}</p>`; return null; });
     if (!status) return;
     if (status !== 'ok') {
-      v.innerHTML = `${sectionHead('Ratsarbeit', 'Aufgaben und Dokumente der Fraktion')}
-      <div class="mb-card mb-narrow">${status === 'wartet' ? `<h3>Dein Zugang wird eingerichtet</h3>
-        <p>Dieses Gerät hat gerade seinen Schlüssel angemeldet. Der Push-Dienst schaltet ihn in den nächsten Minuten frei – danach siehst du hier die Aufgaben und Dokumente der Fraktion. Diese Seite prüft alle 30 Sekunden von selbst nach.</p>
-        <p class="small muted">Warum? Alles in der Ratsarbeit liegt verschlüsselt bei Wix. Nur Geräte von Fraktionsmitgliedern bekommen den Schlüssel – so kann auch niemand sonst mitlesen.</p>` : `<h3>Schlüssel dieses Geräts unbrauchbar</h3><p>Bitte den Geräteschlüssel neu anlegen – danach schaltet der Push-Dienst das Gerät in ein paar Minuten wieder frei.</p><div class="mb-actions"><button class="btn btn-rot" type="button" id="rz-neu">Schlüssel neu anlegen</button></div>`}</div>`;
-      $('#rz-neu', v)?.addEventListener('click', () => { store.del('spd-rat-geraet'); route(); });
-      if (status === 'wartet') state.timer = setTimeout(() => { if (location.hash.startsWith('#ratsarbeit')) route(); }, 30000);
+      v.innerHTML = `${sectionHead('Ratsarbeit', 'Aufgaben und Dokumente der Fraktion')}${schluessel.warteKarte(status, 'die Aufgaben, Dokumente und Anträge der Fraktion')}`;
+      $('[data-schluessel-neu]', v)?.addEventListener('click', () => { schluessel.neu(); route(); });
+      if (status === 'wartet') state.timer = setTimeout(() => { schluessel.vergessen(); if (location.hash.startsWith('#ratsarbeit')) route(); }, 30000);
       return;
     }
     await laden();
     // Aufgabe/Dokument (#ratsarbeit/t-… bzw. d-…) öffnet als Blatt über der zuletzt gezeigten Seite
     let hash = location.hash.split('?')[0];
-    if (/^#ratsarbeit\/[td]-/.test(hash)) hash = state.zurueckHash || '#ratsarbeit'; else state.zurueckHash = hash;
+    if (/^#ratsarbeit\/[tda]-/.test(hash)) hash = state.zurueckHash || '#ratsarbeit'; else state.zurueckHash = hash;
     const teil = hash.split('/')[1] || '';
-    const seite = teil === 'alle' ? 'alle' : teil.startsWith('b-') ? 'bereich' : 'start';
+    const seite = teil === 'alle' ? 'alle' : teil === 'antraege' ? 'antraege' : teil.startsWith('b-') ? 'bereich' : 'start';
     const bereichId = seite === 'bereich' ? teil.slice(2) : null;
-    v.innerHTML = `<div class="rz" data-seite="${seite}"><div class="rz-links">${start()}</div><div class="rz-rechts">${seite === 'bereich' ? bereich(bereichId) : alle()}</div></div>`;
+    v.innerHTML = `<div class="rz" data-seite="${seite}"><div class="rz-links">${start()}</div><div class="rz-rechts">${seite === 'bereich' ? bereich(bereichId) : seite === 'antraege' ? antraege() : alle()}</div></div>`;
     v.onclick = async e => {
       const g = e.target.closest('[data-gruppe]'); if (g) { state.sicht.gruppierung = g.dataset.gruppe; route(); return; }
       const er = e.target.closest('[data-erl]'); if (er) { state.sicht.erlZeigen = !state.sicht.erlZeigen; route(); return; }
-      const neu = e.target.closest('[data-neu]'); if (neu) { const bid = neu.closest('.rz-seite')?.dataset.bereich || null; if (neu.dataset.neu === 'aufgabe') aufgabeBlatt(null, bid); else dokBlatt(null, bid); return; }
+      const neu = e.target.closest('[data-neu]'); if (neu) { const bid = neu.closest('.rz-seite')?.dataset.bereich || null; if (neu.dataset.neu === 'aufgabe') aufgabeBlatt(null, bid); else if (neu.dataset.neu === 'antrag') antragBlatt(null); else dokBlatt(null, bid); return; }
       const hak = e.target.closest('[data-hak]');
       if (hak) {
         const row = hak.closest('.rz-zeile'); const t = state.tasks.find(x => x._id === row.dataset.id); if (!t) return;
@@ -260,7 +333,7 @@ export function makeRatsarbeit(ctx) {
       }
     };
     // Aufgabe oder Dokument direkt per Link (#ratsarbeit/t-… bzw. d-…) – z. B. aus einer Push-Nachricht
-    if (sub.startsWith('t-')) aufgabeBlatt(sub.slice(2), bereichId); else if (sub.startsWith('d-')) dokBlatt(sub.slice(2), bereichId);
+    if (sub.startsWith('t-')) aufgabeBlatt(sub.slice(2), bereichId); else if (sub.startsWith('d-')) dokBlatt(sub.slice(2), bereichId); else if (sub.startsWith('a-')) antragBlatt(sub.slice(2));
   }
 
   // Zähler für die Navigation: meine offenen Aufgaben (nur Metadaten, ohne Entschlüsselung)
@@ -273,7 +346,7 @@ export function makeRatsarbeit(ctx) {
     if (!inFraktion()) return '';
     let mine = [];
     try { mine = (await db.list('RatAufgaben', { eq: { status: 'offen' }, limit: 500 })).filter(t => (t.wer || []).includes(me().id)).sort(nachFrist); } catch (e) { mine = []; }
-    const titel = async t => (DEMO || state.key) ? (await decJson(t.daten)).titel || 'Aufgabe' : `Aufgabe · ${bereichVon(t.b).name}`;
+    const titel = async t => (DEMO || key()) ? (await decJson(t.daten)).titel || 'Aufgabe' : `Aufgabe · ${bereichVon(t.b).name}`;
     const rows = await Promise.all(mine.slice(0, 3).map(async t => `<a class="start-ev" href="#ratsarbeit/t-${esc(t._id)}">📌 ${esc(await titel(t))} <span class="small muted">${t.frist ? 'bis ' + esc(fmtFrist(t.frist)) : ''}</span>${t.frist && t.frist < heute() ? '<span class="badge badge-mit">überfällig</span>' : ''}</a>`));
     return `<div class="mb-card"><h3>Ratsarbeit</h3><p class="small">${mine.length ? `<b>${mine.length}</b> offene Aufgabe${mine.length === 1 ? '' : 'n'} für dich` : 'Keine offenen Aufgaben für dich.'}</p>${rows.join('')}<a class="btn btn-schwarz btn-sm" href="#ratsarbeit">Zur Ratsarbeit</a></div>`;
   }

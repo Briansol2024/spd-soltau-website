@@ -272,6 +272,8 @@ async function main() {
     rat: d.rat.map(p => ({ name: p.name, job: p.job, role: p.art === 'direkt' ? `${p.stimmen.toLocaleString('de-DE')} Stimmen · direkt gewählt` : `Listenplatz ${p.listenplatz} · über die Liste gewählt`, text: p.text, themen: [], photo: p.photo })),
     themen: d.themen,
     events: d.events,
+    // Sitzungen der Stadt (Bürgerinformationssystem) mit Tagesordnung – für die Ratsvorbereitung in der App
+    sitzungen: (d.stadt?.sitzungen || []).slice(0, 8).map(s => ({ datum: s.datum, zeit: s.zeit, gremium: s.gremiumLang, ort: s.ort, url: s.url, tops: s.tops || [] })),
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,

@@ -12,6 +12,7 @@ import { RIGHTS, BOARD_TOPICS, GROUPS, VISIBILITY, evaluateSettings, canSee, gro
 import { HELP_TOPICS, PLATFORMS, stepsFor, topicById, videoName, posterName, guessPlatform } from './lib/hilfe.mjs';
 import { makeDemoClient } from './demo.js';
 import { makeRatsarbeit } from './ratsarbeit.js';
+import { makeSchluessel } from './schluessel.js';
 
 const SPD = window.SPD || {};
 const CFG = (SPD.app = SPD.app || {});
@@ -954,17 +955,21 @@ async function secDokumente(v) {
 
 // ---------- Ratsvorbereitung ----------
 const POS = ['offen', 'dafür', 'dagegen', 'Enthaltung', 'Änderungsantrag'];
-async function secRat(v, editId = null) {
+async function secRat(v, editId = null, vorlage = null) {
   const all = await db.list('Ratsvorbereitung', { desc: 'sitzung' }).catch(() => []);
   const today = todayIso();
   const next = all.filter(r => (r.sitzung || '') >= today).sort((a, b) => a.sitzung.localeCompare(b.sitzung)), past = all.filter(r => (r.sitzung || '') < today);
   const editing = editId ? all.find(r => r._id === editId) : null;
+  // Sitzungen der Stadt aus dem Bürgerinformationssystem (beim Bau geholt) – noch nicht in der Ratsvorbereitung
+  const stadt = (SPD.sitzungen || []).filter(s => s.datum >= today && !all.some(r => r.sitzung === s.datum && String(r.gremium).toLowerCase().includes(String(s.gremium).toLowerCase().split(' ')[0])));
+  const form = vorlage ? { gremium: vorlage.gremium, sitzung: vorlage.datum, zeit: vorlage.zeit, titel: '', link: vorlage.url, hinweis: '', tops: (vorlage.tops || []).map(t => ({ nr: t.nr, titel: t.titel + (t.vorlage ? ` (${t.vorlage})` : ''), position: 'offen', einordnung: '' })) } : editing;
   v.innerHTML = `
   ${sectionHead('Ratsvorbereitung', 'Tagesordnung mit der Einordnung der Fraktion – nur intern')}
-  ${me.can('rat') ? `<div class="mb-create"><details class="mb-details" id="r-new" ${editing ? 'open' : ''}><summary>${editing ? 'Sitzung bearbeiten' : 'Sitzung anlegen'}</summary>${ratForm(editing)}</details></div>` : ''}
+  ${me.can('rat') ? `<div class="mb-create"><details class="mb-details" id="r-new" ${form ? 'open' : ''}><summary>${editing ? 'Sitzung bearbeiten' : vorlage ? 'Sitzung aus dem Bürgerinformationssystem' : 'Sitzung anlegen'}</summary>${ratForm(form)}</details></div>` : ''}
+  ${me.can('rat') && stadt.length && !vorlage ? `<section class="rat-stadt"><h4 class="doc-cat">Nächste Sitzungen der Stadt <span class="small muted">(Bürgerinformationssystem, automatisch)</span></h4><div class="doc-list">${stadt.map((s2, i) => `<article class="doc"><div class="doc-body"><b>${esc(s2.gremium)}</b><p class="small muted">${esc(fmtDate(s2.datum))} · ${esc(s2.zeit)} Uhr · ${esc(s2.ort)} · ${s2.tops.length ? `${s2.tops.length} öffentliche Tagesordnungspunkte` : 'Tagesordnung noch nicht veröffentlicht'}</p></div><div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" data-uebernehmen="${i}">${s2.tops.length ? 'Tagesordnung übernehmen' : 'Sitzung anlegen'}</button></div></article>`).join('')}</div><p class="small muted">Übernehmen legt die Sitzung mit allen Punkten an – die Fraktion trägt dann nur noch ihre Haltung je Punkt ein.</p></section>` : ''}
   <div class="rat-list">${next.length ? next.map(r => ratCard(r)).join('') : '<p class="muted">Keine kommende Sitzung eingetragen.</p>'}</div>
   ${past.length ? `<section class="mb-sub"><h4 class="doc-cat">Vergangene Sitzungen</h4><div class="rat-list">${past.slice(0, 6).map(r => ratCard(r)).join('')}</div></section>` : ''}`;
-  wireRat(v, all);
+  wireRat(v, all, stadt);
 }
 function ratCard(r) {
   return `<article class="mb-card rat" data-id="${esc(r._id)}">
@@ -993,11 +998,11 @@ function ratForm(r) {
     </div>
     <div class="field"><label for="ra-hinweis">Hinweis für die Fraktion (optional)</label><textarea id="ra-hinweis" name="hinweis" rows="2">${esc(r?.hinweis || '')}</textarea></div>
     <p class="note" hidden></p>
-    <div class="mb-actions"><button class="btn btn-rot" type="submit">${r ? 'Änderungen speichern' : 'Sitzung speichern'}</button>${r ? '<button class="btn btn-line" type="button" id="ra-cancel">Abbrechen</button><button class="btn btn-line" type="button" id="ra-del">Löschen</button>' : ''}</div>
+    <div class="mb-actions"><button class="btn btn-rot" type="submit">${r?._id ? 'Änderungen speichern' : 'Sitzung speichern'}</button>${r ? '<button class="btn btn-line" type="button" id="ra-cancel">Abbrechen</button>' : ''}${r?._id ? '<button class="btn btn-line" type="button" id="ra-del">Löschen</button>' : ''}</div>
   </form>`;
 }
 const topRow = t => `<div class="row top-row"><input type="text" placeholder="Nr." value="${esc(t.nr || '')}" aria-label="TOP-Nummer"><input type="text" placeholder="Titel des Tagesordnungspunkts" value="${esc(t.titel || '')}" aria-label="Titel"><select aria-label="Position">${opt(POS, t.position || 'offen')}</select><textarea rows="2" placeholder="Einordnung der Fraktion (optional)" aria-label="Einordnung">${esc(t.einordnung || '')}</textarea><button type="button" class="linkbtn" data-del-top>entfernen</button></div>`;
-function wireRat(v, all) {
+function wireRat(v, all, stadt = []) {
   const f = $('#f-rat');
   if (f) {
     $('#ra-add').addEventListener('click', () => { const d = document.createElement('div'); d.innerHTML = topRow({}); $('#ra-tops').appendChild(d.firstElementChild); });
@@ -1016,7 +1021,10 @@ function wireRat(v, all) {
       } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
     });
   }
-  v.addEventListener('click', e => { const b = e.target.closest('button[data-edit-rat]'); if (!b) return; secRat(v, b.closest('.rat').dataset.id); });
+  v.addEventListener('click', e => {
+    const u = e.target.closest('button[data-uebernehmen]'); if (u) { secRat(v, null, stadt[+u.dataset.uebernehmen]); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const b = e.target.closest('button[data-edit-rat]'); if (!b) return; secRat(v, b.closest('.rat').dataset.id);
+  });
 }
 
 // ---------- Beiträge für „Aktuelles“ (Wix Blog) ----------
@@ -1041,6 +1049,8 @@ async function secBeitraege(v) {
   </form>
   ${mine.length ? `<section class="mb-sub">${sectionHead('Meine eingereichten Beiträge')}<div class="doc-list">${mine.map(a => { let p = {}; try { p = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ } return `<article class="doc"><div class="doc-body"><b>${esc(p.titel || a.title)}</b><p class="small muted">${esc(fmtWhen(a._createdDate))} · ${esc({ offen: 'wartet auf Übertragung', erledigt: 'übertragen', fehler: 'Fehler', abgelehnt: 'abgelehnt' }[a.status] || a.status)}${a.ergebnis ? ' – ' + esc(a.ergebnis) : ''}</p></div></article>`; }).join('')}</div></section>` : ''}`;
   let bild = '';
+  const entwurf = store.get('spd-beitrag-entwurf');
+  if (entwurf) { store.del('spd-beitrag-entwurf'); $('#po-titel').value = entwurf.titel || ''; $('#po-teaser').value = entwurf.teaser || ''; $('#po-text').value = entwurf.text || ''; msg($('#f-post .note'), 'Entwurf aus dem Antrag übernommen – bitte durchlesen, anpassen und einreichen.', 'info'); }
   $('#po-bild').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) { bild = ''; $('#po-preview').hidden = true; return; }
     try { bild = await resizeImage(file, 1280, 0.72); $('#po-preview').hidden = false; $('#po-preview').innerHTML = `<img src="${bild}" alt=""><span class="small muted">${Math.round(bild.length * 0.75 / 1024)} KB</span>`; }
@@ -1398,7 +1408,8 @@ async function onBroadcast(e) {
 }
 
 // Ratsarbeit (Working Space der Fraktion) – eigenes Modul, bekommt Zugriff auf Client, Zustand und Bausteine
-const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
+const schluessel = makeSchluessel({ db, store, DEMO, me: () => me });
+const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====
 async function enterApp() {

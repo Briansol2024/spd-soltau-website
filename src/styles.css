@@ -1258,3 +1258,20 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .share-opt .btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .share-opt .btn.wa svg{fill:currentColor;stroke:none}
 .share-text{white-space:pre-wrap;font:14px/1.45 var(--body);background:var(--grau);padding:12px;margin:0;user-select:all}
+
+/* Druckansicht (Antrag als PDF): beim Drucken nur das Blatt */
+.druck{display:none}
+@media print{
+  body.drucken>*:not(.druck){display:none!important}
+  body.drucken .druck{display:block;font:12pt/1.5 var(--body);color:#000;padding:0;max-width:none}
+  .druck-kopf{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2pt solid #E3000F;padding-bottom:6pt;margin-bottom:24pt}
+  .druck-kopf b{font:800 16pt var(--display);text-transform:uppercase;color:#E3000F}
+  .druck-kopf span{font-size:9pt;color:#444}
+  .druck-an{margin:0 0 6pt}
+  .druck-datum{text-align:right;margin:0 0 18pt}
+  .druck h1{font:800 20pt/1.1 var(--display);text-transform:uppercase;margin:0 0 4pt}
+  .druck h2{font:700 16pt/1.2 var(--display);margin:0 0 18pt}
+  .druck h3{font:700 11pt/1 var(--display);letter-spacing:.1em;text-transform:uppercase;margin:16pt 0 6pt;color:#E3000F}
+  .druck-text{white-space:pre-line}
+  .druck-unterschrift{margin-top:36pt}
+}
