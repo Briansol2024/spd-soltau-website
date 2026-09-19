@@ -139,7 +139,7 @@ export const HELP_TOPICS = [
       '{tippe} bei einem Termin auf „Mitfahren“.',
       'Wähle „biete Plätze an“ oder „suche eine Mitfahrt“, trage deinen Ortsteil und die Abfahrtszeit ein.',
       '{tippe} auf „Eintragen“. Alle Mitglieder sehen jetzt deinen Eintrag mit deinem Namen.',
-      'Mit dem WhatsApp-Knopf schickst du dein Angebot auch in eure Gruppe. Löschen geht jederzeit über „löschen“.',
+      'Mit dem Teilen-Knopf schickst du dein Angebot auch in eure WhatsApp-Gruppe. Löschen geht jederzeit über „löschen“.',
     ] },
   },
   {
@@ -204,12 +204,12 @@ export const HELP_TOPICS = [
     ] },
   },
   {
-    n: '12', id: 'whatsapp', group: 'Mitmachen', title: 'Per WhatsApp teilen',
-    intro: 'Termine, Helferlisten und Umfragen mit einem Tipp in eure WhatsApp-Gruppe schicken.',
+    n: '12', id: 'whatsapp', group: 'Mitmachen', title: 'Teilen – WhatsApp & Co.',
+    intro: 'Termine, Helferlisten und Umfragen mit einem Tipp in eure WhatsApp-Gruppe oder woanders hinschicken.',
     steps: { alle: [
-      'Bei jedem Termin, jeder Helferliste und jeder Umfrage gibt es einen „WhatsApp“-Knopf.',
-      '{tippe} darauf – WhatsApp öffnet sich mit einem fertigen Text und dem Link in die App.',
-      'Wähle die Gruppe oder Person aus und schicke die Nachricht ab.',
+      'Bei jedem Termin, jeder Helferliste und jeder Umfrage gibt es einen „Teilen“-Knopf.',
+      '{tippe} darauf – das Teilen-Menü deines Geräts öffnet sich: WhatsApp, Signal, E-Mail, Link kopieren … alles, was installiert ist.',
+      'Wähle WhatsApp und dann die Gruppe oder Person – der fertige Text mit dem Link in die App steht schon drin. Abschicken.',
       'Wer den Link antippt, landet direkt beim Termin oder der Liste und kann zusagen oder sich eintragen.',
       'Die Einladungslinks eurer Gruppen findest du auf der Startseite unter „Unsere WhatsApp-Gruppen“.',
     ] },

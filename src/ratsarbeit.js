@@ -128,7 +128,7 @@ export function makeRatsarbeit(ctx) {
       <div class="field"><label for="a-frist">Bis wann?</label><input id="a-frist" type="date" value="${esc(t.frist || '')}"></div>
       <div class="field"><label for="a-text">Notiz (optional)</label><textarea id="a-text" rows="3" placeholder="Kurz, was wichtig ist">${esc(t.notiz || '')}</textarea></div>
       ${id ? `<p class="small muted">Angelegt von ${esc(t.vonName || '–')} am ${fmtTag(t._createdDate)}${t.status === 'erledigt' ? ` · erledigt ${fmtTag(t.erledigtAm)}` : ''}</p>` : ''}
-      <div class="mb-actions"><button class="btn btn-rot" type="button" id="a-speichern">${id ? 'Speichern' : 'Aufgabe anlegen'}</button>${id ? `<a class="btn btn-line btn-sm wa" id="a-wa" href="#" target="_blank" rel="noopener">${ctx.WA_ICON}Per WhatsApp erinnern</a>${t.status !== 'erledigt' ? `<button class="btn btn-line btn-sm" type="button" id="a-erl">${ICON.check}Erledigt</button>` : ''}<button class="linkbtn" type="button" id="a-loeschen">Löschen</button>` : ''}</div>`, el => {
+      <div class="mb-actions"><button class="btn btn-rot" type="button" id="a-speichern">${id ? 'Speichern' : 'Aufgabe anlegen'}</button>${id ? `<button class="btn btn-line btn-sm share" type="button" id="a-wa">${ctx.SHARE_ICON}Teilen / erinnern</button>${t.status !== 'erledigt' ? `<button class="btn btn-line btn-sm" type="button" id="a-erl">${ICON.check}Erledigt</button>` : ''}<button class="linkbtn" type="button" id="a-loeschen">Löschen</button>` : ''}</div>`, el => {
       const lesen = () => ({ titel: $('#a-titel', el).value.trim(), b: $('#a-b', el).value, wer: $$('input[name=wer]:checked', el).map(x => x.value), frist: $('#a-frist', el).value, notiz: $('#a-text', el).value.trim() });
       const speichern = async (extra = {}) => {
         const v = lesen(); if (!v.titel) { $('#a-titel', el).focus(); return false; }
@@ -140,7 +140,7 @@ export function makeRatsarbeit(ctx) {
         } catch (err) { msg($('#rz-msg', el), 'Nicht gespeichert: ' + ctx.errText(err)); busy(btn, false); return false; }
       };
       $('#a-speichern', el).addEventListener('click', () => speichern());
-      $('#a-wa', el)?.addEventListener('click', e => { const v = lesen(); e.currentTarget.href = waHref(waAufgabe({ ...t, ...v })); });
+      $('#a-wa', el)?.addEventListener('click', () => ctx.shareText(waAufgabe({ ...t, ...lesen() })));
       $('#a-erl', el)?.addEventListener('click', () => speichern({ status: 'erledigt', erledigtAm: new Date().toISOString() }));
       $('#a-loeschen', el)?.addEventListener('click', async () => { if (!confirm('Aufgabe wirklich löschen?')) return; try { await db.remove('RatAufgaben', id); blattZu(); await route(); } catch (err) { msg($('#rz-msg', el), ctx.errText(err)); } });
       setTimeout(() => $('#a-titel', el).focus(), 60);
@@ -151,7 +151,7 @@ export function makeRatsarbeit(ctx) {
     if (id && !d) return;
     if (d) {
       blatt(d.kat || 'Dokument', `<div><b class="rz-doktitel">${esc(d.titel || 'Dokument')}</b><p class="small muted">${d.art === 'link' ? 'Link' : esc(d.name || 'Datei') + (d.groesse ? ' · ' + groesse(d.groesse) : '')} · von ${esc(d.vonName || '–')} · ${fmtTag(d._createdDate)} · ${esc(bereichVon(d.b).name)}</p></div>
-        <div class="mb-actions" id="d-aktionen">${d.art === 'link' ? `<a class="btn btn-rot" href="${esc(d.url || '#')}" target="_blank" rel="noopener">${ICON.link}Link öffnen</a>` : `<button class="btn btn-rot" type="button" id="d-laden">${ICON.doc}Datei öffnen</button>`}<a class="btn btn-line btn-sm wa" href="${esc(waHref(`📄 ${d.titel} (${d.kat || 'Dokument'})${d.art === 'link' && d.url ? '\n' + d.url : ''}\nIn der App: ${appLink('#ratsarbeit/b-' + d.b)}`))}" target="_blank" rel="noopener">${ctx.WA_ICON}Per WhatsApp</a>${d._owner === me().id || ctx.me.can('verwaltung') ? '<button class="linkbtn" type="button" id="d-loeschen">Entfernen</button>' : ''}</div>
+        <div class="mb-actions" id="d-aktionen">${d.art === 'link' ? `<a class="btn btn-rot" href="${esc(d.url || '#')}" target="_blank" rel="noopener">${ICON.link}Link öffnen</a>` : `<button class="btn btn-rot" type="button" id="d-laden">${ICON.doc}Datei öffnen</button>`}<button class="btn btn-line btn-sm share" type="button" data-share="${esc(`📄 ${d.titel} (${d.kat || 'Dokument'})${d.art === 'link' && d.url ? '\n' + d.url : ''}\nIn der App: ${appLink('#ratsarbeit/b-' + d.b)}`)}">${ctx.SHARE_ICON}Teilen</button>${d._owner === me().id || ctx.me.can('verwaltung') ? '<button class="linkbtn" type="button" id="d-loeschen">Entfernen</button>' : ''}</div>
         <div id="d-fertig" class="mb-actions" hidden></div>`, el => {
         $('#d-laden', el)?.addEventListener('click', async () => {
           const btn = $('#d-laden', el); busy(btn, true); msg($('#rz-msg', el), '');

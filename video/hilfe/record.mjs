@@ -236,8 +236,8 @@ const SCRIPTS = {
     async () => { await S.tap('#f-profil [type=submit]'); },
   ] }),
   whatsapp: S => ({ start: 'termine', steps: [
-    async () => { await S.point('.rsvp >> nth=0 >> .wa'); },
-    async () => { await S.overlay({ kind: 'sheet', title: 'WhatsApp – An wen senden?', items: [{ label: 'SPD Soltau – Mitglieder' }, { label: 'Ratsfraktion' }, { label: 'Familie' }, { label: 'Nachbarschaft Harber' }], highlight: 0 }); },
+    async () => { await S.point('.rsvp >> nth=0 >> .share'); },
+    async () => { await S.overlay({ kind: 'sheet', title: 'Teilen', items: [{ label: 'WhatsApp' }, { label: 'Signal' }, { label: 'E-Mail' }, { label: 'Link kopieren' }], highlight: 0 }); await sleep(1400); await S.overlay({ kind: 'sheet', title: 'WhatsApp – An wen senden?', items: [{ label: 'SPD Soltau – Mitglieder' }, { label: 'Ratsfraktion' }, { label: 'Familie' }, { label: 'Nachbarschaft Harber' }], highlight: 0 }); },
     async () => { await S.overlay({ kind: 'dialog', top: '40%', title: 'SPD Soltau – Mitglieder', text: '📅 Sitzung des Soltauer Stadtrates …<br>Zu-/Absage und Mitfahren: spd-soltau.de/mitglieder/#termine/…', buttons: ['Senden'], primary: 0, highlight: 0 }); await sleep(1500); await S.overlayOff(); },
     async () => { await S.point('.rsvp >> nth=0 >> .rsvp-btns'); },
     async () => { await S.nav('start'); await S.scroll('.start-ev .badge'); await S.point('.start-ev .badge'); },

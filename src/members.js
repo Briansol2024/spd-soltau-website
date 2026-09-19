@@ -104,7 +104,27 @@ const opt = (list, cur) => list.map(o => `<option${o === cur ? ' selected' : ''}
 // WhatsApp: Text vorbereiten, Gruppe wählt man in WhatsApp selbst (eine offizielle Schnittstelle in Gruppen gibt es nicht)
 const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4.1c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
 const waHref = text => 'https://wa.me/?text=' + encodeURIComponent(text);
-const waBtn = (text, label = 'WhatsApp') => `<a class="btn btn-line btn-sm wa" href="${esc(waHref(text))}" target="_blank" rel="noopener" title="Text in eine WhatsApp-Gruppe schicken">${WA_ICON}${esc(label)}</a>`;
+// Teilen: öffnet das Teilen-Menü des Geräts (WhatsApp, Signal, E-Mail, Kopieren … – was installiert ist); ohne Teilen-Menü
+// (mancher PC-Browser) ein eigenes kleines Blatt mit WhatsApp, E-Mail und Kopieren. Der Text endet mit dem Link in die App.
+const SHARE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+const shareBtn = (text, label = 'Teilen') => `<button type="button" class="btn btn-line btn-sm share" data-share="${esc(text)}" title="Teilen – WhatsApp, E-Mail, kopieren …">${SHARE_ICON}${esc(label)}</button>`;
+const waBtn = shareBtn;
+async function shareText(text) {
+  const m = String(text).match(/https?:\/\/\S+\s*$/); const url = m ? m[0].trim() : ''; const body = m ? text.slice(0, m.index).trim() : text;
+  if (navigator.share) { try { await navigator.share(url ? { title: 'SPD Soltau', text: body, url } : { title: 'SPD Soltau', text: body }); } catch (e) { /* abgebrochen */ } return; }
+  document.getElementById('share-blatt')?.remove();
+  const el = document.createElement('div'); el.className = 'rz-blatt'; el.id = 'share-blatt';
+  el.innerHTML = `<div class="rz-blatt-in" role="dialog" aria-label="Teilen"><div class="rz-blatt-kopf"><b>Teilen</b><button type="button" class="mb-sheet-close" data-zu aria-label="Schließen">${ICON.close}</button></div>
+    <div class="rz-blatt-inhalt"><p class="small muted">Dieser Browser hat kein Teilen-Menü – so geht es trotzdem:</p>
+    <div class="share-opt"><a class="btn btn-line wa" href="${esc(waHref(text))}" target="_blank" rel="noopener">${WA_ICON}WhatsApp</a><a class="btn btn-line" href="mailto:?subject=${encodeURIComponent('SPD Soltau')}&body=${encodeURIComponent(text)}">${ICON.inbox}E-Mail</a><button type="button" class="btn btn-schwarz" data-copy-text>${ICON.doc}Text kopieren</button></div>
+    <p class="note" id="share-msg" hidden></p><pre class="share-text">${esc(text)}</pre></div></div>`;
+  document.body.appendChild(el); document.body.classList.add('sheet-open');
+  el.addEventListener('click', async e => {
+    if (e.target === el || e.target.closest('[data-zu]')) { el.remove(); document.body.classList.remove('sheet-open'); return; }
+    if (e.target.closest('[data-copy-text]')) { try { await navigator.clipboard.writeText(text); msg(el.querySelector('#share-msg'), 'Kopiert – jetzt einfügen, wo du willst.', 'ok'); } catch (err) { msg(el.querySelector('#share-msg'), 'Kopieren nicht möglich – Text unten markieren und kopieren.'); } }
+  });
+}
+document.addEventListener('click', e => { const b = e.target.closest('button[data-share]'); if (b) shareText(b.dataset.share); });
 const appLink = hash => new URL(location.pathname + hash, location.href).href;
 const orteList = () => { if (!document.getElementById('orte')) { const dl = document.createElement('datalist'); dl.id = 'orte'; dl.innerHTML = ORTE.map(o => `<option value="${esc(o)}">`).join(''); document.body.appendChild(dl); } };
 
@@ -1221,7 +1241,7 @@ async function secVorstand(v) {
       <div class="field"><label for="b-ziel">An wen?</label><select id="b-ziel"><option value="mitglieder">Nur angemeldete Mitglieder</option><option value="alle">Alle Abonnent*innen (auch Besucher)</option></select></div>
       <p class="note" id="b-msg" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Senden</button></div>
-      <p id="b-wa" class="small" hidden>Dieselbe Nachricht auch in eine WhatsApp-Gruppe: <a class="btn btn-line btn-sm wa" href="#" target="_blank" rel="noopener">${WA_ICON}WhatsApp öffnen</a></p>
+      <p id="b-wa" class="small" hidden>Dieselbe Nachricht auch woanders hinschicken: <button type="button" class="btn btn-line btn-sm share" data-share="">${SHARE_ICON}Teilen</button></p>
     </form>`;
     $('#f-broadcast').addEventListener('submit', onBroadcast);
   }
@@ -1370,15 +1390,15 @@ async function onBroadcast(e) {
   const btn = f.querySelector('[type=submit]'); busy(btn, true); msg($('#b-msg'), '');
   try {
     await db.insert('Aktionen', { title: `Nachricht: ${$('#b-titel').value.trim()}`, typ: 'nachricht', payload: JSON.stringify({ titel: $('#b-titel').value.trim(), text: $('#b-text').value.trim(), ziel: $('#b-ziel').value }), status: 'offen', von: me.name });
-    const wa = waHref(`${$('#b-titel').value.trim()}\n${$('#b-text').value.trim()}`);
+    const teilen = `${$('#b-titel').value.trim()}\n${$('#b-text').value.trim()}`;
     f.reset(); msg($('#b-msg'), DEMO ? 'In der echten App geht die Nachricht in den nächsten Minuten raus.' : 'Wird in den nächsten Minuten verschickt.', 'ok');
-    $('#b-wa').hidden = false; $('#b-wa a').href = wa;
+    $('#b-wa').hidden = false; $('#b-wa button').dataset.share = teilen;
   } catch (err) { msg($('#b-msg'), 'Nicht gespeichert: ' + errText(err)); }
   busy(btn, false);
 }
 
 // Ratsarbeit (Working Space der Fraktion) – eigenes Modul, bekommt Zugriff auf Client, Zustand und Bausteine
-const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
+const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====
 async function enterApp() {
