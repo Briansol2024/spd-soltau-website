@@ -80,6 +80,11 @@ h1 i.sp{width:.28em}
 .btn.rot:hover{background:#fff;border-color:#fff;color:var(--rot)}
 .btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .note{margin-top:14px;font-size:14px;opacity:.75;min-height:20px}
+.teilen{margin:18px auto 0;width:min(100%,560px);padding:18px;background:rgba(15,15,15,.72);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;gap:12px;animation:fadeDown .3s var(--ease) both}
+.teilen>b{font:800 14px/1 var(--display);letter-spacing:.2em;text-transform:uppercase}
+.teilen-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.teilen-btns .btn{min-height:46px;padding:0 16px;font-size:14px}
+.teilen input{width:100%;font:inherit;font-size:15px;padding:12px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;text-align:center}
 .ticker{position:relative;overflow:hidden;border-top:1px solid rgba(255,255,255,.14);background:rgba(15,15,15,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:12px 0;animation:fadeIn 1s both 2s}
 .ticker ul{display:flex;gap:0;margin:0;padding:0;list-style:none;width:max-content;animation:marquee 46s linear infinite}
 .ticker li{white-space:nowrap;padding:0 26px;font:800 clamp(15px,1.8vw,20px)/1 var(--display);text-transform:uppercase;letter-spacing:.06em}
@@ -122,6 +127,15 @@ body.live .cd-box::before{background:#fff}
         <button class="btn" type="button" id="share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Weitersagen</button>
         <a class="btn" href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Instagram</a>
         <a class="btn rot" id="go" href="${url('/index.html')}" hidden>Zur neuen Website</a>
+      </div>
+      <div class="teilen" id="teilen" hidden>
+        <b>Weitersagen</b>
+        <div class="teilen-btns">
+          <a class="btn" id="t-wa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="btn" id="t-mail" href="#">E-Mail</a>
+          <button class="btn" type="button" id="t-copy">Link kopieren</button>
+        </div>
+        <input id="t-link" type="text" readonly aria-label="Link zum Kopieren">
       </div>
       <p class="note" id="note">${site.email ? `Bis dahin erreichen Sie uns unter <a href="mailto:${esc(site.email)}" style="color:#fff">${esc(site.email)}</a>.` : ''}</p>
     </div>
@@ -192,12 +206,26 @@ body.live .cd-box::before{background:#fff}
     ['touchstart', 'click', 'scroll'].forEach(ev => addEventListener(ev, () => { if (v.paused) play(); }, { passive: true, once: true }));
   }
 
-  // Weitersagen: System-Menü des Geräts, sonst Link kopieren
+  // Weitersagen: System-Menü des Geräts (Handy, nur über https), sonst ein kleines Blatt mit WhatsApp, E-Mail und Link kopieren
+  const LINK = '${esc((site.url || '').replace(/\/$/, ''))}' ? '${esc((site.url || '').replace(/\/$/, ''))}/' : location.origin + '/';
+  const TEXT = 'Die neue Website der SPD Soltau startet am ${esc(datum)} um ${esc(uhr)} Uhr – schau mal:';
+  const blatt = $('#teilen');
+  $('#t-wa').href = 'https://wa.me/?text=' + encodeURIComponent(TEXT + ' ' + LINK);
+  $('#t-mail').href = 'mailto:?subject=' + encodeURIComponent('Die neue spd-soltau.de') + '&body=' + encodeURIComponent(TEXT + '\\n' + LINK);
+  $('#t-link').value = LINK;
   $('#share').addEventListener('click', async () => {
-    const data = { title: document.title, text: 'Die neue Website der SPD Soltau startet am ${esc(datum)} um ${esc(uhr)} Uhr – schau mal:', url: location.href };
-    try { if (navigator.share) { await navigator.share(data); return; } } catch (e) { if (e.name === 'AbortError') return; }
-    try { await navigator.clipboard.writeText(location.href); $('#note').textContent = 'Link kopiert – einfach in WhatsApp oder eine Mail einfügen.'; } catch (e) { $('#note').textContent = location.href; }
+    try { if (navigator.share) { await navigator.share({ title: document.title, text: TEXT, url: LINK }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    blatt.hidden = !blatt.hidden;
+    if (!blatt.hidden) blatt.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
+  $('#t-copy').addEventListener('click', async () => {
+    const inp = $('#t-link'); let ok = false;
+    try { if (navigator.clipboard) { await navigator.clipboard.writeText(LINK); ok = true; } } catch (e) { /* unten */ }
+    if (!ok) { try { inp.focus(); inp.select(); inp.setSelectionRange(0, 99999); ok = document.execCommand('copy'); } catch (e) { ok = false; } }
+    $('#t-copy').textContent = ok ? 'Kopiert ✓' : 'Bitte markieren und kopieren';
+    setTimeout(() => { $('#t-copy').textContent = 'Link kopieren'; }, 2500);
+  });
+  $('#t-link').addEventListener('focus', e => e.target.select());
 })();
 </script>
 </body>
