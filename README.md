@@ -97,7 +97,8 @@ Vorstands-Werkzeuge (Termine anlegen, Rechte, Eingang …) sind bewusst nicht Te
 Videos und Cover liegen in `src/hilfe/` (→ `assets/hilfe/`) und entstehen mit `video/hilfe/` (siehe dort: `record.mjs`, `compose.py`, `posters.py`, `music.py`).
 Die Demo (`?demo`) heißt jetzt Max Mustermann; `?demo&mitglied` zeigt die Sicht eines normalen Mitglieds, `?demo&video` dasselbe ohne Vorschau-Hinweis (für die Aufnahmen).
 
-**Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
+**Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Liste oder **Monatskalender** mit farbigen Punkten je Termintyp – blau Öffentlich, schwarz Rat, rot Mitglieder,
+orange Fraktion, grau Vorstand; Tag antippen zeigt die Termine des Tages; Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
 Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
 Rat (Tagesordnung mit Einordnung der Fraktion) · **Ratsarbeit** (Working Space der Fraktion, siehe unten) · Mitglieder (Verzeichnis, Geburtstage, Jubiläen) · Profil (Angaben, Freigaben, Push, App) ·
 Vorstand (Reiter: Eingang, Benachrichtigen, Gruppen, Rechte, Sichtbarkeit, Nachricht, WhatsApp).

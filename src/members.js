@@ -428,7 +428,8 @@ async function route() {
   // Beim Wechsel des Bereichs nach oben zum Inhalt – bei Aktionen innerhalb eines Bereichs (Zusage, Helferliste …) bleibt die Scrollposition
   if (route.lastKey !== key) window.scrollTo({ top: Math.min(window.scrollY, (document.querySelector('.mb-main')?.getBoundingClientRect().top || 0) + window.scrollY - 80), behavior: 'auto' });
   route.lastKey = key;
-  const v = $('#mb-view'); if (!v) return;
+  let v = $('#mb-view'); if (!v) return;
+  const fresh = document.createElement('div'); fresh.id = 'mb-view'; fresh.className = v.className; v.replaceWith(fresh); v = fresh;
   v.innerHTML = '<p class="muted">Lade …</p>';
   try { await RENDER[key](v); } catch (err) { v.innerHTML = `<p class="note note-err">Das konnte nicht geladen werden: ${esc(errText(err))}</p>`; }
   const sub = location.hash.split('/')[1]; if (sub && key !== 'vorstand' && key !== 'ratsarbeit') document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -561,7 +562,34 @@ function upcomingBirthdays(profiles, days) {
   return out.sort((a, b) => a.diff - b.diff);
 }
 
-// ---------- Termine: Zu-/Absagen, Helferlisten, Fahrgemeinschaften ----------
+// ---------- Termine: Zu-/Absagen, Helferlisten, Fahrgemeinschaften – als Liste oder Monatskalender ----------
+// Farben je Termintyp (Punkte im Kalender, Legende)
+const TYP_FARBE = { 'Öffentlich': '#3B6FB6', Rat: '#0F0F0F', Mitglieder: '#E3000F', Fraktion: '#F28C00', Vorstand: '#8A8484' };
+const cal = { monat: null, tag: null }; // gemerkt, solange die App offen ist
+const monatVon = iso => String(iso).slice(0, 7);
+function monatsKalender(events, ansichtEvents) {
+  const today = todayIso();
+  if (!cal.monat) cal.monat = monatVon(today);
+  const [jahr, mon] = cal.monat.split('-').map(Number);
+  const erster = new Date(jahr, mon - 1, 1), tage = new Date(jahr, mon, 0).getDate();
+  const start = (erster.getDay() + 6) % 7; // Montag = 0
+  const imMonat = ansichtEvents.filter(e => monatVon(e.date) === cal.monat);
+  const proTag = new Map(); for (const e of imMonat) { const k = String(e.date).slice(0, 10); if (!proTag.has(k)) proTag.set(k, []); proTag.get(k).push(e); }
+  if (!cal.tag || monatVon(cal.tag) !== cal.monat || !proTag.has(cal.tag)) cal.tag = proTag.has(today) ? today : [...proTag.keys()].sort()[0] || null;
+  const zellen = [];
+  for (let i = 0; i < start; i++) zellen.push('<span class="cal-leer"></span>');
+  for (let t = 1; t <= tage; t++) {
+    const iso = `${cal.monat}-${String(t).padStart(2, '0')}`; const evs = proTag.get(iso) || [];
+    const typen = [...new Set(evs.map(e => e.typ || 'Öffentlich'))];
+    zellen.push(`<button type="button" class="cal-day${iso === today ? ' heute' : ''}${iso === cal.tag ? ' gewaehlt' : ''}${evs.length ? ' hat' : ''}" data-tag="${iso}" ${evs.length ? '' : 'disabled'} aria-label="${t}. ${MONL[mon - 1]}${evs.length ? ', ' + evs.length + ' Termin' + (evs.length === 1 ? '' : 'e') : ''}"><span>${t}</span><span class="cal-dots">${typen.slice(0, 4).map(ty => `<i style="background:${TYP_FARBE[ty] || '#888'}"></i>`).join('')}</span></button>`);
+  }
+  const legende = Object.entries(TYP_FARBE).filter(([ty]) => ansichtEvents.some(e => (e.typ || 'Öffentlich') === ty)).map(([ty, f]) => `<span><i style="background:${f}"></i>${esc(ty)}</span>`).join('');
+  return `<div class="cal">
+    <div class="cal-head"><button type="button" class="cal-nav" data-cal="-1" aria-label="Vormonat">‹</button><b>${MONL[mon - 1]} ${jahr}</b><button type="button" class="cal-nav" data-cal="1" aria-label="Nächster Monat">›</button><button type="button" class="linkbtn" data-cal="0">Heute</button><span class="small muted">${imMonat.length} Termin${imMonat.length === 1 ? '' : 'e'}</span></div>
+    <div class="cal-grid">${WD.slice(1).concat(WD[0]).map(w => `<span class="cal-wd">${w}</span>`).join('')}${zellen.join('')}</div>
+    <div class="cal-legend">${legende || '<span class="muted small">Keine Termine in diesem Monat.</span>'}</div>
+  </div>`;
+}
 async function secTermine(v) {
   const events = visibleEvents().slice(0, 40);
   const [zusagen, listen, helfer, fahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => [])]);
@@ -570,8 +598,14 @@ async function secTermine(v) {
   // Listen, die an einem angezeigten Termin hängen, stehen direkt im Termin – der Rest unten
   const loseListen = listen.filter(l => (!l.datum || l.datum >= today) && !events.some(e => e.id === l.eventId));
   orteList();
+  if (location.hash === '#termine/monat') store.set('spd-termine-ansicht', 'monat');
+  const ansicht = store.get('spd-termine-ansicht') === 'monat' ? 'monat' : 'liste';
+  const alleSichtbar = visibleEvents();
+  const calHtml = ansicht === 'monat' ? monatsKalender(events, alleSichtbar) : ''; // setzt cal.tag
+  const tagesEvents = ansicht === 'monat' ? alleSichtbar.filter(e => String(e.date).slice(0, 10) === cal.tag) : [];
   v.innerHTML = `
   ${sectionHead('Termine – kommst du?', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
+  <div class="mb-tabs termine-ansicht" role="tablist" aria-label="Ansicht"><button type="button" class="chip" data-ansicht="liste" aria-pressed="${ansicht === 'liste'}">Liste</button><button type="button" class="chip" data-ansicht="monat" aria-pressed="${ansicht === 'monat'}">Kalender</button></div>
   ${me.can('termine') || (me.can('helfer') && me.sees('helfer')) ? `<div class="mb-create">
   ${me.can('termine') ? `<details class="mb-details" id="ev-new"><summary>Termin anlegen</summary>
     <p class="small muted">Wird bei Wix Events eingetragen und erscheint je nach Typ auf der Website und im Kalender-Abo.</p>
@@ -592,7 +626,9 @@ async function secTermine(v) {
     </form></details>` : ''}
   ${me.can('helfer') && me.sees('helfer') ? `<details class="mb-details" id="hl-new"><summary>Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
   </div>` : ''}
-  <div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, events)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>
+  ${ansicht === 'monat' ? `${calHtml}
+  <div class="cal-tag" id="cal-tag">${cal.tag ? `<h4 class="doc-cat">${esc(fmtDate(cal.tag))}</h4>${tagesEvents.length ? tagesEvents.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, alleSichtbar)).join('') : '<p class="muted">An diesem Tag ist nichts eingetragen.</p>'}` : '<p class="muted">Tippe auf einen Tag mit Punkt, um die Termine zu sehen.</p>'}</div>` : ''}
+  ${ansicht === 'liste' ? `<div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, events)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>` : ''}
   ${me.sees('helfer') && loseListen.length ? `<section class="mb-sub" id="helferlisten">
     ${sectionHead('Weitere Helferlisten', 'Ohne festen Termin')}
     <div id="hl-list">${loseListen.map(l => helperList(l, helfer, events)).join('')}</div>
@@ -606,7 +642,18 @@ async function secTermine(v) {
     </div>
     <p class="note" id="ics-msg" hidden></p>
   </section>`;
-  wireEvents(v, events, zusagen, listen, helfer, fahrten);
+  wireEvents(v, alleSichtbar, zusagen, listen, helfer, fahrten);
+  // Ansicht wechseln, Monat blättern, Tag wählen
+  v.addEventListener('click', e => {
+    const a = e.target.closest('[data-ansicht]'); if (a) { store.set('spd-termine-ansicht', a.dataset.ansicht); if (location.hash === '#termine/monat') history.replaceState(null, '', location.pathname + location.search + '#termine'); route(); return; }
+    const n = e.target.closest('[data-cal]');
+    if (n) {
+      if (n.dataset.cal === '0') { cal.monat = monatVon(todayIso()); cal.tag = null; }
+      else { const [j, m] = cal.monat.split('-').map(Number); const d = new Date(j, m - 1 + Number(n.dataset.cal), 1); cal.monat = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; cal.tag = null; }
+      route(); return;
+    }
+    const t = e.target.closest('button.cal-day[data-tag]'); if (t) { cal.tag = t.dataset.tag; route(); }
+  });
 }
 const absUrl = rel => new URL(rel, location.href).href;
 const webcal = rel => absUrl(rel).replace(/^https?:/, 'webcal:');
