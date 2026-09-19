@@ -15,6 +15,7 @@ import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
 import { makeVorstandMehr } from './vorstand-mehr.js';
+import { makeStatistik } from './statistik.js';
 import { makeBereiche } from './bereiche.js';
 import { stammtischConfig, istStammtisch, STAMMTISCH_DEFAULT } from './lib/stammtisch.mjs';
 
@@ -385,6 +386,7 @@ const ICON = {
   hand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12M11 5.5v-2a1.5 1.5 0 1 1 3 0V12M14 5.5a1.5 1.5 0 0 1 3 0V12M17 7.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2.7L3.7 14a1.5 1.5 0 0 1 .5-2 1.9 1.9 0 0 1 2.3.3L8 13.7"/></svg>',
   cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
   poll: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 6-7"/></svg>',
   doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>',
   rat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg>',
   users: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -1482,7 +1484,8 @@ function blatt(titel, inner, wire) {
 }
 function blattZu() { document.getElementById('mb-blatt')?.remove(); if (!document.getElementById('rz-blatt')) document.body.classList.remove('sheet-open'); }
 const bereiche = makeBereiche({ db, DEMO, store, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
-const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: vorstandMehr, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
+const statistikMod = makeStatistik({ db, esc, $, $$, store, ICON, SPD, sectionHead, todayIso });
+const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: { ...vorstandMehr, ...statistikMod }, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====

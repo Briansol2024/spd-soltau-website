@@ -6,7 +6,7 @@ import { esc, url } from './render.mjs';
 
 const TEASER = ['Termine mit Zusage per Fingertipp', 'Mitgliederbereich als App', 'Live aus Rat & Rathaus', 'Umfrage der Woche', 'Ideen für Soltau einreichen', 'Der Rote Bahnhof zum Anfragen', 'Unsere 11 im Stadtrat', 'Newsletter – nichts verpassen', 'Was können wir für Sie tun?'];
 
-export function countdownPage(d, { launchAt, atRoot = false }) {
+export function countdownPage(d, { launchAt, atRoot = false, clientId = '' }) {
   const site = d.site;
   const when = new Date(launchAt);
   const datum = when.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Berlin' });
@@ -226,6 +226,26 @@ body.live .cd-box::before{background:#fff}
     setTimeout(() => { $('#t-copy').textContent = 'Link kopieren'; }, 2500);
   });
   $('#t-link').addEventListener('focus', e => e.target.select());
+
+  // Zählung ohne Cookies wie auf der Website (Seite, Herkunft als Domain, Gerät, Sprache – keine IP, keine Kennung)
+  const CLIENT = '${esc(clientId)}';
+  const zaehlen = async (typ, name) => {
+    if (!CLIENT || navigator.webdriver || location.hostname === 'localhost') return;
+    try {
+      let tok = null; try { const t = JSON.parse(sessionStorage.getItem('spd-vt') || 'null'); if (t && t.exp > Date.now() + 60000) tok = t.v; } catch (e) { /* neu holen */ }
+      if (!tok) { const r = await fetch('https://www.wixapis.com/oauth2/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: CLIENT, grantType: 'anonymous' }) }); const j = await r.json(); tok = j.access_token; try { sessionStorage.setItem('spd-vt', JSON.stringify({ v: tok, exp: Date.now() + (j.expires_in || 3600) * 1000 })); } catch (e) { /* ohne Speicher */ } }
+      let ref = 'direkt', eintritt = true;
+      try { if (document.referrer) { const h = new URL(document.referrer).hostname.replace(/^(www|m|l|lm)\\./, ''); if (h === location.hostname.replace(/^www\\./, '')) { ref = 'intern'; eintritt = false; } else ref = h; } } catch (e) { ref = 'unbekannt'; }
+      const now = new Date(), pfad = WILLKOMMEN ? '/willkommen/' : location.pathname;
+      const data = { typ, pfad, name: name || '', ref, quelle: new URLSearchParams(location.search).get('utm_source') || '', geraet: matchMedia('(pointer: coarse)').matches ? (innerWidth >= 700 ? 'tablet' : 'handy') : 'pc', sprache: (navigator.language || '').slice(0, 2).toLowerCase(), breite: Math.round(innerWidth / 100) * 100, eintritt: typ === 'seite' && eintritt, app: false, ladezeit: 0, tag: now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'), stunde: now.getHours(), title: typ === 'seite' ? pfad : name || '' };
+      await fetch('https://www.wixapis.com/wix-data/v2/items', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: tok }, body: JSON.stringify({ dataCollectionId: 'Seitenaufrufe', dataItem: { data } }) });
+    } catch (e) { /* Zählung ist nie wichtig genug für einen Fehler */ }
+  };
+  addEventListener('load', () => setTimeout(() => zaehlen('seite'), 600));
+  $('#share').addEventListener('click', () => zaehlen('ereignis', 'countdown:weitersagen'));
+  document.querySelector('.login').addEventListener('click', () => zaehlen('ereignis', 'countdown:anmelden'));
+  document.querySelector('a[href*="instagram.com"]').addEventListener('click', () => zaehlen('ereignis', 'countdown:instagram'));
+  $('#go').addEventListener('click', () => zaehlen('ereignis', 'countdown:website'));
 })();
 </script>
 </body>

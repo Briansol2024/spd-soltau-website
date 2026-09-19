@@ -18,6 +18,7 @@ export function makeVorstand(ctx) {
     ['sicht', 'Sichtbarkeit', 'Wer sieht was?', 'verwaltung', ICON.help],
     ['whatsapp', 'WhatsApp-Gruppen', 'Einladungslinks für Mitglieder', 'verwaltung', ICON.link],
     ['stammtisch', 'Stammtisch-Umfrage', 'Lokale für „Wo treffen wir uns?“', 'verwaltung', ICON.poll],
+    ['statistik', 'Statistik', 'Aufrufe, Besuche, Quellen – ohne Cookies', 'statistik', ICON.chart],
   ];
   const erlaubt = () => KACHELN.filter(k => me().can(k[3]));
   const ALT = { eingang: 'anliegen' };

@@ -315,12 +315,13 @@ async function main() {
   for (const [rel, pth, title, desc, html, extra] of pages) await page(rel, pth, title, desc, html, extra || {});
   // Countdown-Seite: immer unter /bald/ (ohne Passwort); bis LAUNCH_AT außerdem als Startseite (der halbstündliche Build löst sie ab)
   const launchAt = LAUNCH_AT;
-  await write('bald/index.html', countdownPage(d, { launchAt }));
+  const cd = { launchAt, clientId: env.WIX_CLIENT_ID || '' };
+  await write('bald/index.html', countdownPage(d, cd));
   if (launched) console.log('[build] Start erreicht (' + LAUNCH_AT + ') – echte Startseite' + (Date.now() < welcomeEnd ? ', Willkommensfenster bis ' + new Date(welcomeEnd).toISOString() : ''));
   if (env.LAUNCH_AT && !launched) {
     // Echte Startseite bleibt unter /start/ erreichbar (mit Passwort) – der Knopf „Anmelden“ auf dem Countdown führt dorthin
     await page('start/index.html', '/start/', 'Start', '', T.startPage(d), { noindex: true });
-    await write('index.html', countdownPage(d, { launchAt, atRoot: true }));
+    await write('index.html', countdownPage(d, { ...cd, atRoot: true }));
     console.log('[build] Startseite = Countdown bis', env.LAUNCH_AT);
   }
   for (const n of d.news) await page(`aktuelles/${n.slug}/index.html`, `/aktuelles/${n.slug}/`, n.title, n.teaser, T.beitragPage(d, n), { ogImage: n.img?.url || null });

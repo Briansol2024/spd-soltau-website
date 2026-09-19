@@ -112,7 +112,9 @@ Sitzungsarten mit Haltung/Argumenten/Redner/intern besprochen/Ergebnis je Punkt,
 Vorstandsschlüssel verschlüsselt – lesbar nur auf Geräten von Vorstand/Verwaltern/Personen mit Recht „freigaben“). Zuständigkeit, Stand (offen · in Arbeit · beantwortet),
 Notizen (verschlüsselt), Erinnerung nach sieben Tagen. Push-Nachrichten, die auf dem Gerät ankamen, erscheinen zusätzlich.
 
-**Rechte (neu):** versammlung, wahlkampf, newsletter, presse, planung. **Benachrichtigen (neu):** Thema „Neue Anträge und Ideen“ – wer prüft Anträge (Fraktionsvorsitz).
+**Rechte (neu):** versammlung, wahlkampf, newsletter, presse, planung, statistik.
+
+**Statistik ohne Cookies (Vorstand → Statistik):** `src/site.js` (und die Countdown-Seite) schreiben je Seitenaufruf einen Eintrag in `Seitenaufrufe` (Seite, Herkunft nur als Domain, Gerät, Sprache, Ladezeit, Einstieg ja/nein, App ja/nein – keine IP, keine Kennung); Klicks auf Instagram, Kalender-Abo, Mail/Telefon, Mitgliederbereich, Teilen, PDFs sowie Formulare, Umfrage-Stimmen und App-Installationen zählen als Ereignis. Der Push-Dienst (`statistik()` in `push/send.mjs`) verdichtet die Rohdaten alle 5 Minuten zu Tageswerten in `Statistik` (JSON je Tag) und löscht sie. Auswertung in `src/statistik.js`: Zeitraum 7/30/90 Tage/12 Monate, Aufrufe/Besuche/Seiten je Besuch/App/Ladezeit mit Vergleich zum Vorzeitraum, Verlauf, Seiten, Beiträge, Quellen, Ereignisse, Geräte, Sprachen, Uhrzeit, Wochentag, CSV-Export. Datenschutzerklärung Abschnitt 8. **Benachrichtigen (neu):** Thema „Neue Anträge und Ideen“ – wer prüft Anträge (Fraktionsvorsitz).
 
 **E-Mail (Newsletter, Presse, Newsletter-Bestätigung):** der Push-Dienst verschickt über SMTP – `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` in `.env`
 (`push/mail.mjs`). Ohne diese Werte bleiben Newsletter-/Presse-Aufträge mit Hinweis stehen. Abonnenten kommen über „Nichts verpassen“ (Website → Sammlung `Abonnenten`),

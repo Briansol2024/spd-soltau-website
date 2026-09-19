@@ -259,6 +259,7 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   data.title = f.dataset.collection === 'Abonnenten' ? `Anmeldung ${data.email || ''}` : [data.typ ? { kontakt: 'Kontakt', mitglied: 'Mitgliedsanfrage' }[data.typ] || data.typ : '', data.name || '', data.datum || '', data.von || ''].filter(Boolean).join(' – ');
   try {
     await wixInsert(f.dataset.collection, data);
+    zaehlen('ereignis', 'formular:' + f.dataset.collection);
     f.querySelector('.form-fields').hidden = true; f.querySelector('.form-ok').hidden = false;
   } catch (err) {
     if (note) { note.hidden = false; note.className = 'note note-err'; note.textContent = 'Die Anfrage konnte nicht gesendet werden (' + err.message + '). Bitte später noch einmal versuchen oder über die Kontaktseite schreiben.'; }
@@ -285,6 +286,46 @@ export async function wixQuery(collection, query) {
   const r = await fetch('https://www.wixapis.com/wix-data/v2/items/query', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token }, body: JSON.stringify({ dataCollectionId: collection, query }) });
   if (!r.ok) throw new Error('Abfrage fehlgeschlagen (' + r.status + ')');
   return ((await r.json()).dataItems || []).map(it => ({ _id: it.id, ...it.data }));
+}
+
+// ---------- Reichweitenmessung ohne Cookies ----------
+// Ein Eintrag je Seitenaufruf in der Sammlung „Seitenaufrufe“: Seite, Herkunft (nur die Domain), Gerät, Browsersprache, Ladezeit –
+// keine IP-Adresse, keine Kennung, kein Cookie. Der Push-Dienst verdichtet die Einträge alle paar Minuten zu Tageswerten und löscht
+// die Rohdaten (Auswertung: Mitgliederbereich → Vorstand → Statistik). Klicks auf wichtige Knöpfe zählen als „Ereignis“.
+function zaehlen(typ, name) {
+  if (!SPD.app?.clientId) return;
+  let ref = 'direkt', eintritt = true;
+  try {
+    if (document.referrer) {
+      const h = new URL(document.referrer).hostname.replace(/^(www|m|l|lm)\./, '');
+      if (h === location.hostname.replace(/^www\./, '')) { ref = 'intern'; eintritt = false; } else ref = h;
+    }
+  } catch (e) { ref = 'unbekannt'; }
+  const q = new URLSearchParams(location.search);
+  const nav = performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+  const now = new Date();
+  const wurzel = new URL(url('/'), location.href).pathname; // '/' – oder '/spd-soltau-website/' bei BASE_PATH
+  const pfad = ('/' + location.pathname.slice(wurzel.length)).replace(/index\.html$/, '').replace(/\/+/g, '/') || '/';
+  const data = {
+    typ, pfad, name: name || '', ref, quelle: q.get('utm_source') || (q.get('fbclid') ? 'facebook.com' : ''),
+    geraet: matchMedia('(pointer: coarse)').matches ? (innerWidth >= 700 ? 'tablet' : 'handy') : 'pc',
+    sprache: (navigator.language || '').slice(0, 2).toLowerCase(), breite: Math.round(innerWidth / 100) * 100,
+    eintritt: typ === 'seite' && eintritt, app: matchMedia('(display-mode: standalone)').matches,
+    ladezeit: nav ? Math.round(nav.domContentLoadedEventEnd || 0) : 0,
+    tag: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`, stunde: now.getHours(),
+    title: typ === 'seite' ? pfad : name || '',
+  };
+  return wixInsert('Seitenaufrufe', data).catch(() => {});
+}
+window.spdZaehlen = zaehlen;
+if (!navigator.webdriver && location.hostname !== 'localhost') {
+  addEventListener('load', () => setTimeout(() => zaehlen('seite'), 600));
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href], [data-track], [data-share]'); if (!a) return;
+    const t = a.dataset.track || (a.matches('a[href*="instagram.com"]') ? 'instagram' : a.matches('a[data-webcal]') ? 'kalender-abo' : a.matches('a[href^="mailto:"]') ? 'e-mail' : a.matches('a[href^="tel:"]') ? 'telefon' : a.matches('a[href*="/mitglieder/"]') ? 'mitgliederbereich' : a.matches('[data-share]') ? 'teilen' : /\.pdf(\?|$)/i.test(a.href || '') ? 'pdf' : '');
+    if (t) zaehlen('ereignis', t);
+  });
+  addEventListener('appinstalled', () => zaehlen('ereignis', 'app-installiert'));
 }
 
 // ---------- Termine per WhatsApp teilen (Text + Link auf die Terminseite) ----------
@@ -314,6 +355,7 @@ if (ubox && SPD.app?.clientId) {
       $$('button', ubox).forEach(x => x.disabled = true);
       try {
         await wixInsert('Stimmen', { umfrageId: u._id, auswahl: [+b.dataset.i], memberId: '', name: 'Besucher', title: 'Besucher – ' + u.frage });
+        zaehlen('ereignis', 'umfrage:stimme');
         voted = b.dataset.i; try { localStorage.setItem(key, voted); } catch (err) { /* ohne Speicher */ }
       } catch (err) { $$('button', ubox).forEach(x => x.disabled = false); return; }
       render();

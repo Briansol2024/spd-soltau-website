@@ -26,6 +26,7 @@ export const RIGHTS = [
   ['newsletter', 'Newsletter schreiben und verschicken'],
   ['presse', 'Pressekontakte pflegen und Pressemitteilungen verschicken'],
   ['planung', 'Jahresplan: Planungen und Vorlagen anlegen'],
+  ['statistik', 'Statistik der Website sehen'],
   ['verwaltung', 'Vorstand, Rechte und Benachrichtigungen festlegen'],
 ];
 

@@ -86,6 +86,9 @@ const RAT = {
   Abonnenten: { displayName: 'Newsletter – Abonnenten', permissions: P('ADMIN', 'ANYONE', 'ADMIN', 'ADMIN'), fields: [T('email', 'E-Mail'), T('typ', 'Art'), T('token', 'Token'), T('status', 'Status'), T('quelle', 'Quelle')] },
   Ideen: { displayName: 'Ideen der Mitglieder', permissions: P('SITE_MEMBER', 'SITE_MEMBER', 'SITE_MEMBER', 'SITE_MEMBER'), fields: [T('titel', 'Idee'), T('text', 'Dazu'), T('von', 'Von (ID)'), T('vonName', 'Von'), T('status', 'Stand'), T('likes', 'Gefällt (IDs)', 'ARRAY_STRING'), T('antwort', 'Rückmeldung')] },
   Newsletter: { displayName: 'Newsletter – Archiv', permissions: P('SITE_MEMBER', 'ADMIN', 'ADMIN', 'ADMIN'), fields: [T('betreff', 'Betreff'), T('ziel', 'An'), T('empfaenger', 'Empfänger', 'NUMBER'), T('text', 'Text'), T('gesendetAm', 'Gesendet am'), T('von', 'Von')] },
+  // Statistik ohne Cookies: Rohdaten (jeder darf anlegen, nur der Dienst liest und löscht sie nach wenigen Minuten) und Tageswerte
+  Seitenaufrufe: { displayName: 'Statistik – Seitenaufrufe (Rohdaten, kurzlebig)', permissions: P('ADMIN', 'ANYONE', 'ADMIN', 'ADMIN'), fields: [T('typ', 'Art'), T('pfad', 'Seite'), T('name', 'Ereignis'), T('ref', 'Herkunft'), T('quelle', 'Quelle'), T('geraet', 'Gerät'), T('sprache', 'Sprache'), T('breite', 'Breite', 'NUMBER'), T('eintritt', 'Einstieg', 'BOOLEAN'), T('app', 'App', 'BOOLEAN'), T('ladezeit', 'Ladezeit (ms)', 'NUMBER'), T('tag', 'Tag'), T('stunde', 'Stunde', 'NUMBER')] },
+  Statistik: { displayName: 'Statistik – Tageswerte', permissions: P('SITE_MEMBER', 'ADMIN', 'ADMIN', 'ADMIN'), fields: [T('tag', 'Tag'), T('aufrufe', 'Aufrufe', 'NUMBER'), T('besuche', 'Besuche', 'NUMBER'), T('daten', 'Daten (JSON)')] },
 };
 for (const [id, def] of Object.entries(RAT)) {
   SCHEMA[id] = def.fields;

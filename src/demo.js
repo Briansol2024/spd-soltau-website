@@ -5,6 +5,21 @@
 const uid = () => 'demo-' + Math.random().toString(36).slice(2, 10);
 const iso = (d = new Date()) => d.toISOString();
 const daysAgo = n => iso(new Date(Date.now() - n * 864e5));
+// Beispiel-Statistik: 70 Tage mit plausiblen, festen Zahlen (kein Zufall, damit die Vorschau immer gleich aussieht)
+function statistikDemo() {
+  const out = [];
+  const seiten = ['/', '/aktuelles/', '/termine/', '/stadtrat-2026/', '/rat-und-rathaus/', '/mitmachen/', '/kontakt/', '/ziele/', '/fraktion/', '/ortsverein/', '/aktuelles/radweg-harber-sanierung/', '/aktuelles/haushalt-2027-was-drin-steckt/', '/roter-bahnhof/', '/mitglieder/'];
+  const gew = [30, 12, 10, 9, 8, 5, 4, 4, 3, 3, 5, 4, 2, 6];
+  for (let i = 69; i >= 0; i--) {
+    const tag = daysAgo(i).slice(0, 10), wd = (new Date(tag + 'T12:00:00').getDay() + 6) % 7;
+    const basis = 60 + Math.round(40 * Math.sin(i / 5)) + (wd >= 5 ? -15 : 0) + (i < 3 ? 120 : 0) + (i === 17 ? 90 : 0);
+    const aufrufe = Math.max(20, basis), besuche = Math.round(aufrufe * 0.55);
+    const s = {}; const g = gew.reduce((a, b) => a + b, 0); seiten.forEach((p, k) => { s[p] = Math.round(aufrufe * gew[k] / g); });
+    const stunden = Array.from({ length: 24 }, (_, h) => Math.round(aufrufe * [1, 0, 0, 0, 0, 1, 2, 4, 5, 5, 5, 5, 6, 5, 4, 4, 5, 6, 8, 9, 8, 6, 4, 2][h] / 100));
+    out.push({ _id: 'demo-st-' + tag, tag, title: tag, aufrufe, besuche, daten: JSON.stringify({ aufrufe, besuche, app: Math.round(aufrufe * 0.12), seiten: s, quellen: { direkt: Math.round(besuche * 0.42), 'google.com': Math.round(besuche * 0.3), 'instagram.com': Math.round(besuche * 0.16), 'facebook.com': Math.round(besuche * 0.07), 'spd-heidekreis.de': Math.round(besuche * 0.05) }, geraete: { handy: Math.round(aufrufe * 0.66), pc: Math.round(aufrufe * 0.3), tablet: Math.round(aufrufe * 0.04) }, sprachen: { de: Math.round(aufrufe * 0.95), en: Math.round(aufrufe * 0.03), tr: Math.round(aufrufe * 0.02) }, stunden, ereignisse: { instagram: Math.round(aufrufe * 0.05), 'kalender-abo': i % 4 === 0 ? 1 : 0, 'formular:Anfragen': i % 9 === 0 ? 1 : 0, 'formular:Abonnenten': i % 6 === 0 ? 1 : 0, mitgliederbereich: Math.round(aufrufe * 0.06), 'umfrage:stimme': Math.round(aufrufe * 0.04), 'app-installiert': i % 12 === 0 ? 1 : 0 }, lade: { summe: aufrufe * (900 + (i % 7) * 60), n: aufrufe } }) });
+  }
+  return out;
+}
 const inDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
 export function makeDemoClient(SPD, { mitglied = false } = {}) {
@@ -160,6 +175,7 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       { _id: 'demo-nl1', ziel: 'beide', betreff: 'SPD Soltau – Neues aus dem Rat, September', empfaenger: 203, gesendetAm: daysAgo(12), von: VON, text: '' },
       { _id: 'demo-nl2', ziel: 'presse', betreff: 'Pressemitteilung SPD Soltau: Radweg nach Harber: Sanierung kommt', empfaenger: 2, gesendetAm: daysAgo(4), von: VON, text: '' },
     ],
+    Statistik: statistikDemo(),
     Fahrgemeinschaften: [
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
       { _id: uid(), _owner: ids[7], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'suche', ab: 'Wolterdingen', plaetze: 1, zeit: '', memberId: ids[7], name: people[7].name, hinweis: '' },

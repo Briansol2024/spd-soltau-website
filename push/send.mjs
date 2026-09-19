@@ -722,7 +722,38 @@ async function weitereErinnerungen(st, subs, logKeys) {
   }
   const logKeys = await loadLog();
   const { approved, pending } = await syncMembers(subs);
-  const st = await loadSettings(approved);
+  // ---- Statistik: Rohdaten (Seitenaufrufe) zu Tageswerten verdichten und löschen – so bleibt nichts Personenbezogenes liegen ----
+async function statistik() {
+  let roh = [];
+  try { roh = await queryAll(client, 'Seitenaufrufe', q => q.ascending('_createdDate'), 500); } catch (e) { log('Statistik: Rohdaten nicht lesbar', e.message); return; }
+  if (!roh.length) return;
+  const tagVon = r => (/^\d{4}-\d{2}-\d{2}$/.test(r.tag || '') ? r.tag : isoDate(r._createdDate));
+  const tage = new Map();
+  for (const r of roh) {
+    const t = tagVon(r);
+    if (!tage.has(t)) { const cur = (await client.items.query('Statistik').eq('tag', t).find()).items[0]; tage.set(t, cur ? { ...cur, d: JSON.parse(cur.daten || '{}') } : { tag: t, title: t, d: {} }); }
+    const doc = tage.get(t), d = doc.d;
+    d.seiten ||= {}; d.quellen ||= {}; d.geraete ||= {}; d.sprachen ||= {}; d.ereignisse ||= {}; d.lade ||= { summe: 0, n: 0 }; if (!Array.isArray(d.stunden) || d.stunden.length !== 24) d.stunden = Array(24).fill(0);
+    const inc = (o, k, n = 1) => { if (k) o[k] = (o[k] || 0) + n; };
+    if (r.typ === 'ereignis') { inc(d.ereignisse, String(r.name || '?').slice(0, 60)); continue; }
+    d.aufrufe = (d.aufrufe || 0) + 1;
+    if (r.eintritt) { d.besuche = (d.besuche || 0) + 1; inc(d.quellen, String(r.quelle || r.ref || 'direkt').slice(0, 60)); }
+    if (r.app) d.app = (d.app || 0) + 1;
+    inc(d.seiten, String(r.pfad || '/').slice(0, 120)); inc(d.geraete, r.geraet || 'pc'); inc(d.sprachen, (r.sprache || '?').slice(0, 5));
+    if (Number.isInteger(r.stunde) && r.stunde >= 0 && r.stunde < 24) d.stunden[r.stunde]++;
+    if (r.ladezeit > 0 && r.ladezeit < 60000) { d.lade.summe += r.ladezeit; d.lade.n++; }
+  }
+  if (DRY) { log(`Statistik: ${roh.length} Rohdaten → ${tage.size} Tag(e) (nicht gespeichert)`); return; }
+  for (const doc of tage.values()) {
+    const item = { ...doc, aufrufe: doc.d.aufrufe || 0, besuche: doc.d.besuche || 0, daten: JSON.stringify(doc.d) }; delete item.d;
+    try { if (item._id) await client.items.update('Statistik', item); else await client.items.insert('Statistik', item); } catch (e) { log('Statistik speichern', e.message); return; }
+  }
+  const ids = roh.map(r => r._id);
+  for (let i = 0; i < ids.length; i += 100) { try { await client.items.bulkRemove('Seitenaufrufe', ids.slice(i, i + 100)); } catch (e) { log('Statistik: Rohdaten löschen', e.message); } }
+  log(`Statistik: ${roh.length} Aufrufe/Ereignisse in ${tage.size} Tag(e) verdichtet`);
+}
+
+const st = await loadSettings(approved);
   await syncBoardRole(st, approved);
   await moderate(st);
   await processActions(st, subs, logKeys);
@@ -734,5 +765,6 @@ async function weitereErinnerungen(st, subs, logKeys) {
   await stammtisch(st);
   await weitereErinnerungen(st, subs, logKeys);
   await abonnenten();
+  await statistik();
   log('fertig', stats);
 })().catch(e => { console.error('Push-Dienst abgebrochen:', e.message, e.details ? JSON.stringify(e.details).slice(0, 300) : ''); process.exit(1); });
