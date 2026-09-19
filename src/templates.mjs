@@ -144,7 +144,7 @@ const pageEnd = () => `
       <p class="small">Wer den Ortsverein führt, wo wir uns treffen und wie Sie uns erreichen.</p>
       <span class="btn btn-rot">Vorstand kennenlernen</span>
     </a>
-    <a class="box foto" href="${url('/fraktion/')}">${motiv('rathaus')}
+    <a class="box foto" href="${url('/fraktion/')}">${motiv('altesrathaus')}
       <span class="tag">Stadtrat</span>
       <h3>Unsere Ratsfraktion</h3>
       <p class="small">Die SPD im Rat der Stadt Soltau: Ratsmitglieder, Themen, Anträge.</p>
@@ -179,7 +179,18 @@ const pageEnd = () => `
 
 // Symbolbilder als Abschnitts-Hintergrund (Wunsch Vorsitz: nicht nur Rot/Schwarz/Weiß). Eigene Fotos aus Beiträgen und dem Drohnenflug,
 // liegen unter src/images/motiv-*.jpg; der Abschnitt bekommt die Klasse „foto“ (dunkler Verlauf) oder „foto foto-rot“ (SPD-Rot getönt).
-const MOTIVE = ['drohne', 'infostand', 'kirche', 'poststrasse', 'rathaus', 'reithalle', 'schule', 'team', 'wirtschaft'];
+const MOTIVE = ['drohne', 'infostand', 'kirche', 'rathaus', 'reithalle', 'schule', 'team', 'wirtschaft', 'altesrathaus', 'rathausnacht', 'marktstrasse', 'hagen', 'bahnhofsgebaeude', 'heide', 'allee', 'fachwerk'];
+// Fremde Fotos (Wikimedia Commons, CC BY-SA 4.0) – Nennung unter Impressum → Bildnachweise
+const MOTIV_CREDITS = [
+  ['altesrathaus', 'Altes Rathaus Soltau', 'Tournasol7', 'https://commons.wikimedia.org/wiki/File:Old_town_hall_of_Soltau_(2).jpg'],
+  ['rathausnacht', 'Altes Rathaus Soltau, Illumination', 'Etmot', 'https://commons.wikimedia.org/wiki/File:Altes_Rathaus_Soltau_Illumination.jpg'],
+  ['marktstrasse', 'Soltau, Marktstraße aus der Vogelperspektive', 'Etmot', 'https://commons.wikimedia.org/wiki/File:Soltau_Marktstrasse_Vogelperspektive.jpg'],
+  ['hagen', 'Soltau, Hagen aus der Vogelperspektive', 'Etmot', 'https://commons.wikimedia.org/wiki/File:Soltau_Hagen_Vogelperspektive.jpg'],
+  ['bahnhofsgebaeude', 'Bahnhof Soltau, Vorderseite', 'Torbenbrinker', 'https://commons.wikimedia.org/wiki/File:SoltauBahnhofVorderseite2b.jpg'],
+  ['heide', 'Blühende Schwindebecker Heide', 'Pirx3000', 'https://commons.wikimedia.org/wiki/File:Bl%C3%BChende_Schwindebecker_Heide.jpg'],
+  ['allee', 'Allee bei Timmerloh, Naturpark Lüneburger Heide', '2dorland', 'https://commons.wikimedia.org/wiki/File:Niedersachsen,_Soltau,_Allee_bei_Timmerloh,_Naturpark_L%C3%BCneburger_Heide_1.jpg'],
+  ['fachwerk', 'Poststraße 11 in Soltau', 'Tournasol7', 'https://commons.wikimedia.org/wiki/File:Poststrasse_11_in_Soltau_(1).jpg'],
+];
 const motiv = (name, eager = false) => `<img class="foto-bg" src="${url(name === 'bahnhof' ? '/assets/images/luftbild-roter-bahnhof.jpg' : `/assets/images/motiv-${MOTIVE.includes(name) ? name : 'drohne'}.jpg`)}" alt="" width="1600" height="900" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
 const pageHead = (tag, h1, lead, foto = 'drohne') => `
   <div class="page-head foto">${motiv(foto, true)}<div class="wrap">
@@ -218,7 +229,7 @@ export function startPage(d) {
   </div>
   <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}"><div class="ticker-track" id="ticker">${band}</div></div>
 
-  ${d.stichwahl ? `<div class="band-schwarz zinke-band foto">${motiv('reithalle')}<div class="wrap section zinke">
+  ${d.stichwahl ? `<div class="band-schwarz zinke-band foto">${motiv('heide')}<div class="wrap section zinke">
     <a class="zinke-banner" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener"><img src="${url('/assets/images/zinke-banner.jpg')}" alt="Keine halben Sachen. Ein Landkreis, ein Landrat – Zinke, Heidekreis" width="1536" height="768" loading="lazy" decoding="async"></a>
     <div class="zinke-text">
       <div>
@@ -341,7 +352,7 @@ export function aktuellesPage(d) {
   const labels = { Fraktion: 'Aus der Fraktion', Ortsverein: 'Ortsverein', Pressemitteilung: 'Presse' };
   return `
 <section>
-  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein', 'poststrasse')}
+  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein', '', 'fachwerk')}
   <div class="wrap section">
     <div class="filter" role="group" aria-label="Beiträge filtern">
       <button class="chip" data-cat="alle" aria-pressed="true">Alle</button>
@@ -371,7 +382,7 @@ export function beitragPage(d, n) {
 export function terminePage(d) {
   return `
 <section>
-  ${pageHead('Termine', 'Wann und wo<br>wir uns treffen', 'Ratssitzungen sind öffentlich – kommen Sie vorbei. Fraktions- und Vorstandssitzungen sind für Mitglieder offen.', 'reithalle')}
+  ${pageHead('Termine', 'Wann und wo<br>wir uns treffen', 'Ratssitzungen sind öffentlich – kommen Sie vorbei. Fraktions- und Vorstandssitzungen sind für Mitglieder offen.', 'allee')}
   <div class="wrap section split">
     <div>
       <label class="toggle"><input type="checkbox" id="only-public"> Nur öffentliche Termine</label>
@@ -407,7 +418,7 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
   <div class="wrap section" style="padding-top:0">
     <div class="cols cols-2">${boxA}${boxB}</div>
   </div>
-  <div class="band-schwarz foto">${motiv('kirche')}<div class="wrap section">
+  <div class="band-schwarz foto">${motiv('hagen')}<div class="wrap section">
     <div class="section-head"><h2 class="title">${newsTitle}</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
     <div class="news">${news.map(newsCard).join('')}</div>
   </div></div>
@@ -417,11 +428,11 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
 export function fraktionPage(d) {
   const chair = byRole(d.fraktion).find(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
   return teamPage({
-    tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat', foto: 'poststrasse',
+    tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat', foto: 'altesrathaus',
     lead: 'Seit dem 13. September 2026 erstmals stärkste Fraktion im Rat der Stadt Soltau. Wir erklären Entscheidungen, bleiben ansprechbar und setzen den 10-Punkte-Plan um.',
     stats: [['Nr. 1', 'Erstmals stärkste Fraktion'], ['11', 'Gewählte Ratsmitglieder'], ['1. Nov.', 'Beginn der Wahlperiode 2026–31'], ['10', 'Punkte für Soltau']],
     people: d.fraktion, teamTitle: 'Ratsmitglieder', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
-    boxA: `<div class="box foto">${motiv('rathaus')}
+    boxA: `<div class="box foto">${motiv('rathausnacht')}
         <h3>Fraktionsvorsitz</h3>
         <p><b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(chair ? chair.name : 'Birhat Kaçar')}</b><br><span class="small">${esc(chair ? chair.role : 'Fraktionsvorsitzender, stellv. Bürgermeister')}</span></p>
         <dl><dt>Sitzungen</dt><dd>Vor jeder Ratssitzung, Altes Rathaus</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
@@ -580,7 +591,7 @@ const legal = (tag, h1, html) => `
 export function newsletterPage(d) {
   return `
 <section>
-  ${pageHead('Newsletter', 'Nichts<br>verpassen', 'Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.', 'kirche')}
+  ${pageHead('Newsletter', 'Nichts<br>verpassen', 'Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.', 'marktstrasse')}
   <div class="wrap section" style="max-width:720px">
     <div id="abo-status" class="mb-card"><p>Einen Moment …</p></div>
     <div class="box" style="margin-top:28px">
@@ -615,6 +626,9 @@ export function impressumPage(d) {
     <p>Unsere Seiten enthalten Links zu externen Websites (u. a. Stadt Soltau, Bürgerinformationssystem, Instagram, SPD-Gliederungen). Auf deren Inhalte haben wir keinen Einfluss; für sie ist der jeweilige Anbieter verantwortlich. Zum Zeitpunkt der Verlinkung waren keine Rechtsverstöße erkennbar. Bei Bekanntwerden von Rechtsverletzungen entfernen wir den Link umgehend.</p>
     <h2>Urheberrecht</h2>
     <p>Texte, Fotos und Grafiken auf diesen Seiten unterliegen dem deutschen Urheberrecht. Fotos: SPD Ortsverein Soltau, sofern nicht anders angegeben; das Bildmaterial zur Landratswahl wird mit Erlaubnis von Sebastian Zinke verwendet. Amtliche Werke der Stadt Soltau (Amtsblatt, Bekanntmachungen) sind gemeinfrei (§ 5 UrhG); von Meldungen der Stadt übernehmen wir lediglich Überschrift und Anriss mit Quellenangabe und Link. Eine Nutzung unserer Inhalte über das Zitatrecht hinaus bedarf der Zustimmung.</p>
+    <h2>Bildnachweise</h2>
+    <p>Hintergrund- und Symbolbilder stammen, soweit nicht anders angegeben, vom SPD Ortsverein Soltau (eigene Fotos und Drohnenaufnahmen). Das Luftbild auf der Kontaktseite: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN, 2026), Digitale Orthophotos, <a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>. Folgende Fotos stammen von Wikimedia Commons und stehen unter <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>:</p>
+    <ul class="bildnachweise">${MOTIV_CREDITS.map(([, titel, autor, link]) => `<li><a href="${esc(link)}" target="_blank" rel="noopener">${esc(titel)}</a> – ${esc(autor)}</li>`).join('')}</ul>
     <h2>Technik</h2>
     <p>Die Website wird als statische Seite über GitHub Pages ausgeliefert; Inhalte werden im Redaktionssystem von Wix gepflegt. Einzelheiten zur Datenverarbeitung: <a href="${url('/datenschutz/')}">Datenschutzerklärung</a>.</p>`);
 }
@@ -701,7 +715,7 @@ export function stadtratPage(d) {
   const small = p => `<button class="person" type="button" data-name="${esc(p.name)}">${p.photo && p.photo.url ? `<div class="avatar has-img"><img src="${esc(p.photo.url)}" alt="${esc(p.name)}" loading="lazy" decoding="async"><span></span></div>` : `<div class="avatar"><span>${esc(p.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span></div>`}<div class="plate"><b>${esc(p.name)}</b><small>${esc(p.job)}</small><span class="rolle">${p.stimmen.toLocaleString('de-DE')} Stimmen · Listenplatz ${p.listenplatz}</span></div></button>`;
   return `
 <section>
-  ${pageHead('Kommunalwahl 2026', 'Unsere 11<br>im Stadtrat', 'Am 13. September haben die Soltauerinnen und Soltauer gewählt. 9.268 Stimmen und 30,8 Prozent machen die SPD zum ersten Mal zur stärksten Fraktion im Rat – mit elf von 34 Sitzen. Danke für dieses Vertrauen. Die neue Wahlperiode beginnt am 1. November 2026.', 'rathaus')}
+  ${pageHead('Kommunalwahl 2026', 'Unsere 11<br>im Stadtrat', 'Am 13. September haben die Soltauerinnen und Soltauer gewählt. 9.268 Stimmen und 30,8 Prozent machen die SPD zum ersten Mal zur stärksten Fraktion im Rat – mit elf von 34 Sitzen. Danke für dieses Vertrauen. Die neue Wahlperiode beginnt am 1. November 2026.', 'rathausnacht')}
   <div class="band-rot foto foto-rot">${motiv('team')}<div class="wrap" style="padding-block:40px">
     <div class="stats">
       <div class="stat"><b>9.268</b><span>Stimmen für die SPD</span></div>
@@ -725,7 +739,7 @@ export function stadtratPage(d) {
       <div class="ansprech">${nr.nachListe.map(small).join('')}</div>
     </div>
     <div style="display:grid;gap:20px">
-      <div class="box foto">${motiv('poststrasse')}
+      <div class="box foto">${motiv('altesrathaus')}
         <h3>Sitzverteilung im neuen Rat</h3>
         <ul class="seats">${w.sitze.map(([p, n]) => `<li><span class="seats-name">${esc(p)}</span><span class="seats-bar"><i style="width:${Math.round(n / max * 100)}%"></i></span><span class="seats-n">${n}</span></li>`).join('')}</ul>
         <p class="small" style="opacity:.8">34 Sitze insgesamt · Wahlbeteiligung 58,8 %</p>
@@ -763,7 +777,7 @@ export function mitgliederPage(d) {
 export function roterBahnhofPage(d) {
   return `
 <section>
-  ${pageHead('Roter Bahnhof', 'Unseren Treffpunkt<br>anfragen', 'Am Bahnhof 1t, 29614 Soltau. Vereine, Initiativen und Gruppen können den Roten Bahnhof für Treffen und kleine Veranstaltungen anfragen.', 'reithalle')}
+  ${pageHead('Roter Bahnhof', 'Unseren Treffpunkt<br>anfragen', 'Am Bahnhof 1t, 29614 Soltau. Vereine, Initiativen und Gruppen können den Roten Bahnhof für Treffen und kleine Veranstaltungen anfragen.', 'bahnhofsgebaeude')}
   <div class="wrap section split">
     <form class="form wix-form" id="form-buchung" data-collection="Buchungen" novalidate>
       <div class="form-fields" style="display:grid;gap:18px">
