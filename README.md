@@ -75,16 +75,17 @@ Mitgliederbereich (einmal je Sitzung). Besucher ohne Konto sehen in der App einf
 Zum Ausprobieren im Browser: `?app=1`.
 
 **Website-Struktur (Wünsche Vorsitz, 18.09.2026):** Startseite = Hero („Aus Liebe zu Soltau“, „Moin!“, Textbox mit „Unsere 11 Gewählten“) →
-Laufband (bis zur Stichwahl „Am 27.09. Zinke zum Landrat wählen!“, danach Termine; langsam) → Stichwahl-Abschnitt mit Foto (bis 27.09.) → „Was können wir für Sie tun?“ →
-**Aus Rat & Rathaus** (Kachelreihe, s. u.) → Soltau in Zahlen → Aktuelles → Instagram → Termine (schlank, nur öffentliche).
+Laufband (bis zur Stichwahl „Am 27.09. Zinke zum Landrat wählen!“, danach Termine; langsam) → Stichwahl-Abschnitt mit Foto (bis 27.09.) → „Was können wir für Sie tun?“ mit drei Kacheln
+(Anliegen · Mitmachen · **„Ich will wissen, was im Rathaus läuft“** = Aus Rat & Rathaus, s. u.) → Soltau in Zahlen → Aktuelles → Instagram → Termine (schlank, nur öffentliche).
 
 **Aus Rat & Rathaus (automatisch, `src/lib/stadt.mjs`):** Beim Bau (alle 30 Minuten) liest der Build die öffentlichen Seiten der Stadt Soltau – Bürgerinformationssystem
 (nächste Sitzungen von Rat und Ausschüssen mit Ort/Uhrzeit; Link zur Tagesordnung, sobald sie im Monatskalender veröffentlicht ist), soltau.de-Neuigkeiten (Titel, Datum,
 Anrisssatz, Link; Stichwortfilter gegen Feste/Kino), Amtsblatt (Nummer, Datum, Themen, PDF), laufende Bauleitplanverfahren („Jetzt mitreden … bis <Frist>“) und Baustellen.
-Keine KI, keine Schlüssel, keine Kosten – reiner Mustervergleich; amtliche Bekanntmachungen sind gemeinfrei, von Meldungen nur Überschrift + Anriss. Auf der Startseite eine
-Kachelreihe (Variante K2: höchstens vier Kacheln – Mitreden zuerst (schwarz), nächste Sitzung, Amtsblatt, Rathaus; am Handy wischbar) mit „Stand …“ und „Alle Meldungen →“
-zur Seite `/rat-und-rathaus/` (Mitreden-Streifen, drei Spalten Sitzungen / Rathaus / Amtsblatt + Baustellen, Quellenangaben). Fällt eine Quelle aus, fehlt nur ihre Kachel;
-sind alle Quellen weg, entfällt der Block (`d.stadt = null`). Platz: unter den zwei Bürger-Kacheln, direkt über „Soltau in Zahlen“ (Wunsch 18.09.). **Jede Website-Seite endet gleich** (`pageEnd()` im
+Keine KI, keine Schlüssel, keine Kosten – reiner Mustervergleich; amtliche Bekanntmachungen sind gemeinfrei, von Meldungen nur Überschrift + Anriss. Auf der Startseite ist es
+die **dritte Bürger-Kachel** „Ich will wissen, was im Rathaus läuft“ (Variante P1, 19.09.): gleiche Form wie „Ich habe ein Anliegen“ / „Ich will vorbeikommen“, darin die drei
+aktuellsten Punkte (Mitreden mit Frist, nächste Sitzung, Amtsblatt – `stadtKacheln(d.stadt, 3)`), „Alle Meldungen →“ und darunter eine Stand-Zeile. Die Punkte verlinken direkt
+zur Stadt, Kopf und „Alle Meldungen“ zur Seite `/rat-und-rathaus/` (Mitreden-Streifen, drei Spalten Sitzungen / Rathaus / Amtsblatt + Baustellen, Quellenangaben). Fällt eine
+Quelle aus, fehlt nur ihr Punkt; sind alle Quellen weg, gibt es wieder nur zwei Kacheln (`d.stadt = null`). **Jede Website-Seite endet gleich** (`pageEnd()` im
 Layout): drei Kästen Vorstand · Ratsfraktion · Roter Bahnhof buchen, dann „Nichts verpassen“. Ortsverein und Fraktion nutzen dieselbe Vorlage
 (`teamPage()`): Kopf → Zahlenband → Team nach Funktion sortiert (`byRole`, große Namen, quadratische Fotos) → zwei Kästen → Beiträge. Ziele als Karten mit
 Piktogrammen (`zielCards`). Alle 27 Kandidat*innen stehen weiterhin unter „Unsere 11 im Stadtrat“.

@@ -225,15 +225,15 @@ export function startPage(d) {
     </div>
   </div></div>` : ''}
 
-  <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px${d.stadt ? ' 0' : ''}">
+  <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
-    <div class="quick quick-2">
+    <div class="quick ${d.stadt ? 'quick-3' : 'quick-2'}">
       <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</small></a>
       <a href="${url('/mitmachen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg><b>Ich will vorbeikommen oder mitmachen</b><small>Ratssitzungen sind öffentlich, der Rote Bahnhof steht offen – als Gast, Helferin oder Mitglied.</small></a>
+      ${rathausKachel(d)}
     </div>
+    ${d.stadt ? `<p class="quick-stand">Aus Rat &amp; Rathaus: automatisch aus den öffentlichen Seiten der Stadt Soltau · Stand ${esc(standText(d.stadt.stand))}</p>` : ''}
   </div>
-
-  ${rathausKacheln(d)}
 
   <div class="band-rot">
     <div class="wrap" style="padding-block:40px">
@@ -284,14 +284,15 @@ const RR_ICON = {
 };
 const standText = iso => new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace('.,', ',') + ' Uhr';
 const kurzText = (t, n = 90) => { t = String(t || '').split(';')[0].trim(); return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + ' …' : t; };
-export function rathausKacheln(d) {
-  const k = stadtKacheln(d.stadt, 4);
+// Dritte Bürger-Kachel „Ich will wissen, was im Rathaus läuft“ – gleiche Form wie die zwei anderen, mit den drei aktuellsten Punkten
+export function rathausKachel(d) {
+  const k = stadtKacheln(d.stadt, 3);
   if (!k.length) return '';
-  return `
-  <div class="wrap rr" aria-label="Aus Rat und Rathaus">
-    <div class="rr-head"><h2 class="rr-title">Aus Rat &amp; Rathaus</h2><span class="rr-stand">automatisch · Stand ${esc(standText(d.stadt.stand))}</span><a class="rr-more" href="${url('/rat-und-rathaus/')}">Alle Meldungen →</a></div>
-    <div class="rr-row">${k.map(t => `<a class="rr-tile${t.dunkel ? ' dunkel' : ''}" href="${esc(t.url)}" target="_blank" rel="noopener"><span class="rr-kicker">${RR_ICON[t.art] || ''}${esc(t.kicker)}</span><b>${esc(kurzText(t.titel, 80))}</b><small>${esc(kurzText(t.sub, 90))}</small></a>`).join('')}</div>
-  </div>`;
+  return `<div class="quick-live">
+        <a class="quick-live-head" href="${url('/rat-und-rathaus/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg><b>Ich will wissen, was im Rathaus läuft</b></a>
+        <div class="quick-live-list">${k.map(t => `<a href="${esc(t.url)}" target="_blank" rel="noopener">${RR_ICON[t.art] || ''}<span><small>${esc(t.kurz)}</small><b>${esc(kurzText(t.titel, 70))}</b></span></a>`).join('')}</div>
+        <a class="quick-live-more" href="${url('/rat-und-rathaus/')}">Alle Meldungen →</a>
+      </div>`;
 }
 export function ratRathausPage(d) {
   const s = d.stadt || { sitzungen: [], rathaus: [], amtsblatt: [], mitreden: [], baustellen: [], quellen: {}, stand: new Date().toISOString() };

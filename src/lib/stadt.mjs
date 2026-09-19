@@ -120,17 +120,17 @@ export function stadtKacheln(d, max = 4) {
   const kurz = iso => iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.` : '';
   const k = [];
   const mit = d.mitreden[0];
-  if (mit) k.push({ art: 'mitreden', kicker: `Jetzt mitreden${mit.bis ? ' · bis ' + kurz(mit.bis) : ''}`, titel: mit.titel, sub: 'Öffentliche Auslegung – Stellungnahme möglich', url: mit.url, dunkel: true });
+  if (mit) k.push({ art: 'mitreden', kicker: `Jetzt mitreden${mit.bis ? ' · bis ' + kurz(mit.bis) : ''}`, kurz: `Mitreden${mit.bis ? ' bis ' + kurz(mit.bis) : ''}`, titel: mit.titel, sub: 'Öffentliche Auslegung – Stellungnahme möglich', url: mit.url, dunkel: true });
   const s = d.sitzungen[0];
-  if (s) k.push({ art: 'sitzung', kicker: `Nächste Sitzung · ${fmtTag(s.datum)}, ${s.zeit}`, titel: s.gremiumLang, sub: `${s.ort}${s.tagesordnung ? ' · Tagesordnung' : ' · Bürgerinfosystem'}`, url: s.url });
+  if (s) k.push({ art: 'sitzung', kicker: `Nächste Sitzung · ${fmtTag(s.datum)}, ${s.zeit}`, kurz: `${fmtTag(s.datum)}, ${s.zeit} Uhr`, titel: s.gremiumLang, sub: `${s.ort}${s.tagesordnung ? ' · Tagesordnung' : ' · Bürgerinfosystem'}`, url: s.url });
   const a = d.amtsblatt[0];
-  if (a) k.push({ art: 'amtsblatt', kicker: `Amtsblatt ${a.nummer} · ${kurz(a.datum)}`, titel: a.thema || 'Amtliche Bekanntmachungen', sub: 'PDF auf soltau.de', url: a.url });
+  if (a) k.push({ art: 'amtsblatt', kicker: `Amtsblatt ${a.nummer} · ${kurz(a.datum)}`, kurz: `Amtsblatt ${a.nummer}`, titel: a.thema || 'Amtliche Bekanntmachungen', sub: 'PDF auf soltau.de', url: a.url });
   const r = d.rathaus.find(x => x.relevant) || d.rathaus[0];
-  if (r) k.push({ art: 'rathaus', kicker: `Rathaus · ${kurz(r.datum)}`, titel: r.titel, sub: r.teaser || 'Meldung der Stadt Soltau', url: r.url });
+  if (r) k.push({ art: 'rathaus', kicker: `Rathaus · ${kurz(r.datum)}`, kurz: `Rathaus · ${kurz(r.datum)}`, titel: r.titel, sub: r.teaser || 'Meldung der Stadt Soltau', url: r.url });
   const s2 = d.sitzungen[1];
-  if (s2) k.push({ art: 'sitzung', kicker: `Sitzung · ${fmtTag(s2.datum)}, ${s2.zeit}`, titel: s2.gremiumLang, sub: `${s2.ort}${s2.tagesordnung ? ' · Tagesordnung' : ''}`, url: s2.url });
+  if (s2) k.push({ art: 'sitzung', kicker: `Sitzung · ${fmtTag(s2.datum)}, ${s2.zeit}`, kurz: `${fmtTag(s2.datum)}, ${s2.zeit} Uhr`, titel: s2.gremiumLang, sub: `${s2.ort}${s2.tagesordnung ? ' · Tagesordnung' : ''}`, url: s2.url });
   const b = d.baustellen[0];
-  if (b) k.push({ art: 'baustelle', kicker: `Baustelle · ${kurz(b.datum)}`, titel: b.titel, sub: b.teaser || 'Meldung der Stadt Soltau', url: b.url });
+  if (b) k.push({ art: 'baustelle', kicker: `Baustelle · ${kurz(b.datum)}`, kurz: `Baustelle · ${kurz(b.datum)}`, titel: b.titel, sub: b.teaser || 'Meldung der Stadt Soltau', url: b.url });
   if (!mit && k.length) k[0].dunkel = true;
   return k.slice(0, max);
 }
