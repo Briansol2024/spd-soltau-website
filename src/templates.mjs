@@ -179,7 +179,7 @@ const pageEnd = () => `
 
 // Symbolbilder als Abschnitts-Hintergrund (Wunsch Vorsitz: nicht nur Rot/Schwarz/Weiß). Eigene Fotos aus Beiträgen und dem Drohnenflug,
 // liegen unter src/images/motiv-*.jpg; der Abschnitt bekommt die Klasse „foto“ (dunkler Verlauf) oder „foto foto-rot“ (SPD-Rot getönt).
-const MOTIVE = ['drohne', 'infostand', 'kirche', 'rathaus', 'reithalle', 'schule', 'team', 'wirtschaft', 'altesrathaus', 'rathausnacht', 'marktstrasse', 'hagen', 'bahnhofsgebaeude', 'heide', 'allee', 'fachwerk'];
+const MOTIVE = ['drohne', 'infostand', 'kirche', 'rathaus', 'reithalle', 'schule', 'team', 'wirtschaft', 'altesrathaus', 'rathausnacht', 'marktstrasse', 'hagen', 'bahnhofsgebaeude', 'heide', 'allee', 'zeitungen'];
 // Fremde Fotos (Wikimedia Commons, CC BY-SA 4.0) – Nennung unter Impressum → Bildnachweise
 const MOTIV_CREDITS = [
   ['altesrathaus', 'Altes Rathaus Soltau', 'Tournasol7', 'https://commons.wikimedia.org/wiki/File:Old_town_hall_of_Soltau_(2).jpg'],
@@ -189,8 +189,8 @@ const MOTIV_CREDITS = [
   ['bahnhofsgebaeude', 'Bahnhof Soltau, Vorderseite', 'Torbenbrinker', 'https://commons.wikimedia.org/wiki/File:SoltauBahnhofVorderseite2b.jpg'],
   ['heide', 'Blühende Schwindebecker Heide', 'Pirx3000', 'https://commons.wikimedia.org/wiki/File:Bl%C3%BChende_Schwindebecker_Heide.jpg'],
   ['allee', 'Allee bei Timmerloh, Naturpark Lüneburger Heide', '2dorland', 'https://commons.wikimedia.org/wiki/File:Niedersachsen,_Soltau,_Allee_bei_Timmerloh,_Naturpark_L%C3%BCneburger_Heide_1.jpg'],
-  ['fachwerk', 'Poststraße 11 in Soltau', 'Tournasol7', 'https://commons.wikimedia.org/wiki/File:Poststrasse_11_in_Soltau_(1).jpg'],
 ];
+// Gemeinfrei (CC0), nur zur Vollständigkeit genannt: Zeitungsstapel – Hochschulbibliothek Wildau, https://commons.wikimedia.org/wiki/File:StapelZeitschriften.jpg
 const motiv = (name, eager = false) => `<img class="foto-bg" src="${url(name === 'bahnhof' ? '/assets/images/luftbild-roter-bahnhof.jpg' : `/assets/images/motiv-${MOTIVE.includes(name) ? name : 'drohne'}.jpg`)}" alt="" width="1600" height="900" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
 const pageHead = (tag, h1, lead, foto = 'drohne') => `
   <div class="page-head foto">${motiv(foto, true)}<div class="wrap">
@@ -352,7 +352,7 @@ export function aktuellesPage(d) {
   const labels = { Fraktion: 'Aus der Fraktion', Ortsverein: 'Ortsverein', Pressemitteilung: 'Presse' };
   return `
 <section>
-  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein', '', 'fachwerk')}
+  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein', '', 'zeitungen')}
   <div class="wrap section">
     <div class="filter" role="group" aria-label="Beiträge filtern">
       <button class="chip" data-cat="alle" aria-pressed="true">Alle</button>
@@ -627,7 +627,7 @@ export function impressumPage(d) {
     <h2>Urheberrecht</h2>
     <p>Texte, Fotos und Grafiken auf diesen Seiten unterliegen dem deutschen Urheberrecht. Fotos: SPD Ortsverein Soltau, sofern nicht anders angegeben; das Bildmaterial zur Landratswahl wird mit Erlaubnis von Sebastian Zinke verwendet. Amtliche Werke der Stadt Soltau (Amtsblatt, Bekanntmachungen) sind gemeinfrei (§ 5 UrhG); von Meldungen der Stadt übernehmen wir lediglich Überschrift und Anriss mit Quellenangabe und Link. Eine Nutzung unserer Inhalte über das Zitatrecht hinaus bedarf der Zustimmung.</p>
     <h2>Bildnachweise</h2>
-    <p>Hintergrund- und Symbolbilder stammen, soweit nicht anders angegeben, vom SPD Ortsverein Soltau (eigene Fotos und Drohnenaufnahmen). Das Luftbild auf der Kontaktseite: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN, 2026), Digitale Orthophotos, <a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>. Folgende Fotos stammen von Wikimedia Commons und stehen unter <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>:</p>
+    <p>Hintergrund- und Symbolbilder stammen, soweit nicht anders angegeben, vom SPD Ortsverein Soltau (eigene Fotos und Drohnenaufnahmen). Das Luftbild auf der Kontaktseite: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN, 2026), Digitale Orthophotos, <a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>. Der Zeitungsstapel auf der Seite „Aktuelles“ stammt von der Hochschulbibliothek Wildau (Wikimedia Commons, CC0). Folgende Fotos stammen von Wikimedia Commons und stehen unter <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>:</p>
     <ul class="bildnachweise">${MOTIV_CREDITS.map(([, titel, autor, link]) => `<li><a href="${esc(link)}" target="_blank" rel="noopener">${esc(titel)}</a> – ${esc(autor)}</li>`).join('')}</ul>
     <h2>Technik</h2>
     <p>Die Website wird als statische Seite über GitHub Pages ausgeliefert; Inhalte werden im Redaktionssystem von Wix gepflegt. Einzelheiten zur Datenverarbeitung: <a href="${url('/datenschutz/')}">Datenschutzerklärung</a>.</p>`);
