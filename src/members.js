@@ -548,6 +548,7 @@ async function secStart(v) {
   const ratKarte = await ratsarbeit.startKarte();
   const planKarte = await bereiche.startKarte();
   const ideenKarte = bereiche.ideenKarte();
+  const gwKarte = secVisible('wissen') ? bereiche.grundwissenStartKarte() : '';
   v.innerHTML = `
   ${myProfile?.verzeichnisSichtbar || settings.board.has(me.id) ? '' : '<p class="note note-info" style="margin-bottom:20px">Du stehst noch nicht im Mitgliederverzeichnis – andere Mitglieder finden dich also nicht. Einschalten kannst du das unter <a href="#profil">Mein Profil</a>.</p>'}
   <div class="start-grid">
@@ -557,6 +558,7 @@ async function secStart(v) {
       ${events.length ? events.map(ev => { const mine = zusagen.find(z => z.eventId === ev.id && z.memberId === me.id); return `<a class="start-ev" href="#termine/ev-${esc(ev.id)}"><b>${esc(fmtShort(ev.date))}</b> ${esc(ev.title)} <span class="small muted">${esc(ev.zeit || '')}</span>${mine ? `<span class="badge ${mine.status === 'zusage' ? 'badge-mit' : ''}">${mine.status === 'zusage' ? 'zugesagt' : 'abgesagt'}</span>` : '<span class="badge">offen</span>'}</a>`; }).join('') : '<p class="muted small">Keine Termine eingetragen.</p>'}
       <a class="btn btn-schwarz btn-sm" href="#termine">Alle Termine</a>
     </div>
+    ${gwKarte}
     ${me.sees('umfragen') || me.sees('helfer') ? `<div class="mb-card">
       <h3>Mitmachen</h3>
       <p class="small">${me.sees('umfragen') ? `<b>${umfragen.length}</b> offene Umfrage${umfragen.length === 1 ? '' : 'n'}` : ''}${me.sees('umfragen') && me.sees('helfer') ? ' · ' : ''}${me.sees('helfer') ? `<b>${freeSlots}</b> freie Helferplätze` : ''}</p>
@@ -1449,7 +1451,7 @@ function blatt(titel, inner, wire) {
   if (wire) wire(el);
 }
 function blattZu() { document.getElementById('mb-blatt')?.remove(); if (!document.getElementById('rz-blatt')) document.body.classList.remove('sheet-open'); }
-const bereiche = makeBereiche({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
+const bereiche = makeBereiche({ db, DEMO, store, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
 const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: vorstandMehr, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 

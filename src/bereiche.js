@@ -1,8 +1,9 @@
 // Weitere Bereiche des Mitgliederbereichs: Versammlung (Tagesordnung, Anträge, Abstimmung per Handy, Protokoll),
 // Wahlkampf (Straßenliste, Plakat-Standorte mit Foto), Wissen (Suche über alles) und Jahresplan (Planungen aus Vorlagen mit Aufgaben).
 // Alles nach demselben Muster: Liste → Karte → Blatt; große Knöpfe, wenige Worte.
+import { GRUNDWISSEN, STUFEN, ERSTE_SCHRITTE, themaById } from './lib/grundwissen.mjs';
 export function makeBereiche(ctx) {
-  const { db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, appLink, blatt, blattZu, SPD, ORTE } = ctx;
+  const { db, DEMO, store, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, appLink, blatt, blattZu, SPD, ORTE } = ctx;
   const me = () => ctx.me, people = () => ctx.people, settings = () => ctx.settings;
   const nameOf = id => people().find(p => p.memberId === id)?.name || '';
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)).slice(0, 8);
@@ -195,8 +196,12 @@ export function makeBereiche(ctx) {
 
   // ======================= Wissen: Suche über alles =======================
   async function wissen(v) {
-    const q0 = decodeURIComponent((location.hash.split('/')[1] || '').replace(/^s-/, ''));
-    v.innerHTML = `${sectionHead('Wissen', 'Alles durchsuchen: Dokumente, Ratsvorbereitung, Versammlungen, Beiträge, Planungen')}
+    const sub = location.hash.split('/')[1] || '';
+    if (sub === 'grundwissen') return grundwissen(v);
+    if (sub.startsWith('g-')) { const t = themaById(sub.slice(2)); if (t) return grundwissenThema(v, t); }
+    const q0 = decodeURIComponent(sub.replace(/^s-/, ''));
+    v.innerHTML = `${sectionHead('Wissen', 'Grundwissen zum Lernen – und die Suche über alles, was du sehen darfst')}
+    ${grundwissenKarte()}
     <form class="form wissen-form" id="f-wissen" novalidate><div class="field"><label for="w-q">Suchbegriff</label><input id="w-q" type="search" value="${esc(q0)}" placeholder="z. B. Haushalt, Radweg, Kita, Satzung" autocomplete="off"></div></form>
     <div class="mb-tabs wissen-chips">${['Protokoll', 'Antrag', 'Beschluss', 'Haushalt', 'Satzung', 'Kita', 'Radweg'].map(w => `<button type="button" class="chip" data-q="${esc(w)}">${esc(w)}</button>`).join('')}</div>
     <div id="w-erg"><p class="small muted">Tippe einen Begriff ein – gesucht wird in allem, was du sehen darfst.</p></div>`;
@@ -215,6 +220,56 @@ export function makeBereiche(ctx) {
     v.addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) { $('#w-q', v).value = b.dataset.q; suchen(); } });
     if (q0) suchen(); else setTimeout(() => $('#w-q', v).focus(), 50);
   }
+  // ----- Grundwissen: Lernpfad in zehn Schritten (01, 02, 03 … wie die Hilfevideos); der Lesestand bleibt auf dem Gerät -----
+  const GW_KEY = 'spd-grundwissen';
+  const gwStand = () => { const st = store.get(GW_KEY); return st && typeof st === 'object' ? { gelesen: st.gelesen || [], erledigt: st.erledigt || [] } : { gelesen: [], erledigt: [] }; };
+  const gwSet = st => store.set(GW_KEY, st);
+  const gwGelesen = () => gwStand().gelesen;
+  const gwNaechstes = () => GRUNDWISSEN.find(t => !gwGelesen().includes(t.id));
+  const absaetze = text => text.split('\n').map(a => `<p>${esc(a).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</p>`).join('');
+  function grundwissenKarte() {
+    const n = gwGelesen().length, next = gwNaechstes();
+    return `<a class="rz-bereich gw-karte" href="#wissen/grundwissen"><span class="rz-kachel">${next ? esc(next.nr) : '✓'}</span><span class="rz-txt"><b>Grundwissen für neue Ratsmitglieder</b><small>${n ? `${n} von ${GRUNDWISSEN.length} Themen gelesen` + (next ? ` · weiter mit ${esc(next.nr)} ${esc(next.titel)}` : ' · alles gelesen') : `Schritt für Schritt in die Ratsarbeit – ${GRUNDWISSEN.length} kurze Themen, die aufeinander aufbauen`}</small></span>${ICON.chev}</a>`;
+  }
+  function grundwissenStartKarte() {
+    const n = gwGelesen().length, next = gwNaechstes();
+    if (!next) return '';
+    return `<div class="mb-card gw-start"><h3>Grundwissen</h3><p class="small">${n ? `<b>${n} von ${GRUNDWISSEN.length}</b> Themen gelesen – weiter mit ${esc(next.nr)} · ${esc(next.titel)}.` : `Neu im Rat oder einfach neugierig? ${GRUNDWISSEN.length} kurze Schritte: Rat, Fraktion, Sitzung, Haushalt – mit den Stellen im Gesetz.`}</p><a class="btn btn-schwarz btn-sm" href="#wissen/g-${esc(next.id)}">${n ? 'Weiterlesen' : 'Anfangen'}</a></div>`;
+  }
+  function grundwissen(v) {
+    const st = gwStand(), n = st.gelesen.length, next = gwNaechstes();
+    const minuten = GRUNDWISSEN.reduce((sum, t) => sum + t.minuten, 0);
+    v.innerHTML = `<p class="small"><a href="#wissen">← Wissen</a></p>
+    ${sectionHead('Grundwissen', `Schritt für Schritt in die Ratsarbeit – ${GRUNDWISSEN.length} Themen, die aufeinander aufbauen`)}
+    <div class="gw-stand"><div class="gw-balken" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="${GRUNDWISSEN.length}"><i style="width:${Math.round(n / GRUNDWISSEN.length * 100)}%"></i></div><b>${n} von ${GRUNDWISSEN.length} gelesen</b>${next ? `<a class="btn btn-rot" href="#wissen/g-${esc(next.id)}">${n ? 'Weiter mit' : 'Anfangen mit'} ${esc(next.nr)} · ${esc(next.titel)}</a>` : '<span class="badge badge-mit">Alles gelesen</span>'}</div>
+    <p class="small muted">Jedes Thema dauert nur ein paar Minuten, alle zusammen etwa ${minuten}: kurz erklärt, dazu die Stellen im Gesetz und kostenlose Broschüren zum Nachlesen. Am Ende jedes Themas hakst du es ab – der Stand bleibt auf diesem Gerät.</p>
+    ${STUFEN.map(stufe => `<section class="mb-sub help-group"><h4 class="doc-cat">${esc(stufe)}</h4><div class="gw-liste">${GRUNDWISSEN.filter(t => t.stufe === stufe).map(t => `<a class="gw-schritt ${st.gelesen.includes(t.id) ? 'gelesen' : ''}" href="#wissen/g-${esc(t.id)}"><b>${esc(t.nr)}</b><span><span class="gw-titel">${esc(t.titel)}</span><small>${esc(t.kurz)} · ${t.minuten} Min.</small></span><i class="gw-hak" aria-label="${st.gelesen.includes(t.id) ? 'gelesen' : 'noch offen'}"></i></a>`).join('')}</div></section>`).join('')}
+    <section class="mb-sub help-group gw-check"><h4 class="doc-cat">Checkliste: deine ersten Wochen im Rat <span class="small muted" id="gw-check-stand">${st.erledigt.length} von ${ERSTE_SCHRITTE.length}</span></h4>
+      <div class="gw-checkliste">${ERSTE_SCHRITTE.map((text, i) => `<label class="check"><input type="checkbox" data-check="${i}" ${st.erledigt.includes(i) ? 'checked' : ''}><span>${esc(text)}</span></label>`).join('')}</div></section>
+    ${n ? '<p class="small" style="margin-top:20px"><button type="button" class="linkbtn" data-reset>Lesestand zurücksetzen</button></p>' : ''}`;
+    v.addEventListener('change', e => {
+      const c = e.target.closest('[data-check]'); if (!c) return;
+      const cur = gwStand(), i = Number(c.dataset.check);
+      cur.erledigt = cur.erledigt.filter(x => x !== i); if (c.checked) cur.erledigt.push(i);
+      gwSet(cur); $('#gw-check-stand', v).textContent = `${cur.erledigt.length} von ${ERSTE_SCHRITTE.length}`;
+    });
+    v.addEventListener('click', e => { if (e.target.closest('[data-reset]') && confirm('Lesestand auf diesem Gerät zurücksetzen?')) { gwSet({ gelesen: [], erledigt: gwStand().erledigt }); route(); } });
+  }
+  function grundwissenThema(v, t) {
+    const i = GRUNDWISSEN.indexOf(t), prev = GRUNDWISSEN[i - 1], next = GRUNDWISSEN[i + 1];
+    const done = gwGelesen().includes(t.id);
+    v.innerHTML = `<p class="small"><a href="#wissen/grundwissen">← Alle Themen</a></p>
+    ${sectionHead(`${esc(t.nr)} · ${esc(t.titel)}`, `${esc(t.stufe)} · Thema ${i + 1} von ${GRUNDWISSEN.length} · ${t.minuten} Min.`)}
+    <p class="gw-kurz">${esc(t.kurz)}</p>
+    <div class="gw-text">${absaetze(t.text)}</div>
+    <section class="gw-quellen"><h4 class="doc-cat">Zum Nachlesen</h4>${t.quellen.map(q => `<a class="gw-quelle" href="${esc(q.url)}" target="_blank" rel="noopener"><span>${esc(q.label)}</span><small>${esc(q.lizenz)}</small></a>`).join('')}</section>
+    <div class="mb-actions gw-fertig"><button type="button" class="btn ${done ? 'btn-line' : 'btn-rot'}" data-gelesen>${done ? '✓ Gelesen' : next ? `Gelesen – weiter zu ${esc(next.nr)}` : 'Gelesen – fertig'}</button>${shareBtn(`${t.nr} ${t.titel} – Grundwissen für neue Ratsmitglieder: ${appLink('#wissen/g-' + t.id)}`)}</div>
+    <div class="mb-actions help-nav">${prev ? `<a class="btn btn-line btn-sm" href="#wissen/g-${esc(prev.id)}">← ${esc(prev.nr)} ${esc(prev.titel)}</a>` : '<span></span>'}${next ? `<a class="btn btn-line btn-sm" href="#wissen/g-${esc(next.id)}">${esc(next.nr)} ${esc(next.titel)} →</a>` : '<a class="btn btn-line btn-sm" href="#wissen/grundwissen">Zur Übersicht →</a>'}</div>`;
+    $('[data-gelesen]', v).addEventListener('click', () => {
+      const cur = gwStand(); cur.gelesen = cur.gelesen.filter(x => x !== t.id); if (!done) cur.gelesen.push(t.id); gwSet(cur);
+      if (!done && next) { location.hash = '#wissen/g-' + next.id; window.scrollTo(0, 0); } else if (!done) location.hash = '#wissen/grundwissen'; else route();
+    });
+  }
   async function ladeQuellen() {
     const out = [];
     const sieht = k => me().sees(k);
@@ -224,6 +279,7 @@ export function makeBereiche(ctx) {
     for (const x of vers) { const antraege = parseJson(x.antraege, []); out.push({ art: 'Versammlungen & Beschlüsse', titel: x.titel, meta: `${fmtShort(x.datum)} · ${antraege.length} Anträge`, text: [x.titel, ...parseJson(x.tops, []), ...antraege.map(a => `${a.titel} ${a.text || ''} ${a.status || ''}`), x.protokoll].filter(Boolean).join(' '), url: '#versammlung/v-' + x._id }); }
     for (const n of SPD.news || []) out.push({ art: 'Beiträge (Website)', titel: n.title, meta: [n.cat, fmtShort(n.date)].filter(Boolean).join(' · '), text: [n.title, n.teaser].filter(Boolean).join(' '), url: new URL(`${SPD.base || '.'}/aktuelles/${n.slug}/`, location.href).href });
     for (const p of plan) out.push({ art: 'Jahresplan', titel: p.titel, meta: p.vorlage ? 'Vorlage' : fmtShort(p.datum), text: [p.titel, ...parseJson(p.aufgaben, []).map(a => a.titel)].filter(Boolean).join(' '), url: '#planung/p-' + p._id });
+    for (const t of GRUNDWISSEN) out.push({ art: 'Grundwissen', titel: `${t.nr} ${t.titel}`, meta: `${t.stufe} · ${t.minuten} Min.`, text: [t.titel, t.kurz, t.text.replace(/\*\*/g, '')].join(' '), url: '#wissen/g-' + t.id });
     if (ctx.antraegeFuerSuche) { try { for (const a of await ctx.antraegeFuerSuche()) out.push({ art: 'Anträge der Fraktion', titel: a.titel, meta: [a.status, a.gremium, fmtShort(a.sitzung)].filter(Boolean).join(' · '), text: [a.titel, a.beschluss, a.begruendung].filter(Boolean).join(' '), url: '#ratsarbeit/a-' + a._id }); } catch (e) { /* ohne Schlüssel */ } }
     return out;
   }
@@ -343,5 +399,5 @@ export function makeBereiche(ctx) {
     });
   }
   const ideenKarte = () => `<div class="mb-card idee-karte"><h3>Deine Idee?</h3><p class="small">Was würde Soltau besser machen? Ein Satz reicht – die Fraktion schaut drauf.</p><a class="btn btn-rot btn-sm" href="#ideen">Idee einreichen</a></div>`;
-  return { versammlung, wahlkampf, wissen, planung, ideen, startKarte, ideenKarte };
+  return { versammlung, wahlkampf, wissen, planung, ideen, startKarte, ideenKarte, grundwissenStartKarte };
 }

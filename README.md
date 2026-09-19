@@ -102,7 +102,7 @@ Termintyp – blau Öffentlich, schwarz Rat, rot Mitglieder, orange Fraktion, gr
 Kalender-Abo, **Stammtisch-Umfrage** nur für Zusagen) · Umfragen · **Ideen** (ein Satz, 👍, Rückmeldung, „Als Antrag aufgreifen“) · Dokumente · **Sitzungen** (alle
 Sitzungsarten mit Haltung/Argumenten/Redner/intern besprochen/Ergebnis je Punkt, Import aus dem Bürgerinformationssystem, **Sitzungsmodus**) · **Versammlungen**
 (Tagesordnung, Anträge, „Ich bin da“, Abstimmung per Handy, Protokoll) · **Wahlkampf** (Straßenliste mit Fortschritt, Plakat-Standorte mit Foto) · **Jahresplan**
-(Planungen aus Vorlagen, Aufgaben mit Zuständigkeit und Erinnerung) · **Wissen** (Suche über Dokumente, Sitzungen, Versammlungen, Beiträge, Anträge, Planungen) ·
+(Planungen aus Vorlagen, Aufgaben mit Zuständigkeit und Erinnerung) · **Wissen** (**Grundwissen für neue Ratsmitglieder** – Lernpfad in zehn Schritten mit Lesestand und Checkliste, `src/lib/grundwissen.mjs`; dazu die Suche über Dokumente, Sitzungen, Versammlungen, Beiträge, Anträge, Planungen) ·
 **Ratsarbeit** (Fraktion: Aufgaben, Dokumente, **Anträge** mit Fraktions-Abstimmung, Druck/PDF und Übergabe an Beiträge) · Mitglieder · Profil · Vorstand als Kacheln
 (**Anliegen & Anfragen** mit Zuständigkeit/Stand/Notizen, Nachricht, **Newsletter**, **Presse**, Jahresplan, Benachrichtigen, Gruppen, Rechte, Sichtbarkeit, WhatsApp,
 **Stammtisch-Umfrage**). Alles nach demselben Muster – Liste → Karte → Blatt, große Knöpfe, wenige Worte. Code: `src/members.js` (Kern), `src/ratsarbeit.js`,

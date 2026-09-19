@@ -1391,3 +1391,35 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .vs-kachel b .mb-badge{font:700 11px/20px var(--body);vertical-align:middle;margin-left:4px}
 .legal-todo{background:#FFF4D6;color:#5B4300;padding:2px 6px;font-weight:600}
 .prose ul{padding-left:22px;display:grid;gap:8px}
+
+/* ===== Grundwissen: Lernpfad in Schritten ===== */
+.gw-karte{margin-bottom:18px}
+.gw-stand{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 14px}
+.gw-balken{flex:1 1 160px;height:10px;background:var(--grau);overflow:hidden}
+.gw-balken i{display:block;height:100%;background:var(--rot);transition:width .3s}
+.gw-stand b{font:800 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.gw-liste{display:grid;gap:8px}
+.gw-schritt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 14px;background:var(--grau);border-left:4px solid var(--rot);color:var(--ink);text-decoration:none;transition:background .15s,box-shadow .15s}
+.gw-schritt:hover{background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.gw-schritt>b{font:800 32px/1 var(--display);color:var(--rot);min-width:44px}
+.gw-schritt.gelesen{border-left-color:#177A38}
+.gw-schritt.gelesen>b{color:var(--muted)}
+.gw-titel{display:block;font:700 18px/1.1 var(--display);text-transform:uppercase}
+.gw-schritt small{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+.gw-hak{width:28px;height:28px;border:2px solid var(--schwarz);border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;background:#fff}
+.gw-schritt.gelesen .gw-hak{background:#177A38;border-color:#177A38;color:#fff}
+.gw-schritt.gelesen .gw-hak::before{content:"✓"}
+.gw-checkliste{display:grid;gap:8px}
+.gw-checkliste .check{padding:10px 12px;background:var(--grau);font-size:15px;cursor:pointer}
+.gw-checkliste input{width:22px;height:22px;margin:0;flex-shrink:0}
+.gw-checkliste input:checked+span{text-decoration:line-through;color:var(--muted)}
+.gw-kurz{font-size:18px;line-height:1.4;font-weight:700;color:var(--muted);margin:-6px 0 16px}
+.gw-text{max-width:70ch;font-size:17px;line-height:1.6}
+.gw-text p{margin:0 0 14px}
+.gw-text b{color:var(--rot)}
+.gw-quellen{margin:22px 0 18px}
+.gw-quelle{display:grid;gap:2px;padding:10px 12px;margin-top:6px;background:#fff;border:1px solid var(--linie);border-left:4px solid var(--schwarz);color:var(--ink);text-decoration:none}
+.gw-quelle:hover{border-left-color:var(--rot)}
+.gw-quelle small{color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.gw-fertig{margin-bottom:18px}
+.gw-fertig .btn.share svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
