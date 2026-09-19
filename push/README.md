@@ -61,8 +61,16 @@ Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml
 | `Eingang` | persönliche Kopie jeder Anfrage je zuständiger Person (vom Dienst im Namen des Mitglieds angelegt) | Mitglieder anlegen, eigene lesen/ändern |
 | `RatGeheim` | der Fraktionsschlüssel der Ratsarbeit – **nie löschen**, sonst sind alle Aufgaben und Dokumente unlesbar (legt der Dienst beim ersten Lauf an) | nur Admin/Push-Dienst |
 | `RatSchluessel` | Geräteschlüssel der Mitglieder (öffentlicher Teil) und der dafür verpackte Fraktionsschlüssel; Status neu → aktiv | Mitglieder anlegen + eigene lesen, ändern/löschen nur der Dienst |
-| `RatAufgaben`, `RatDokumente`, `RatDateiTeile` | Aufgaben, Dokumente und Dateiteile der Ratsarbeit – Texte und Dateien verschlüsselt, offen nur Bereich/Frist/Status/Zuständige | Mitglieder lesen, anlegen, ändern, löschen (Dateiteile: ändern nur Dienst) |
+| `RatAufgaben`, `RatDokumente`, `RatDateiTeile`, `RatAntraege` | Aufgaben, Dokumente, Dateiteile und Anträge der Ratsarbeit – Texte und Dateien verschlüsselt, offen nur Bereich/Frist/Status/Zuständige | Mitglieder lesen, anlegen, ändern, löschen (Dateiteile: ändern nur Dienst) |
+| `Vorgaenge` | Anliegen, Buchungen, Registrierungen für den Vorstand – vom Dienst angelegt, Inhalt mit dem Vorstandsschlüssel verschlüsselt (`RatGeheim`, Eintrag `gruppe: vorstand`) | Mitglieder lesen/ändern, anlegen/löschen nur Dienst |
+| `Ideen`, `Versammlungen`, `WkStrassen`, `WkPlakate`, `Planungen`, `Pressekontakte` | Ideen, Versammlungen, Wahlkampf-Straßen und -Plakate, Jahresplan, Pressekontakte | Mitglieder lesen + anlegen + ändern + löschen (Rechte prüft der Dienst) |
+| `Abstimmungen` | Stimmen bei Versammlungen | Mitglieder lesen + anlegen, eigene ändern |
+| `Abonnenten` | Newsletter-Anmeldungen (Website), Bestätigungen, Abmeldungen | jeder darf anlegen, lesen nur Dienst |
+| `Newsletter` | verschickte Ausgaben und Pressemitteilungen (Archiv) + Zähler-Eintrag `status` | Mitglieder lesen, anlegen nur Dienst |
 
-Diese fünf Sammlungen legt `node push/setup.mjs` selbst an (mit den Rechten). Der Dienst verteilt bei jedem Lauf den Fraktionsschlüssel an neue Geräte von
+Diese Sammlungen legt `node push/setup.mjs` selbst an (mit den Rechten). E-Mail-Versand: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`
+(optional `MAIL_REPLY_TO`) in `.env`; dann verschickt der Dienst Newsletter (`Aktionen` typ `newsletter`), Pressemitteilungen (`presse`) und Newsletter-Bestätigungen.
+Außerdem legt er Stammtisch-Umfragen an (Termine, deren Titel das Muster aus Vorstand → Stammtisch enthält), erinnert an Jahresplan-Aufgaben (zwei Tage vorher), Helfer (Vortag ab 17 Uhr),
+neue Anträge/Ideen (Thema `antrag`) und offene Vorgänge (nach sieben Tagen). Der Dienst verteilt bei jedem Lauf den Fraktionsschlüssel an neue Geräte von
 Fraktionsmitgliedern (`gruppe:fraktion`/`gruppe:rat` aus der App), entfernt Geräteschlüssel und Einträge von Personen außerhalb der Fraktion, löscht verwaiste
 Dateiteile nach einem Tag und schickt die Erinnerungen (neue Aufgabe, Frist in zwei Tagen, neues Dokument).

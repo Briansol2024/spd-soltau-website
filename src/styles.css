@@ -1389,3 +1389,5 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .newsletter .note{flex-basis:100%;margin-top:8px}
 .top-ergebnis{margin:4px 0 0;color:#145A2A}
 .vs-kachel b .mb-badge{font:700 11px/20px var(--body);vertical-align:middle;margin-left:4px}
+.legal-todo{background:#FFF4D6;color:#5B4300;padding:2px 6px;font-weight:600}
+.prose ul{padding-left:22px;display:grid;gap:8px}

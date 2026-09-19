@@ -588,26 +588,65 @@ export function newsletterPage(d) {
 }
 
 export function impressumPage(d) {
+  const mail = d.site.email ? `<a href="mailto:${esc(d.site.email)}">${esc(d.site.email)}</a>` : '<span class="legal-todo">E-Mail-Adresse wird ergänzt</span>';
   return legal('Rechtliches', 'Impressum', `
-    <p><b>SPD Ortsverein Soltau</b><br>Am Bahnhof 1t<br>29614 Soltau</p>
-    <p>Vertreten durch den Vorstand: Laura Elbers Gutiérrez und Birhat Kaçar (Vorsitzende).<br>Verantwortlich im Sinne des Presserechts: Birhat Kaçar, Anschrift wie oben.</p>
-    ${d.site.email ? `<p>E-Mail: <a href="mailto:${esc(d.site.email)}">${esc(d.site.email)}</a></p>` : ''}
-    <p>Der SPD Ortsverein Soltau ist eine Gliederung der Sozialdemokratischen Partei Deutschlands (SPD Landesverband Niedersachsen).</p>
-    <p class="small muted">Bitte vor Veröffentlichung mit dem Impressum-Muster des SPD-Landesverbands abgleichen.</p>`);
+    <h2>Angaben gemäß § 5 DDG</h2>
+    <p><b>SPD Ortsverein Soltau</b><br>Am Bahnhof 1t („Roter Bahnhof“)<br>29614 Soltau</p>
+    <p>Der SPD Ortsverein Soltau ist eine Gliederung der Sozialdemokratischen Partei Deutschlands (SPD), einer Partei im Sinne des Parteiengesetzes, innerhalb des SPD-Unterbezirks Heidekreis und des SPD-Landesverbands Niedersachsen (Odeonstraße 15/16, 30159 Hannover).</p>
+    <p><b>Vertreten durch</b> die Vorsitzenden Laura Elbers Gutiérrez und Birhat Kaçar.</p>
+    <p><b>Kontakt</b><br>E-Mail: ${mail}<br>Internet: <a href="https://www.spd-soltau.de">www.spd-soltau.de</a></p>
+    <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+    <p>Birhat Kaçar<br>Am Bahnhof 1t<br>29614 Soltau</p>
+    <h2>Ratsfraktion</h2>
+    <p>Die Seiten „Fraktion“, „Unsere 11 im Stadtrat“ und „Aus Rat &amp; Rathaus“ informieren über die Arbeit der SPD-Fraktion im Rat der Stadt Soltau. Fraktionsvorsitz: Birhat Kaçar. Die Fraktion ist Teil des Rates der Stadt Soltau (Poststraße 12, 29614 Soltau); die dort verlinkten amtlichen Informationen (Bürgerinformationssystem, Amtsblatt) stammen von der Stadt Soltau.</p>
+    <h2>Haftung für Inhalte</h2>
+    <p>Wir erstellen die Inhalte dieser Seiten mit großer Sorgfalt. Für Richtigkeit, Vollständigkeit und Aktualität können wir dennoch keine Gewähr übernehmen. Beiträge geben die Auffassung des Ortsvereins bzw. der Fraktion wieder; Berichte aus dem Rat sind keine amtlichen Protokolle – maßgeblich sind die Veröffentlichungen der Stadt Soltau.</p>
+    <h2>Haftung für Links</h2>
+    <p>Unsere Seiten enthalten Links zu externen Websites (u. a. Stadt Soltau, Bürgerinformationssystem, Instagram, SPD-Gliederungen). Auf deren Inhalte haben wir keinen Einfluss; für sie ist der jeweilige Anbieter verantwortlich. Zum Zeitpunkt der Verlinkung waren keine Rechtsverstöße erkennbar. Bei Bekanntwerden von Rechtsverletzungen entfernen wir den Link umgehend.</p>
+    <h2>Urheberrecht</h2>
+    <p>Texte, Fotos und Grafiken auf diesen Seiten unterliegen dem deutschen Urheberrecht. Fotos: SPD Ortsverein Soltau, sofern nicht anders angegeben; das Bildmaterial zur Landratswahl wird mit Erlaubnis von Sebastian Zinke verwendet. Amtliche Werke der Stadt Soltau (Amtsblatt, Bekanntmachungen) sind gemeinfrei (§ 5 UrhG); von Meldungen der Stadt übernehmen wir lediglich Überschrift und Anriss mit Quellenangabe und Link. Eine Nutzung unserer Inhalte über das Zitatrecht hinaus bedarf der Zustimmung.</p>
+    <h2>Technik</h2>
+    <p>Die Website wird als statische Seite über GitHub Pages ausgeliefert; Inhalte werden im Redaktionssystem von Wix gepflegt. Einzelheiten zur Datenverarbeitung: <a href="${url('/datenschutz/')}">Datenschutzerklärung</a>.</p>`);
 }
 
 export function datenschutzPage(d) {
+  const mail = d.site.email ? `<a href="mailto:${esc(d.site.email)}">${esc(d.site.email)}</a>` : '<span class="legal-todo">E-Mail-Adresse wird ergänzt</span>';
   return legal('Rechtliches', 'Datenschutz', `
-    <p>Diese Website wird als statische Seite ausgeliefert und setzt keine Tracking-Cookies. Es werden keine Schriften oder Skripte von Google oder anderen Drittanbietern nachgeladen.</p>
-    <h2>Hosting</h2>
-    <p>Beim Aufruf der Seite verarbeitet der Hosting-Anbieter technisch notwendige Verbindungsdaten (IP-Adresse, Zeitpunkt, aufgerufene Seite) in Server-Protokollen.</p>
-    <h2>Bilder aus dem Redaktionssystem</h2>
-    <p>Fotos zu Beiträgen und Personen werden über das Content-Management-System von Wix (Wix.com Ltd.) ausgeliefert. Dabei wird Ihre IP-Adresse an die Server von Wix übermittelt.</p>
-    <h2>Kontakt- und Mitmachformulare</h2>
-    <p>Angaben aus den Formularen werden ausschließlich zur Bearbeitung Ihrer Anfrage genutzt und nicht an Dritte weitergegeben.</p>
-    <h2>Newsletter</h2>
-    <p>Die Anmeldung erfolgt im Double-Opt-in-Verfahren. Eine Abmeldung ist jederzeit über den Link in jeder E-Mail möglich.</p>
-    <p class="small muted">Bitte vor Veröffentlichung durch die Datenschutzerklärung des SPD-Landesverbands ergänzen (Verantwortliche Stelle, Rechtsgrundlagen, Betroffenenrechte).</p>`);
+    <p class="lead">Kurz gesagt: Diese Website kommt ohne Tracking und ohne Werbe-Cookies aus. Was wir verarbeiten, wofür und wie lange, steht hier – verständlich und vollständig nach Art. 13 DSGVO.</p>
+    <h2>1. Verantwortlich</h2>
+    <p>SPD Ortsverein Soltau, Am Bahnhof 1t, 29614 Soltau, vertreten durch die Vorsitzenden Laura Elbers Gutiérrez und Birhat Kaçar.<br>E-Mail: ${mail}</p>
+    <p>Bei Fragen zum Datenschutz wenden Sie sich an diese Adresse. Der SPD-Landesverband Niedersachsen hat eine Datenschutzbeauftragte bzw. einen Datenschutzbeauftragten bestellt (SPD Landesverband Niedersachsen, Odeonstraße 15/16, 30159 Hannover).</p>
+    <h2>2. Aufruf der Website (Hosting)</h2>
+    <p>Die Seiten werden als statische Dateien über <b>GitHub Pages</b> ausgeliefert (GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA; in Europa: GitHub B.V., Amsterdam). Beim Aufruf verarbeitet GitHub technisch notwendige Verbindungsdaten: IP-Adresse, Datum und Uhrzeit, aufgerufene Adresse, Browser- und Betriebssystemangaben. Diese Daten dienen der Auslieferung und der Sicherheit der Seiten. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren, stabilen Betrieb (Art. 6 Abs. 1 lit. f DSGVO). GitHub ist unter dem EU-US Data Privacy Framework zertifiziert; damit besteht für die Übermittlung in die USA ein Angemessenheitsbeschluss der EU-Kommission. Weitere Informationen: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.</p>
+    <p>Wir selbst führen keine Besucherstatistik und setzen keine Analyse-Werkzeuge ein.</p>
+    <h2>3. Inhalte, Fotos und Video aus dem Redaktionssystem (Wix)</h2>
+    <p>Texte, Termine, Fotos und das Hintergrundvideo der Startseite werden im Redaktionssystem von <b>Wix</b> gepflegt (Wix.com Ltd., 40 Namal Tel Aviv St., Tel Aviv, Israel). Fotos und Videos werden beim Aufruf direkt von Wix-Servern geladen (static.wixstatic.com, video.wixstatic.com); dabei wird Ihre IP-Adresse an Wix übermittelt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Auslieferung der Inhalte). Für Israel besteht ein Angemessenheitsbeschluss der EU-Kommission; mit Wix besteht ein Vertrag zur Auftragsverarbeitung. Weitere Informationen: <a href="https://de.wix.com/about/privacy" target="_blank" rel="noopener">Datenschutzerklärung von Wix</a>.</p>
+    <h2>4. Kontakt-, Mitmach- und Buchungsformulare</h2>
+    <p>Wenn Sie ein Formular abschicken (Kontakt, Mitglied werden, Roter Bahnhof buchen), speichern wir die eingegebenen Angaben (z. B. Name, E-Mail-Adresse, Telefon, Nachricht, Wunschtermin) im Redaktionssystem von Wix und verarbeiten sie ausschließlich, um Ihr Anliegen zu bearbeiten. Zuständige Vorstandsmitglieder werden über eine neue Anfrage benachrichtigt; die Inhalte der Anfrage sind dabei verschlüsselt abgelegt und nur für die Bearbeitenden lesbar. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Bearbeitung Ihrer Anfrage) bzw. lit. f (Beantwortung allgemeiner Anfragen). Anfragen löschen wir, sobald sie erledigt sind, spätestens nach zwölf Monaten; Buchungsanfragen nach Ablauf des gebuchten Termins zuzüglich der handelsrechtlichen Aufbewahrung, soweit eine Kostenbeteiligung anfällt.</p>
+    <h2>5. Newsletter</h2>
+    <p>Für den Newsletter speichern wir Ihre E-Mail-Adresse, den Zeitpunkt der Anmeldung und der Bestätigung. Die Anmeldung erfolgt im Double-Opt-in-Verfahren: Erst nach dem Klick auf den Bestätigungslink werden Sie in den Verteiler aufgenommen. Der Versand erfolgt über einen E-Mail-Server, den der Ortsverein nutzt; wir setzen keine Öffnungs- oder Klickmessung ein. Rechtsgrundlage: Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Sie können sie jederzeit über den Link am Ende jeder Ausgabe oder per E-Mail an uns widerrufen; Ihre Adresse wird dann aus dem Verteiler entfernt.</p>
+    <h2>6. Mitgliederbereich und App</h2>
+    <p>Unter <a href="${url('/mitglieder/')}">Mitgliederbereich</a> können sich Mitglieder des SPD Ortsvereins Soltau registrieren. Dabei werden verarbeitet:</p>
+    <ul>
+      <li><b>Mitgliederkonto</b> (Name, E-Mail-Adresse, Passwort – bei Wix verschlüsselt gespeichert). Der Vorstand prüft vor der Freischaltung, dass es sich um ein Mitglied handelt. Da die Zugehörigkeit zu einer Partei eine besondere Kategorie personenbezogener Daten ist, stützen wir diese Verarbeitung auf Art. 9 Abs. 2 lit. d DSGVO (Verarbeitung durch eine politische Organisation für ihre Mitglieder) und Art. 6 Abs. 1 lit. b DSGVO (Nutzungsverhältnis).</li>
+      <li><b>Freiwillige Profilangaben</b> (Ortsteil, Telefon, Geburtstag, Eintrittsjahr) und die Entscheidung, ob Sie im Mitgliederverzeichnis stehen und was andere Mitglieder davon sehen – auf Grundlage Ihrer Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), jederzeit im Profil änderbar.</li>
+      <li><b>Nutzung der Funktionen</b>: Zu- und Absagen zu Terminen (mit optionalem Grund, den nur der Vorstand sieht), Umfrageantworten (Umfragen sind nicht geheim – der Vorstand kann die Abstimmung einsehen), Helferlisten, Fahrgemeinschaften, Ideen, Dokumente, Sitzungen, Versammlungen und Wahlkampf-Listen. Diese Angaben sind für die angemeldeten Mitglieder sichtbar, soweit der Vorstand die Sichtbarkeit nicht einschränkt. Rechtsgrundlage: Art. 6 Abs. 1 lit. b und f DSGVO.</li>
+      <li><b>Verschlüsselte Bereiche</b>: Aufgaben, Dokumente und Anträge der Ratsfraktion sowie Anliegen an den Vorstand werden mit einem Schlüssel verschlüsselt, den nur die Geräte der jeweils berechtigten Mitglieder erhalten. Wix speichert diese Inhalte nur in verschlüsselter Form.</li>
+      <li><b>Push-Benachrichtigungen</b> (freiwillig): Wenn Sie sie einschalten, speichern wir die Adresse, die Ihr Browser dafür vergibt, und Ihre Themenauswahl. Die Zustellung läuft über den Push-Dienst Ihres Geräteherstellers (Google, Apple oder Mozilla). Rechtsgrundlage: Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), widerrufbar in der App unter Profil oder in den Browsereinstellungen.</li>
+      <li><b>Roboter-Prüfung bei der Registrierung</b>: Zum Schutz vor automatisierten Anmeldungen nutzt das Registrierungsformular Google reCAPTCHA Enterprise (Google Ireland Ltd., Gordon House, Barrow Street, Dublin 4, Irland). Das Skript wird erst geladen, wenn Wix eine Prüfung verlangt; dabei werden Ihre IP-Adresse und Angaben zum Nutzungsverhalten an Google übermittelt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Schutz vor Missbrauch). Informationen: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Datenschutzerklärung von Google</a>.</li>
+      <li><b>Speicherung auf Ihrem Gerät</b>: Der Mitgliederbereich speichert Anmeldedaten (Zugangstoken), Einstellungen und – als installierbare App – Seiteninhalte für die Offline-Nutzung im Browser (Local Storage, IndexedDB, Service Worker). Das ist für die Funktion erforderlich (§ 25 Abs. 2 TDDDG) und wird beim Abmelden bzw. Löschen der Website-Daten entfernt.</li>
+      <li><b>Kalender-Abo</b>: Die Terminliste für Mitglieder ist über eine geheime Adresse abrufbar, die nur im Mitgliederbereich angezeigt wird. Ihr Kalenderprogramm ruft sie regelmäßig ab.</li>
+    </ul>
+    <p>Der Vorstand kann im Redaktionssystem von Wix die gespeicherten Daten des Mitgliederbereichs einsehen, soweit sie nicht verschlüsselt sind. Konten und zugehörige Daten löschen wir auf Wunsch oder beim Ende der Mitgliedschaft.</p>
+    <h2>7. Inhalte der Stadt Soltau, Instagram und externe Links</h2>
+    <p>Der Bereich „Aus Rat &amp; Rathaus“ zeigt Überschriften, Termine und Links, die unser Bau-Roboter regelmäßig von den öffentlichen Seiten der Stadt Soltau abruft – dabei werden keine Daten von Ihnen verarbeitet. Instagram-Beiträge zeigen wir als selbst gespeicherte Vorschaubilder; erst beim Klick auf einen Beitrag gelangen Sie zu Instagram (Meta Platforms Ireland Ltd.), wo deren Datenschutzbestimmungen gelten. Gleiches gilt für alle anderen externen Links.</p>
+    <h2>8. Schriften, Karten, Cookies</h2>
+    <p>Schriften werden von unserem eigenen Server geladen (keine Google Fonts). Wir binden keine Kartendienste und keine Social-Media-Plugins ein. Technisch notwendige Speicherung auf Ihrem Gerät erfolgt nur im Mitgliederbereich (siehe 6) und für den Passwortschutz der Testversion; Werbe- oder Tracking-Cookies setzen wir nicht. Ein Cookie-Banner ist daher nicht erforderlich.</p>
+    <h2>9. Ihre Rechte</h2>
+    <p>Sie haben das Recht auf Auskunft über Ihre gespeicherten Daten (Art. 15 DSGVO), auf Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21). Eine erteilte Einwilligung können Sie jederzeit mit Wirkung für die Zukunft widerrufen. Wenden Sie sich dafür an die oben genannte Adresse.</p>
+    <p>Sie haben außerdem das Recht, sich bei einer Aufsichtsbehörde zu beschweren. Zuständig ist die Landesbeauftragte für den Datenschutz Niedersachsen, Prinzenstraße 5, 30159 Hannover, <a href="https://lfd.niedersachsen.de" target="_blank" rel="noopener">lfd.niedersachsen.de</a>.</p>
+    <h2>10. Sicherheit und Änderungen</h2>
+    <p>Alle Seiten werden verschlüsselt über HTTPS übertragen. Wir passen diese Erklärung an, wenn sich die Website oder die Rechtslage ändert. Stand: ${esc(new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }))}.</p>`);
 }
 
 export function transparenzPage(d) {

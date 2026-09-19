@@ -97,11 +97,26 @@ Vorstands-Werkzeuge (Termine anlegen, Rechte, Eingang …) sind bewusst nicht Te
 Videos und Cover liegen in `src/hilfe/` (→ `assets/hilfe/`) und entstehen mit `video/hilfe/` (siehe dort: `record.mjs`, `compose.py`, `posters.py`, `music.py`).
 Die Demo (`?demo`) heißt jetzt Max Mustermann; `?demo&mitglied` zeigt die Sicht eines normalen Mitglieds, `?demo&video` dasselbe ohne Vorschau-Hinweis (für die Aufnahmen).
 
-**Bereiche nach der Anmeldung:** Start (Überblick) · Termine (Liste oder **Monatskalender** mit farbigen Punkten je Termintyp – blau Öffentlich, schwarz Rat, rot Mitglieder,
-orange Fraktion, grau Vorstand; Tag antippen zeigt die Termine des Tages; Zu-/Absage mit Grund, Helferlisten mit Schichten direkt am Termin, Fahrgemeinschaften, Kalender-Abo) ·
-Umfragen (intern oder öffentlich als „Umfrage der Woche“ auf der Startseite, Auswertung intern) · Dokumente (Protokolle, Anträge – per Link) ·
-Rat (Tagesordnung mit Einordnung der Fraktion) · **Ratsarbeit** (Working Space der Fraktion, siehe unten) · Mitglieder (Verzeichnis, Geburtstage, Jubiläen) · Profil (Angaben, Freigaben, Push, App) ·
-Vorstand (Reiter: Eingang, Benachrichtigen, Gruppen, Rechte, Sichtbarkeit, Nachricht, WhatsApp).
+**Bereiche nach der Anmeldung:** Start (Überblick mit Karten: Ratsarbeit, Jahresplan, Ideen) · Termine (Liste oder **Monatskalender** mit farbigen Punkten je
+Termintyp – blau Öffentlich, schwarz Rat, rot Mitglieder, orange Fraktion, grau Vorstand; Zu-/Absage mit Grund, Helferlisten direkt am Termin, Fahrgemeinschaften,
+Kalender-Abo, **Stammtisch-Umfrage** nur für Zusagen) · Umfragen · **Ideen** (ein Satz, 👍, Rückmeldung, „Als Antrag aufgreifen“) · Dokumente · **Sitzungen** (alle
+Sitzungsarten mit Haltung/Argumenten/Redner/intern besprochen/Ergebnis je Punkt, Import aus dem Bürgerinformationssystem, **Sitzungsmodus**) · **Versammlungen**
+(Tagesordnung, Anträge, „Ich bin da“, Abstimmung per Handy, Protokoll) · **Wahlkampf** (Straßenliste mit Fortschritt, Plakat-Standorte mit Foto) · **Jahresplan**
+(Planungen aus Vorlagen, Aufgaben mit Zuständigkeit und Erinnerung) · **Wissen** (Suche über Dokumente, Sitzungen, Versammlungen, Beiträge, Anträge, Planungen) ·
+**Ratsarbeit** (Fraktion: Aufgaben, Dokumente, **Anträge** mit Fraktions-Abstimmung, Druck/PDF und Übergabe an Beiträge) · Mitglieder · Profil · Vorstand als Kacheln
+(**Anliegen & Anfragen** mit Zuständigkeit/Stand/Notizen, Nachricht, **Newsletter**, **Presse**, Jahresplan, Benachrichtigen, Gruppen, Rechte, Sichtbarkeit, WhatsApp,
+**Stammtisch-Umfrage**). Alles nach demselben Muster – Liste → Karte → Blatt, große Knöpfe, wenige Worte. Code: `src/members.js` (Kern), `src/ratsarbeit.js`,
+`src/vorstand.js`, `src/vorstand-mehr.js`, `src/bereiche.js`, `src/schluessel.js` (Geräteschlüssel für Fraktion und Vorstand).
+
+**Anliegen & Anfragen (statt „Eingang“):** Der Push-Dienst legt für jede Registrierung, Buchung und Anfrage einen Vorgang an (Sammlung `Vorgaenge`, Inhalt mit dem
+Vorstandsschlüssel verschlüsselt – lesbar nur auf Geräten von Vorstand/Verwaltern/Personen mit Recht „freigaben“). Zuständigkeit, Stand (offen · in Arbeit · beantwortet),
+Notizen (verschlüsselt), Erinnerung nach sieben Tagen. Push-Nachrichten, die auf dem Gerät ankamen, erscheinen zusätzlich.
+
+**Rechte (neu):** versammlung, wahlkampf, newsletter, presse, planung. **Benachrichtigen (neu):** Thema „Neue Anträge und Ideen“ – wer prüft Anträge (Fraktionsvorsitz).
+
+**E-Mail (Newsletter, Presse, Newsletter-Bestätigung):** der Push-Dienst verschickt über SMTP – `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` in `.env`
+(`push/mail.mjs`). Ohne diese Werte bleiben Newsletter-/Presse-Aufträge mit Hinweis stehen. Abonnenten kommen über „Nichts verpassen“ (Website → Sammlung `Abonnenten`),
+Bestätigung/Abmeldung über `/newsletter/?bestaetigen=…` bzw. `?abmelden=…` (Double-Opt-in).
 
 **Mitgliederverzeichnis = Opt-in:** Im Verzeichnis steht nur, wer es unter Profil → „Was andere Mitglieder von dir sehen“ eingeschaltet hat
 (`Profile.verzeichnisSichtbar`); der Vorstand steht immer drin (er steht auch auf der Website). Telefon, E-Mail und Geburtstag sind eigene Häkchen. Wer noch nicht
@@ -212,6 +227,12 @@ Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wi
 ## Zeitgesteuert
 
 - Der Aufruf zur Landrats-Stichwahl (Sebastian Zinke) erscheint automatisch nur bis einschließlich 27.09.2026 (`STICHWAHL.datum`).
+
+## Rechtliches
+
+Impressum (§ 5 DDG, § 18 MStV), Datenschutzerklärung (Hosting GitHub Pages, Wix, Formulare, Newsletter, Mitgliederbereich inkl. Art. 9, Push, reCAPTCHA, Gerätespeicher,
+Betroffenenrechte, LfD Niedersachsen) und Transparenzbekanntmachung stehen in `src/templates.mjs`. Die E-Mail-Adresse kommt aus der GitHub-Variable `SITE_EMAIL` – solange
+sie fehlt, steht im Impressum ein gelber Platzhalter.
 
 ## Noch offen (bewusst für später)
 
