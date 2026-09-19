@@ -1094,8 +1094,18 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 @media (prefers-reduced-motion:reduce){.za.open .za-pic img{animation:none}.za-head,.za-num,.za-title,.za-body,.za-cols,.za-pic img{transition:none}}
 
 /* Hero: „Moin!“ steht allein und groß (Slogan bleibt in der Kopfzeile) */
-.hero h1.hero-moin{font-size:clamp(76px,12cqw,168px);margin-bottom:10px}
-@container site (max-width:600px){.hero h1.hero-moin{font-size:72px}}
+.hero h1.hero-moin{font-size:clamp(100px,17cqw,250px);margin-bottom:10px;line-height:.86}
+.hero h1.hero-moin .ln{padding-top:.12em;margin-top:-.12em;overflow:hidden}
+.hero h1.hero-moin .ln>.moin{animation:none;display:inline-flex}
+.hero h1.hero-moin i{display:inline-block;font-style:normal;animation:moinIn 1s cubic-bezier(.2,.9,.25,1.25) both;transform-origin:50% 100%}
+.hero h1.hero-moin i:nth-child(1){animation-delay:.1s}.hero h1.hero-moin i:nth-child(2){animation-delay:.2s}.hero h1.hero-moin i:nth-child(3){animation-delay:.3s}.hero h1.hero-moin i:nth-child(4){animation-delay:.4s}
+.hero h1.hero-moin i.bang{color:var(--rot);animation:moinIn 1s cubic-bezier(.2,.9,.25,1.25) .5s both,bang 7s ease-in-out 2.4s infinite}
+.hero h1.hero-moin:hover i{animation:hop .6s cubic-bezier(.3,1.6,.5,1) both}
+.hero h1.hero-moin:hover i:nth-child(2){animation-delay:.06s}.hero h1.hero-moin:hover i:nth-child(3){animation-delay:.12s}.hero h1.hero-moin:hover i:nth-child(4){animation-delay:.18s}.hero h1.hero-moin:hover i:nth-child(5){animation-delay:.24s}
+@keyframes moinIn{0%{transform:translateY(115%) rotate(8deg);opacity:0}55%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes bang{0%,12%,100%{transform:none}3%{transform:translateY(-12%) rotate(-8deg) scale(1.1)}6%{transform:translateY(2%) rotate(6deg) scale(.96)}9%{transform:translateY(-5%) rotate(-3deg)}}
+@keyframes hop{0%{transform:none}40%{transform:translateY(-14%) scale(1.06)}100%{transform:none}}
+@container site (max-width:600px){.hero h1.hero-moin{font-size:112px}}
 
 /* ===== Ratsarbeit (Working Space der Fraktion): große Ziele, wenig Bedienelemente ===== */
 .rz{display:grid;gap:0}
