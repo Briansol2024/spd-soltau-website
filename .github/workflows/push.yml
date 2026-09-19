@@ -1,8 +1,9 @@
 # Push-Dienst der SPD-Soltau-App: verschickt Benachrichtigungen und führt Vorstands-Aktionen aus (siehe push/README.md).
 # Läuft alle 5 Minuten (GitHub verzögert Cron-Läufe manchmal um einige Minuten) und manuell.
 #
-# Secrets:   WIX_API_KEY, VAPID_PRIVATE_KEY
-# Variables: WIX_SITE_ID, WIX_CLIENT_ID, VAPID_PUBLIC_KEY, VAPID_SUBJECT, PUSH_SITE_URL, VORSTAND_EMAILS
+# Secrets:   WIX_API_KEY, VAPID_PRIVATE_KEY, für E-Mail (Newsletter/Presse) SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM (optional MAIL_REPLY_TO)
+# Variables: WIX_SITE_ID, WIX_CLIENT_ID, VAPID_PUBLIC_KEY, VAPID_SUBJECT, PUSH_SITE_URL, SITE_URL, VORSTAND_EMAILS
+# Seit dem 19.09.2026 läuft der Dienst hier – die Aufgabenplanung auf Brians PC ist abgeschaltet (push/README.md).
 name: Push-Dienst
 
 on:
@@ -37,3 +38,10 @@ jobs:
           PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}
           WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
           VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_REPLY_TO: ${{ secrets.MAIL_REPLY_TO }}
