@@ -76,7 +76,13 @@ function encode(c, dir) {
 
 const args = process.argv.slice(2);
 let list = clips();
-if (args[0] === 'binde' && args[1]) list = [{ id: 'binde-' + slug(args[1]), dauer: 6.0, q: { clip: 'binde', name: args[1], rolle: args[2] || 'SPD Soltau' } }];
+// Skript-Manifest: node render.mjs skript <name>  → video/insta/skripte/<name>.json (Reihenfolge der Clips zum Drehbuch)
+if (args[0] === 'skript' && args[1]) {
+  const { readFileSync } = await import('node:fs');
+  const m = JSON.parse(readFileSync(path.join(__dirname, 'skripte', args[1] + '.json'), 'utf8'));
+  list = m.clips.map((c, i) => ({ id: `${args[1]}-${String(i + 1).padStart(2, '0')}-${c.id}`, dauer: c.dauer || 4, q: c.q, opak: !!c.opak }));
+}
+if (args[0] === 'skript') { /* oben */ } else if (args[0] === 'binde' && args[1]) list = [{ id: 'binde-' + slug(args[1]), dauer: 6.0, q: { clip: 'binde', name: args[1], rolle: args[2] || 'SPD Soltau' } }];
 else if (args[0] === 'wort' && args[1]) list = [{ id: `wort-${slug(args[1].replace(/[|*#_-]/g, ' '))}-${args[2] === 'rechts' ? 'rechts' : 'links'}`, dauer: 3.0, q: { clip: 'wort', text: args[1], seite: args[2] || 'links' } }];
 else if (args.length) list = list.filter(c => args.some(a => c.id.startsWith(a)));
 

@@ -1,0 +1,24 @@
+{
+  "titel": "Was ist unabhängiger? – Parteibuch und Landratswahl (Stichwahl 27.09.2026)",
+  "hinweis": "Reihenfolge = Drehbuch. Jeder Clip auf Grün (CapCut: Chroma-Key) und als Alpha-MOV. Dauer in Sekunden – in CapCut kürzen/verlängern.",
+  "clips": [
+    { "id": "frage", "dauer": 7, "q": { "clip": "frage", "titel": "Was ist unabhängiger?", "text": "Kein Parteibuch zu haben?|Der eigenen Partei zu widersprechen?" } },
+    { "id": "zitat-unabhaengig", "dauer": 5, "q": { "clip": "zitat", "text": "Wir brauchen jemanden, der *unabhängig* ist.", "wer": "gehört bei jeder Wahl" } },
+    { "id": "gross-parteilos", "dauer": 4, "q": { "clip": "gross", "text": "Unabhängig|= *parteilos*?" } },
+    { "id": "gross-parteizentrale", "dauer": 5, "q": { "clip": "gross", "text": "Meinung abgeben,|Parteibuch holen –|*und dann?*" } },
+    { "id": "stempel-so-nicht", "dauer": 4, "q": { "clip": "stempel", "text": "So nicht" } },
+    { "id": "liste-streiten", "dauer": 6, "q": { "clip": "liste", "titel": "In einer Partei", "text": "Wir diskutieren.|Wir streiten.|Wir widersprechen uns." } },
+    { "id": "gross-demokratie", "dauer": 4, "q": { "clip": "gross", "gr": "xl", "text": "Das ist|*Demokratie.*" } },
+    { "id": "liste-ehrenamt", "dauer": 7, "q": { "clip": "liste", "titel": "Tausende Menschen, ehrenamtlich", "text": "Plakate aufhängen|Anträge schreiben|Auf Parteitagen diskutieren|Verantwortung übernehmen" } },
+    { "id": "stempel-absurd", "dauer": 4, "q": { "clip": "stempel", "text": "Absurd" } },
+    { "id": "gross-haltung", "dauer": 5, "q": { "clip": "gross", "text": "Kein Parteibuch|≠|*keine Haltung*" } },
+    { "id": "stempel-zertifikat", "dauer": 4, "q": { "clip": "stempel", "art": "schwarz", "text": "Reinheitszertifikat?" } },
+    { "id": "buch-akte", "dauer": 6, "q": { "clip": "buch" } },
+    { "id": "gegen-landrat", "dauer": 7, "q": { "clip": "gegen", "text": "Landrat der SPD|Landrat der CDU|Landrat der Parteilosen|Landrat für alle im Heidekreis" } },
+    { "id": "aufruf-zinke", "dauer": 6, "q": { "clip": "aufruf", "foto": "zinke.jpg", "datum": "27.", "monat": "September", "name": "Sebastian Zinke", "text": "Landrat für alle Menschen im Heidekreis" } },
+    { "id": "liste-fragen", "dauer": 8, "q": { "clip": "liste", "art": "fragen", "titel": "Die entscheidende Frage", "text": "Wer bringt Menschen zusammen?|Wer widerspricht auch den eigenen Leuten?|Wer übernimmt Verantwortung?|Wem traue ich acht Jahre zu?" } },
+    { "id": "zettel", "dauer": 6, "q": { "clip": "zettel" } },
+    { "id": "zitat-gewissen", "dauer": 7, "q": { "clip": "zitat", "gr": "70px", "text": "Ein Parteibuch sagt, welcher Partei ein Mensch angehört. Es sagt nicht, *wem sein Gewissen gehört.*" } },
+    { "id": "aufruf-stichwahl", "dauer": 6, "q": { "clip": "aufruf", "datum": "27.", "monat": "September", "name": "Stichwahl", "text": "Landrat Heidekreis · Sebastian Zinke" } }
+  ]
+}

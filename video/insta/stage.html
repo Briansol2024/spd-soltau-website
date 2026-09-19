@@ -71,6 +71,75 @@ body.rot .outro .strich{background:#fff}
 @keyframes wortIn{from{opacity:0;transform:translateY(60px) scale(.9)}to{opacity:1;transform:none}}
 @keyframes wortOut{to{opacity:0;transform:translateY(-40px) scale(.96);filter:blur(8px)}}
 @keyframes unter{to{width:260px}}
+/* ---------- Skript-Clips: Frage/Versus, Zitat, Liste, Stempel, Durchstreichen, Illustrationen, Aufruf ---------- */
+.mitte{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;text-align:center;padding:0 70px;gap:22px}
+.mitte.oben{align-content:start;padding-top:230px}
+.mitte.unten{align-content:end;padding-bottom:430px}
+.ey{font:700 30px/1 var(--body);letter-spacing:.3em;text-transform:uppercase;color:#fff;background:var(--rot);padding:16px 22px 13px;animation:popIn .5s var(--spring) both}
+.gross{font:800 108px/.95 var(--display);text-transform:uppercase;color:#fff;letter-spacing:-.01em;text-wrap:balance;animation:wortIn .6s var(--spring) both .15s}
+.gross b{color:var(--rot)}
+.gross.xl{font-size:150px}
+.raus{animation:wortOut .45s var(--ease) both var(--raus)}
+/* Frage: zwei Antworten gegeneinander */
+.vs{display:grid;gap:22px;width:100%;margin-top:30px}
+.vs .karte{background:#fff;color:var(--schwarz);padding:38px 34px;font:800 62px/1.02 var(--display);text-transform:uppercase;text-align:left;border-left:16px solid var(--rot);animation:vsIn .6s var(--spring) both}
+.vs .karte small{display:block;font:700 26px/1 var(--body);letter-spacing:.2em;color:var(--rot);margin-bottom:12px;text-transform:uppercase}
+.vs .oder{justify-self:center;font:800 40px/1 var(--display);color:#fff;background:var(--schwarz);padding:14px 26px 11px;animation:popIn .4s var(--spring) both}
+@keyframes vsIn{from{opacity:0;transform:translateX(-80px)}to{opacity:1;transform:none}}
+/* Zitat */
+.zitat{position:absolute;inset:0;display:grid;align-content:center;padding:0 80px;gap:26px}
+.zitat .anf{font:800 260px/.6 var(--display);color:var(--rot);height:120px;animation:popIn .5s var(--spring) both}
+.zitat p{margin:0;font:800 var(--zs,84px)/1.08 var(--display);text-transform:uppercase;color:#fff;background:rgba(15,15,15,.72);padding:34px 40px;box-decoration-break:clone;animation:wortIn .6s var(--spring) both .2s}
+.zitat p b{color:var(--rot)}
+.zitat .wer{font:700 32px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:#fff;animation:fadeDown .5s var(--ease) both .8s}
+/* Liste: Punkte erscheinen nacheinander */
+.liste{position:absolute;inset:0;display:grid;align-content:center;padding:0 70px;gap:18px}
+.liste .titel{font:800 54px/1 var(--display);text-transform:uppercase;color:#fff;background:var(--rot);padding:20px 24px 16px;justify-self:start;margin-bottom:10px;animation:popIn .5s var(--spring) both}
+.liste .p{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:center;background:#fff;color:var(--schwarz);padding:24px 30px;font:800 58px/1 var(--display);text-transform:uppercase;animation:vsIn .55s var(--spring) both}
+.liste .p i{display:grid;place-items:center;width:64px;height:64px;background:var(--rot);color:#fff;font:800 34px/1 var(--display);font-style:normal}
+.liste .p.frage i{background:var(--schwarz)}
+/* Stempel */
+.stempel{position:absolute;inset:0;display:grid;place-items:center}
+.stempel span{display:block;padding:26px 40px;border:14px solid var(--rot);color:var(--rot);font:800 110px/1 var(--display);text-transform:uppercase;letter-spacing:.04em;transform:rotate(-8deg);background:rgba(255,255,255,.92);animation:stempelRein .5s cubic-bezier(.2,1.4,.4,1) both .2s;text-align:center;max-width:900px}
+.stempel span.schwarz{border-color:var(--schwarz);color:var(--schwarz)}
+.stempel span.klein{font-size:76px}
+@keyframes stempelRein{from{opacity:0;transform:rotate(-8deg) scale(2.4)}to{opacity:1;transform:rotate(-8deg) scale(1)}}
+/* Durchstreichen: Zeilen erscheinen, werden gestrichen, letzte bleibt */
+.gegen{position:absolute;inset:0;display:grid;align-content:center;padding:0 70px;gap:16px}
+.gegen .z{position:relative;justify-self:start;font:800 72px/1 var(--display);text-transform:uppercase;color:#fff;background:rgba(15,15,15,.75);padding:20px 28px 16px;animation:vsIn .5s var(--spring) both}
+.gegen .z::after{content:"";position:absolute;left:20px;right:20px;top:50%;height:12px;background:var(--rot);transform:scaleX(0);transform-origin:left;animation:streich .35s var(--ease) both var(--d,1s)}
+.gegen .z.bleibt{background:var(--rot);color:#fff;font-size:86px;margin-top:20px;padding:26px 32px 22px}
+.gegen .z.bleibt::after{display:none}
+@keyframes streich{to{transform:scaleX(1)}}
+/* Illustration: Parteibuch und Akte */
+.buchszene{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:40px;padding-bottom:520px}
+.buch{width:300px;height:400px;background:var(--rot);border-radius:8px 22px 22px 8px;box-shadow:inset 30px 0 0 rgba(0,0,0,.18),0 30px 60px rgba(0,0,0,.4);display:grid;place-items:center;color:#fff;font:800 44px/1.1 var(--display);text-transform:uppercase;text-align:center;padding:30px;animation:buchWeg 1s var(--ease) both var(--buchweg,2.2s)}
+.buch small{display:block;font:700 22px/1 var(--body);letter-spacing:.2em;margin-top:14px;opacity:.85}
+@keyframes buchWeg{to{transform:translateX(-560px) rotate(-18deg) scale(.7);opacity:.35}}
+.akte{width:520px;height:380px;background:#EAD9A6;border-radius:12px;position:relative;box-shadow:0 30px 60px rgba(0,0,0,.4);display:grid;align-content:end;padding:30px;color:#3a2f10;font:800 52px/1 var(--display);text-transform:uppercase;animation:akteVor 1s var(--spring) both var(--aktevor,2.3s)}
+.akte::before{content:"";position:absolute;left:0;top:-38px;width:220px;height:50px;background:#EAD9A6;border-radius:12px 12px 0 0}
+.akte small{display:block;font:700 22px/1 var(--body);letter-spacing:.2em;margin-top:12px;color:#7a6a3a}
+@keyframes akteVor{from{transform:translateY(700px) scale(.8);opacity:0}to{transform:translateY(-120px) scale(1.15);opacity:1}}
+.szene-text{position:absolute;left:70px;right:70px;bottom:330px;text-align:center;font:800 68px/1.05 var(--display);text-transform:uppercase;color:#fff;background:rgba(15,15,15,.75);padding:26px;animation:wortIn .6s var(--spring) both var(--textab,3.2s)}
+.szene-text b{color:var(--rot)}
+/* Wahlzettel */
+.zettel{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:36px}
+.zettel .papier{width:860px;background:#fff;color:var(--schwarz);padding:48px 54px;box-shadow:0 30px 60px rgba(0,0,0,.4);display:grid;gap:26px;animation:wortIn .6s var(--spring) both}
+.zettel .kopf{font:700 26px/1 var(--body);letter-spacing:.24em;text-transform:uppercase;color:#777;border-bottom:3px solid #ddd;padding-bottom:16px}
+.zettel .zeile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:center;font:800 62px/1 var(--display);text-transform:uppercase}
+.zettel .box{width:70px;height:70px;border:6px solid var(--schwarz);position:relative}
+.zettel .box::after{content:"";position:absolute;inset:8px;background:var(--rot);transform:scale(0);animation:popIn .3s var(--spring) both 1.4s}
+.zettel .zeile.hand{font-family:'Segoe Script','Comic Sans MS',cursive;font-weight:400;font-size:48px;text-transform:none;color:#1a3a8a;overflow:hidden;white-space:nowrap;width:0;animation:tippen 1.2s steps(10) both .5s}
+@keyframes tippen{to{width:100%}}
+.zettel .zeile.hand{display:block;width:0}
+/* Aufruf Stichwahl */
+.aufruf{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:26px;text-align:center;padding:0 70px}
+.aufruf .datum{font:800 130px/1 var(--display);color:#fff;animation:popIn .5s var(--spring) both .1s}
+.aufruf .datum b{color:var(--rot)}
+.aufruf .name{font:800 96px/1 var(--display);text-transform:uppercase;color:#fff;background:var(--rot);padding:22px 34px 18px;animation:wortIn .6s var(--spring) both .5s}
+.aufruf .sub{font:700 40px/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#fff;animation:fadeDown .6s var(--ease) both 1s}
+.aufruf .foto{width:520px;height:520px;border-radius:50%;object-fit:cover;object-position:top;border:14px solid #fff;box-shadow:0 30px 70px rgba(0,0,0,.45);animation:popIn .7s var(--spring) both}
+
 </style>
 </head>
 <body>
@@ -104,8 +173,36 @@ if (clip === 'intro') {
   const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
   const zeilen = (q.get('text') || 'Neue|Website').split('|');
   html = `<div class="wort ${seite}">${zeilen.map((z, i) => { const m = z.match(/^([*#_-])?(.*)$/); const cls = { '*': 'rot', '#': 'box', '_': 'klein', '-': 'mittel' }[m[1]] || ''; return `<span class="z ${cls}" style="animation-delay:${(.1 + i * .16).toFixed(2)}s,2.55s">${esc(m[2])}</span>`; }).join('')}<span class="unter"></span></div>`;
+} else if (clip === 'frage') {
+  const [t1, t2] = (q.get('text') || 'Kein Parteibuch?|Der eigenen Partei widersprechen?').split('|');
+  html = `<div class="mitte oben"><span class="ey">${esc(q.get('titel') || 'Was ist unabhängiger?')}</span>
+    <div class="vs"><div class="karte" style="animation-delay:.6s"><small>A</small>${esc(t1)}</div><span class="oder" style="animation-delay:1.2s">oder</span><div class="karte" style="animation-delay:1.6s"><small>B</small>${esc(t2)}</div></div></div>`;
+} else if (clip === 'zitat') {
+  const text = (q.get('text') || 'Wir brauchen jemanden, der unabhängig ist.').replace(/\*(.+?)\*/g, '<b>$1</b>');
+  const zs = q.get('gr') || (text.length > 90 ? '64px' : text.length > 50 ? '76px' : '90px');
+  html = `<div class="zitat" style="--zs:${zs}"><span class="anf">„</span><p>${text}</p>${q.get('wer') ? `<span class="wer">${esc(q.get('wer'))}</span>` : ''}</div>`;
+} else if (clip === 'liste') {
+  const items = (q.get('text') || 'Plakate aufhängen|Anträge schreiben|Diskutieren|Verantwortung übernehmen').split('|');
+  const frage = q.get('art') === 'fragen';
+  html = `<div class="liste">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => `<div class="p ${frage ? 'frage' : ''}" style="animation-delay:${(.5 + i * .75).toFixed(2)}s"><i>${frage ? '?' : i + 1}</i><span>${esc(t)}</span></div>`).join('')}</div>`;
+} else if (clip === 'stempel') {
+  html = `<div class="stempel"><span class="${q.get('art') === 'schwarz' ? 'schwarz' : ''} ${(q.get('text') || '').length > 14 ? 'klein' : ''}">${esc(q.get('text') || 'Absurd')}</span></div>`;
+} else if (clip === 'gegen') {
+  const zeilen = (q.get('text') || 'Landrat der SPD|Landrat der CDU|Landrat der Parteilosen|Landrat für alle im Heidekreis').split('|');
+  html = `<div class="gegen">${zeilen.map((z, i) => { const letzte = i === zeilen.length - 1; return `<span class="z ${letzte ? 'bleibt' : ''}" style="animation-delay:${(.3 + i * .9).toFixed(2)}s">${esc(z)}</span>`; }).join('')}</div>`;
+} else if (clip === 'buch') {
+  html = `<div class="buchszene"><div class="buch">Parteibuch<small>zur Seite</small></div><div class="akte">Akte<small>der Verwaltung nach vorne</small></div></div><p class="szene-text">Das Parteibuch <b>zur Seite</b>.<br>Die Akte <b>nach vorne</b>.</p>`;
+} else if (clip === 'zettel') {
+  html = `<div class="zettel"><div class="papier"><span class="kopf">Stimmzettel</span><div class="zeile"><span class="box"></span><span>parteilos</span></div><div class="zeile hand">kann man draufschreiben</div></div>
+    <p class="szene-text" style="--textab:2.4s;bottom:360px">Unabhängigkeit muss man <b>beweisen</b>.</p></div>`;
+} else if (clip === 'aufruf') {
+  html = `<div class="aufruf">${q.get('foto') ? `<img class="foto" src="${esc(q.get('foto'))}" alt="">` : ''}<span class="datum">${esc(q.get('datum') || '27.')} <b>${esc(q.get('monat') || 'September')}</b></span><span class="name">${esc(q.get('name') || 'Sebastian Zinke')}</span><span class="sub">${esc(q.get('text') || 'Stichwahl · Landrat für alle im Heidekreis')}</span></div>`;
+} else if (clip === 'gross') {
+  const zeilen = (q.get('text') || 'So funktionieren|Parteien nicht.').split('|');
+  html = `<div class="mitte"><p class="gross ${q.get('gr') === 'xl' ? 'xl' : ''}">${zeilen.map(z => z.replace(/\*(.+?)\*/g, '<b>$1</b>')).join('<br>')}</p></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
+if (clip === 'gegen') document.querySelectorAll('.gegen .z:not(.bleibt)').forEach((z, i) => { z.style.setProperty('--d', (1.0 + i * .9).toFixed(2) + 's'); });
 // Bild-für-Bild-Steuerung für render.mjs
 window.__anims = null;
 window.seek = t => {
