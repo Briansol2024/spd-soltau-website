@@ -67,6 +67,7 @@ body.rot .outro .strich{background:#fff}
 .wort .z.mittel{font-size:96px}
 .wort .unter{height:14px;background:var(--rot);width:0;animation:unter .5s var(--ease) .45s both,wortOut .45s var(--ease) 2.55s both}
 .wort.rechts .unter{justify-self:end}
+.wort .z.box+.unter{display:none}
 @keyframes wortIn{from{opacity:0;transform:translateY(60px) scale(.9)}to{opacity:1;transform:none}}
 @keyframes wortOut{to{opacity:0;transform:translateY(-40px) scale(.96);filter:blur(8px)}}
 @keyframes unter{to{width:260px}}
