@@ -351,5 +351,16 @@ export function makeRatsarbeit(ctx) {
     return `<div class="mb-card"><h3>Ratsarbeit</h3><p class="small">${mine.length ? `<b>${mine.length}</b> offene Aufgabe${mine.length === 1 ? '' : 'n'} für dich` : 'Keine offenen Aufgaben für dich.'}</p>${rows.join('')}<a class="btn btn-schwarz btn-sm" href="#ratsarbeit">Zur Ratsarbeit</a></div>`;
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('rz-blatt')) blattZu(); });
-  return { sec, badge, startKarte, inFraktion, blattZu };
+  // Für die Suche (Wissen): Anträge entschlüsselt – nur mit Schlüssel
+  async function antraegeFuerSuche() {
+    if (!inFraktion() || (await schluessel.laden('fraktion')) !== 'ok') return [];
+    const rows = await db.list('RatAntraege', { limit: 300 }).catch(() => []);
+    return Promise.all(rows.map(async a => ({ ...a, ...(await decJson(a.daten)) })));
+  }
+  // Idee eines Mitglieds als Antragsentwurf übernehmen
+  async function ideeZuAntrag(i) {
+    if ((await schluessel.laden('fraktion')) !== 'ok') throw new Error('Fraktionsschlüssel auf diesem Gerät noch nicht freigeschaltet');
+    await db.insert('RatAntraege', { title: 'Antrag', b: 'rat', gremium: GREMIEN[0], sitzung: '', status: 'entwurf', von: me().id, vonName: me().name, zustimmung: [], daten: await encJson({ titel: i.titel, beschluss: '', begruendung: `${i.text || ''}\n\n(Idee von ${i.vonName || 'einem Mitglied'})`.trim() }) });
+  }
+  return { sec, badge, startKarte, inFraktion, blattZu, antraegeFuerSuche, ideeZuAntrag };
 }

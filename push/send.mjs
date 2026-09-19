@@ -14,7 +14,10 @@ import webpush from 'web-push';
 import { adminClient, memberClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
 import { evaluateSettings, canSee } from '../src/lib/rights.mjs';
 import { eventType, isPublicType } from '../src/lib/wix.mjs';
-import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, verpacken } from '../src/lib/rat.mjs';
+import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, encryptJson, verpacken } from '../src/lib/rat.mjs';
+import { stammtischConfig, istStammtisch, stammtischFrage } from '../src/lib/stammtisch.mjs';
+import { mail, mailAn, mailBereit, newsletterHtml, textToHtml } from './mail.mjs';
+import { randomBytes } from 'node:crypto';
 
 const DRY = process.argv.includes('--dry');
 const TEST = process.argv.includes('--test');
@@ -88,7 +91,7 @@ const memberSubs = subs => subs.filter(s => !!s.memberId);
 // nur Geräte von Mitgliedern, die den Bereich/Termintyp laut „Wer sieht was?“ sehen dürfen
 const whoSees = (st, subs, key) => memberSubs(subs).filter(s => canSee(st, s.memberId, key));
 const url = p => (SITE ? SITE : '') + p;
-const INBOX = '/mitglieder/#vorstand/eingang';
+const INBOX = '/mitglieder/#vorstand/anliegen';
 
 // ---------- Mitglieder abgleichen ----------
 async function syncMembers(subs) {
@@ -189,12 +192,12 @@ const hasRight = (st, memberId, right) => !!st.rights[right]?.has(memberId);
 
 // Inhalte, die nur mit Recht angelegt werden dürfen: Einträge Unberechtigter werden entfernt
 async function moderate(st) {
-  const rules = [['Umfragen', 'umfragen'], ['UmfragenOeffentlich', 'umfragen'], ['Helferlisten', 'helfer'], ['Dokumente', 'dokumente'], ['Ratsvorbereitung', 'rat']];
+  const rules = [['Umfragen', 'umfragen'], ['UmfragenOeffentlich', 'umfragen'], ['Helferlisten', 'helfer'], ['Dokumente', 'dokumente'], ['Ratsvorbereitung', 'rat'], ['Versammlungen', 'versammlung'], ['Planungen', 'planung'], ['Pressekontakte', 'presse']];
   for (const [col, right] of rules) {
     try {
       const list = await queryAll(client, col);
       for (const it of list) {
-        if (hasRight(st, it._owner, right) || st.board.has(it._owner)) continue;
+        if (!it._owner || hasRight(st, it._owner, right) || st.board.has(it._owner)) continue; // ohne _owner = vom Dienst angelegt
         log(`  ${col}: „${it.titel || it.frage || it._id}“ von ${it.von || it._owner} ohne Recht „${right}“ – entfernt`);
         if (!DRY) await client.items.remove(col, it._id).catch(() => {});
       }
@@ -206,7 +209,7 @@ async function moderate(st) {
 // ---------- Aktionen des Vorstands ----------
 async function processActions(st, subs, logKeys) {
   const open = await queryAll(client, 'Aktionen', q => q.eq('status', 'offen'));
-  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten', termin_erstellen: 'termine', termin_absagen: 'termine', beitrag_erstellen: 'beitraege' };
+  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten', termin_erstellen: 'termine', termin_absagen: 'termine', beitrag_erstellen: 'beitraege', newsletter: 'newsletter', presse: 'presse' };
   for (const a of open) {
     let payload = {}; try { payload = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ }
     const done = async (status, ergebnis) => { log(`  Aktion ${a.typ}: ${ergebnis}`); if (!DRY) await client.items.update('Aktionen', { ...a, status, ergebnis, erledigtAm: new Date().toISOString() }).catch(e => log('Aktion update', e.message)); };
@@ -254,6 +257,16 @@ async function processActions(st, subs, logKeys) {
           await send(to, { title: payload.titel || 'SPD Soltau', body: payload.text || '', tag: 'nachricht-' + a._id, url: url('/mitglieder/') }, 'nachricht:' + a._id, logKeys);
           await done('erledigt', `Nachricht an ${to.length} Geräte`); break;
         }
+        case 'newsletter': {
+          if (!mailBereit()) { log('  Newsletter wartet: E-Mail-Versand nicht eingerichtet (SMTP in .env)'); continue; }
+          const r = await newsletterSenden(payload, a, st);
+          await done('erledigt', `Newsletter „${payload.betreff}“ an ${r.ok} Adressen${r.fehler ? `, ${r.fehler} Fehler` : ''}`); break;
+        }
+        case 'presse': {
+          if (!mailBereit()) { log('  Pressemitteilung wartet: E-Mail-Versand nicht eingerichtet (SMTP in .env)'); continue; }
+          const r = await presseSenden(payload, a);
+          await done('erledigt', `Pressemitteilung an ${r.ok} Kontakte${r.fehler ? `, ${r.fehler} Fehler` : ''}`); break;
+        }
         default: await done('abgelehnt', 'Unbekannte Aktion');
       }
     } catch (e) { await done('fehler', e.message); }
@@ -261,23 +274,33 @@ async function processActions(st, subs, logKeys) {
   if (open.length) log(`Aktionen: ${open.length} bearbeitet`);
 }
 
-// ---------- Persönlicher Eingang: eine Kopie je Empfänger, geschrieben im Namen des Mitglieds ----------
-// Vorteil: nur die betreffende Person kann ihren Eingang lesen (Sammlung „Eingang“: Ersteller sehen nur eigene Elemente).
-let inboxKeys = null;
+// ---------- Vorgänge: Anliegen, Buchungen, Registrierungen für den Vorstand – ein Eintrag je Vorgang, Inhalt mit dem
+// Vorstandsschlüssel verschlüsselt (Sammlung `Vorgaenge`, vom Dienst angelegt; lesen/bearbeiten alle mit Schlüssel). ----------
+let vorgangKeys = null, schluesselVersucht = false;
 async function inbox(recipients, entry) {
-  if (inboxKeys === null) { try { inboxKeys = new Set((await queryAll(client, 'Eingang')).map(e => `${e.key}|${e.memberId}`)); } catch (e) { inboxKeys = new Set(); } }
-  for (const memberId of recipients) {
-    const k = `${entry.key}|${memberId}`; if (inboxKeys.has(k)) continue;
-    if (DRY) { log(`  Eingang → ${memberId}: ${entry.title}`); continue; }
-    try {
-      const mc = await memberClient(memberId);
-      await mc.items.insert('Eingang', { title: entry.title, key: entry.key, memberId, typ: entry.typ, body: entry.body, details: entry.details || {}, payload: JSON.stringify(entry.payload || {}), status: 'offen' });
-      inboxKeys.add(k);
-    } catch (e) { log(`  Eingang für ${memberId} nicht möglich: ${e.message} (API-Schlüssel braucht „Serveranmeldung für Mitglieder“)`); }
-  }
+  if (!KEYS.vorstand) { if (!schluesselVersucht) { schluesselVersucht = true; try { await schluesselLaden(); } catch (e) { /* unten */ } } if (!KEYS.vorstand) return; }
+  if (vorgangKeys === null) { try { vorgangKeys = new Set((await queryAll(client, 'Vorgaenge')).map(e => e.key)); } catch (e) { vorgangKeys = new Set(); } }
+  if (vorgangKeys.has(entry.key)) return;
+  if (DRY) { log(`  Vorgang: ${entry.title}`); vorgangKeys.add(entry.key); return; }
+  try {
+    await client.items.insert('Vorgaenge', { title: 'Vorgang', typ: entry.typ, key: entry.key, status: 'offen', daten: await encryptJson(KEYS.vorstand.aes, { title: entry.title, body: entry.body, details: entry.details || {}, payload: entry.payload || {} }) });
+    vorgangKeys.add(entry.key);
+  } catch (e) { log(`  Vorgang nicht angelegt: ${e.message}`); }
 }
 async function inboxDone(key, text) {
-  try { for (const e of (await queryAll(client, 'Eingang', q => q.eq('key', key)))) if (!DRY) await client.items.update('Eingang', { ...e, status: text }).catch(() => {}); } catch (e) { /* egal */ }
+  try { for (const e of (await queryAll(client, 'Vorgaenge', q => q.eq('key', key)))) if (!DRY && !/erledigt|freigeschaltet|abgelehnt|bestätigt/.test(e.status || '')) await client.items.update('Vorgaenge', { ...e, status: text, erledigtAm: new Date().toISOString() }).catch(() => {}); } catch (e) { /* egal */ }
+}
+// Erinnerung: Vorgänge, die seit 7 Tagen offen sind – einmal an die zuständige Person (sonst an die Zuständigen laut „Wer wird benachrichtigt?“)
+async function vorgangErinnerungen(st, subs, logKeys) {
+  try {
+    const offen = (await queryAll(client, 'Vorgaenge')).filter(v => /^(offen|in Arbeit)$/.test(v.status || 'offen') && !v.erinnertAm && NOW - new Date(v._createdDate).getTime() > 7 * 24 * H);
+    for (const v of offen) {
+      const an = v.zustaendig ? [v.zustaendig] : (st.routing[v.typ] || [...st.board]);
+      const key = 'vorgang-erinnerung:' + v._id; if (logKeys.has(key)) continue;
+      await send(byMembers(subs, an), { title: 'Wartet seit einer Woche', body: `Ein${v.typ === 'buchung' ? 'e Buchungsanfrage' : v.typ === 'registrierung' ? 'e Registrierung' : ' Anliegen'} ist noch offen${v.zustaendigName ? ' – zuständig: ' + v.zustaendigName : ''}.`, tag: key, url: url('/mitglieder/#vorstand/anliegen') }, key, logKeys);
+      if (!DRY) await client.items.update('Vorgaenge', { ...v, erinnertAm: new Date().toISOString() }).catch(() => {});
+    }
+  } catch (e) { log('Vorgänge (Erinnerung):', e.message); }
 }
 
 // ---------- Wix Events: Termin aus der App anlegen ----------
@@ -464,33 +487,49 @@ async function boardPushes(subs, pending, routing, logKeys) {
 
 // ---------- Ratsarbeit: Schlüssel verteilen, aufräumen, erinnern ----------
 // Siehe src/lib/rat.mjs. Maßgeblich ist immer `_owner` (von Wix gesetzt), nie ein selbst eingetragenes Feld.
+// Zwei Gruppenschlüssel in RatGeheim: `fraktion` (Ratsarbeit) und `vorstand` (Vorgänge/Anliegen). Wer den Vorstandsschlüssel bekommt:
+// Vorstand, Verwalter und alle mit dem Recht „freigaben“.
+const KEYS = {};
+async function schluesselLaden() {
+  const rows = await queryAll(client, 'RatGeheim');
+  for (const gruppe of ['fraktion', 'vorstand']) {
+    let row = rows.find(r => (r.gruppe || 'fraktion') === gruppe);
+    if (!row) {
+      if (DRY) { log(`Schlüssel „${gruppe}“ würde angelegt`); continue; }
+      row = await client.items.insert('RatGeheim', { title: `${gruppe === 'fraktion' ? 'Fraktions' : 'Vorstands'}schlüssel (nicht löschen – sonst sind die verschlüsselten Inhalte unlesbar)`, gruppe, schluessel: neuerFraktionsschluessel() });
+      log(`Schlüssel „${gruppe}“ angelegt (Sammlung RatGeheim – bitte nie löschen)`);
+    } else if (!row.gruppe && !DRY) await client.items.update('RatGeheim', { ...row, gruppe }).catch(() => {});
+    KEYS[gruppe] = { roh: row.schluessel, aes: await importAes(row.schluessel) };
+  }
+}
+const vorstandKreis = st => new Set([...st.board, ...st.rights.verwaltung, ...st.rights.freigaben]);
 async function ratSync(st, subs, logKeys) {
-  const fraktion = st.groups.fraktion;
-  let geheim;
-  try {
-    geheim = (await queryAll(client, 'RatGeheim'))[0];
-    if (!geheim) {
-      if (DRY) { log('Ratsarbeit: Fraktionsschlüssel würde angelegt'); return; }
-      geheim = await client.items.insert('RatGeheim', { title: 'Fraktionsschlüssel (nicht löschen – sonst sind alle Aufgaben und Dokumente unlesbar)', schluessel: neuerFraktionsschluessel() });
-      log('Ratsarbeit: Fraktionsschlüssel angelegt (Sammlung RatGeheim – bitte nie löschen)');
-    }
-  } catch (e) { log('Ratsarbeit (Schlüssel):', e.message); return; }
-  const aes = await importAes(geheim.schluessel);
-  // 1) Geräteschlüssel: verpacken für Fraktionsmitglieder, löschen für alle anderen
+  const fraktion = st.groups.fraktion, vorstand = vorstandKreis(st);
+  try { await schluesselLaden(); } catch (e) { log('Schlüssel:', e.message); return; }
+  if (!KEYS.fraktion || !KEYS.vorstand) return;
+  const aes = KEYS.fraktion.aes;
+  // 1) Geräteschlüssel: je Gruppe verpacken, wenn das Mitglied dazugehört; Gerät entfernen, wenn es zu keiner Gruppe mehr gehört
   try {
     const rows = await queryAll(client, 'RatSchluessel');
     let ok = 0, weg = 0;
     for (const r of rows) {
-      if (!fraktion.has(r._owner)) { weg++; if (!DRY) await client.items.remove('RatSchluessel', r._id).catch(() => {}); continue; }
-      if (r.status === 'aktiv' && r.verpackt) continue;
+      const darf = { fraktion: fraktion.has(r._owner), vorstand: vorstand.has(r._owner) };
+      if (!darf.fraktion && !darf.vorstand) { weg++; if (!DRY) await client.items.remove('RatSchluessel', r._id).catch(() => {}); continue; }
+      const soll = { verpackt: darf.fraktion, verpacktVorstand: darf.vorstand };
+      const aenderung = {};
       try {
-        const verpackt = await verpacken(geheim.schluessel, JSON.parse(r.pub || '{}'));
-        if (!DRY) await client.items.update('RatSchluessel', { ...r, verpackt, status: 'aktiv' });
+        const pub = JSON.parse(r.pub || '{}');
+        if (soll.verpackt && !r.verpackt) aenderung.verpackt = await verpacken(KEYS.fraktion.roh, pub);
+        if (!soll.verpackt && r.verpackt) aenderung.verpackt = '';
+        if (soll.verpacktVorstand && !r.verpacktVorstand) aenderung.verpacktVorstand = await verpacken(KEYS.vorstand.roh, pub);
+        if (!soll.verpacktVorstand && r.verpacktVorstand) aenderung.verpacktVorstand = '';
+        if (!Object.keys(aenderung).length && r.status === 'aktiv') continue;
+        if (!DRY) await client.items.update('RatSchluessel', { ...r, ...aenderung, status: 'aktiv' });
         ok++;
       } catch (e) { log(`  Geräteschlüssel von ${r.name || r._owner} unbrauchbar: ${e.message}`); if (!DRY) await client.items.update('RatSchluessel', { ...r, status: 'fehler' }).catch(() => {}); }
     }
-    log(`Ratsarbeit: ${rows.length} Gerät(e), ${ok} neu freigeschaltet, ${weg} entfernt (nicht in der Fraktion)`);
-  } catch (e) { log('Ratsarbeit (Geräte):', e.message); }
+    log(`Schlüssel: ${rows.length} Gerät(e), ${ok} neu/aktualisiert, ${weg} entfernt · Fraktion ${fraktion.size}, Vorstandskreis ${vorstand.size}`);
+  } catch (e) { log('Schlüssel (Geräte):', e.message); }
   // 2) Einträge, die nicht von Fraktionsmitgliedern stammen, entfernen
   let aufgaben = [], dokumente = [];
   try {
@@ -538,6 +577,141 @@ async function ratSync(st, subs, logKeys) {
   }
 }
 
+// ---------- Newsletter, Presse, Abonnenten (E-Mail) ----------
+const SITE_URL = SITE || 'https://www.spd-soltau.de';
+async function mitgliederMails() {
+  const out = [];
+  for (let offset = 0; ; offset += 100) {
+    const res = await client.members.listMembers({ fieldsets: ['FULL'], paging: { limit: 100, offset } });
+    for (const m of res.members || []) if (m.status === 'APPROVED' && m.loginEmail) out.push({ email: m.loginEmail, name: [m.contact?.firstName, m.contact?.lastName].filter(Boolean).join(' ') });
+    if ((res.members || []).length < 100) break;
+  }
+  return out;
+}
+async function abonnentenAktiv() { return (await queryAll(client, 'Abonnenten', q => q.eq('status', 'aktiv'))).filter(a => a.email); }
+const dedupe = list => { const seen = new Set(); return list.filter(e => { const k = String(e.email).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }); };
+async function newsletterSenden(p, a, st) {
+  const posts = (await client.posts.queryPosts().descending('firstPublishedDate').limit(30).find().catch(() => ({ items: [] }))).items || [];
+  const beitraege = (p.beitraege || []).map(slug => posts.find(x => x.slug === slug)).filter(Boolean).map(x => ({ slug: x.slug, title: x.title, teaser: x.excerpt || '' }));
+  const evs = (await client.wixEventsV2.queryEvents().limit(100).find().catch(() => ({ items: [] }))).items || [];
+  const termine = (p.termine || []).map(id => evs.find(e => e._id === id)).filter(Boolean).map(e => ({ id: e._id, title: e.title, typ: eventType(e.title, e.shortDescription), wann: new Date(e.dateAndTimeSettings?.startDate || 0).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit' }), zeit: new Date(e.dateAndTimeSettings?.startDate || 0).toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' }) + ' Uhr', ort: e.location?.name || '' }));
+  const text = ({ oeffentlich }) => { const ts = termine.filter(t => !oeffentlich || isPublicType(t.typ)); return `${p.betreff}\n\n${p.vorwort || ''}\n\n${beitraege.length ? 'AKTUELLES\n' + beitraege.map(n => `${n.title}\n${n.teaser}\n${SITE_URL}/aktuelles/${n.slug}/`).join('\n\n') + '\n\n' : ''}${ts.length ? 'TERMINE\n' + ts.map(t => `${t.wann} ${t.title}, ${t.zeit}${t.ort ? ' · ' + t.ort : ''}`).join('\n') + '\n\n' : ''}SPD Ortsverein Soltau · Am Bahnhof 1t · 29614 Soltau`; };
+  const empfaenger = [];
+  if (p.ziel === 'mitglieder' || p.ziel === 'beide') for (const m of await mitgliederMails()) empfaenger.push({ ...m, oeffentlich: false });
+  if (p.ziel === 'abonnenten' || p.ziel === 'beide') for (const ab of await abonnentenAktiv()) empfaenger.push({ email: ab.email, token: ab.token, oeffentlich: true });
+  const liste = dedupe(empfaenger);
+  const r = await mailAn(liste, async e => {
+    const abmeldeUrl = e.token ? `${SITE_URL}/newsletter/?abmelden=${e.token}` : '';
+    return { to: e.email, subject: p.betreff, text: text(e) + (abmeldeUrl ? `\nAbmelden: ${abmeldeUrl}` : ''), html: newsletterHtml({ betreff: p.betreff, vorwort: p.vorwort, beitraege, termine: termine.filter(t => !e.oeffentlich || isPublicType(t.typ)), siteUrl: SITE_URL, abmeldeUrl }), listUnsubscribe: abmeldeUrl || undefined };
+  });
+  if (!DRY) await client.items.insert('Newsletter', { title: p.betreff, betreff: p.betreff, ziel: p.ziel, empfaenger: r.ok, text: text({ oeffentlich: p.ziel !== 'mitglieder' }), gesendetAm: new Date().toISOString(), von: a.von || '' }).catch(e => log('Archiv:', e.message));
+  return r;
+}
+async function presseSenden(p, a) {
+  const posts = (await client.posts.queryPosts().descending('firstPublishedDate').limit(30).find().catch(() => ({ items: [] }))).items || [];
+  const post = posts.find(x => x.slug === p.slug);
+  const link = post ? `${SITE_URL}/aktuelles/${post.slug}/` : SITE_URL;
+  const body = `${p.anschreiben || ''}\n\n${post?.title || ''}\n\n${post?.excerpt || ''}\n\nVollständiger Text und Bild: ${link}\n\nSPD Ortsverein Soltau · Am Bahnhof 1t · 29614 Soltau`;
+  const r = await mailAn(dedupe(p.empfaenger || []), async e => ({ to: e.email, subject: p.betreff, text: body, html: textToHtml(body) }));
+  if (!DRY) await client.items.insert('Newsletter', { title: p.betreff, betreff: p.betreff, ziel: 'presse', empfaenger: r.ok, text: body, gesendetAm: new Date().toISOString(), von: a.von || '' }).catch(e => log('Archiv:', e.message));
+  return r;
+}
+// Abonnenten: Anmeldung (Formular „Nichts verpassen“) → Bestätigungsmail (Double-Opt-in) → aktiv; Abmeldung über Link
+async function abonnenten() {
+  try {
+    const rows = await queryAll(client, 'Abonnenten', q => q.descending('_createdDate'));
+    const aktive = rows.filter(r => r.status === 'aktiv');
+    for (const r of rows) {
+      if (r.typ === 'anmeldung' && (!r.status || r.status === 'neu') && r.email) {
+        const schonAktiv = aktive.some(a => a.email.toLowerCase() === r.email.toLowerCase());
+        const token = randomBytes(12).toString('hex');
+        if (!DRY) await client.items.update('Abonnenten', { ...r, token, status: schonAktiv ? 'doppelt' : (mailBereit() ? 'bestaetigung-gesendet' : 'wartet-smtp') });
+        if (!schonAktiv && mailBereit() && !DRY) {
+          const link = `${SITE_URL}/newsletter/?bestaetigen=${token}`;
+          try { await mail({ to: r.email, subject: 'Bitte bestätigen: Newsletter der SPD Soltau', text: `Moin!\n\nSie haben sich für den Newsletter der SPD Soltau angemeldet. Bitte bestätigen Sie das mit einem Klick:\n${link}\n\nWenn Sie das nicht waren, ignorieren Sie diese E-Mail einfach.\n\nSPD Ortsverein Soltau · Am Bahnhof 1t · 29614 Soltau` }); }
+          catch (e) { log('  Bestätigungsmail:', e.message); }
+        }
+      }
+      if (r.typ === 'bestaetigung' && r.token && r.status !== 'verarbeitet') {
+        const an = rows.find(x => x.typ === 'anmeldung' && x.token === r.token);
+        if (an && !DRY) { await client.items.update('Abonnenten', { ...an, status: 'aktiv', bestaetigtAm: new Date().toISOString() }); await client.items.update('Abonnenten', { ...r, status: 'verarbeitet' }); log(`  Newsletter: ${an.email} bestätigt`); }
+      }
+      if (r.typ === 'abmeldung' && r.token && r.status !== 'verarbeitet') {
+        const an = rows.find(x => x.typ === 'anmeldung' && x.token === r.token);
+        if (an && !DRY) { await client.items.update('Abonnenten', { ...an, status: 'abgemeldet', abgemeldetAm: new Date().toISOString() }); await client.items.update('Abonnenten', { ...r, status: 'verarbeitet' }); log(`  Newsletter: ${an.email} abgemeldet`); }
+      }
+    }
+    // Zähler für die App (Sammlung Newsletter, Eintrag „status“)
+    const n = rows.filter(r => r.status === 'aktiv').length;
+    const statusRow = (await queryAll(client, 'Newsletter', q => q.eq('ziel', 'status')))[0];
+    const daten = { title: 'status', betreff: '', ziel: 'status', empfaenger: n, text: JSON.stringify({ aktiv: n, smtp: mailBereit() }), gesendetAm: new Date().toISOString() };
+    if (!DRY) { if (statusRow) await client.items.update('Newsletter', { ...statusRow, ...daten }); else await client.items.insert('Newsletter', daten); }
+  } catch (e) { log('Abonnenten:', e.message); }
+}
+
+// ---------- Stammtisch: Umfrage „Wo treffen wir uns?“ je Termin, nur für Zusagen; schließt am Tag des Treffens ----------
+async function stammtisch(st) {
+  try {
+    const cfg = stammtischConfig(st.snap);
+    const res = await client.wixEventsV2.queryEvents().limit(100).find();
+    const today = isoDate(NOW);
+    const polls = await queryAll(client, 'Umfragen', q => q.eq('nurZusagen', true));
+    for (const e of res.items || []) {
+      if (e.status === 'CANCELED' || !e.dateAndTimeSettings?.startDate) continue;
+      const date = isoDate(e.dateAndTimeSettings.startDate);
+      if (date < today || NOW + 45 * 24 * H < new Date(e.dateAndTimeSettings.startDate).getTime()) continue;
+      if (!istStammtisch({ title: e.title }, cfg) || polls.some(p => p.eventId === e._id)) continue;
+      const wann = new Date(e.dateAndTimeSettings.startDate).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: '2-digit', month: '2-digit' });
+      log(`  Stammtisch-Umfrage für „${e.title}“ am ${date}`);
+      if (!DRY) await client.items.insert('Umfragen', { title: stammtischFrage(wann), frage: stammtischFrage(wann), beschreibung: 'Die Umfrage sehen nur die, die zugesagt haben. Sie schließt am Tag des Treffens.', optionen: cfg.lokale, mehrfach: false, offen: true, endetAm: date, eventId: e._id, nurZusagen: true, von: 'App' });
+    }
+    for (const p of polls.filter(p => p.offen !== false && p.endetAm && p.endetAm < today)) if (!DRY) await client.items.update('Umfragen', { ...p, offen: false }).catch(() => {});
+  } catch (e) { log('Stammtisch:', e.message); }
+}
+
+// ---------- Erinnerungen: Anträge/Ideen an den Fraktionsvorsitz, Jahresplan-Aufgaben, Helfer am Vortag ----------
+async function weitereErinnerungen(st, subs, logKeys) {
+  const heute = isoDate(NOW), morgen = isoDate(NOW + 24 * H), bald = isoDate(NOW + 2 * 24 * H);
+  // Neue Anträge (48 h) → „Wer prüft Anträge“ (Thema antrag), ohne den Verfasser
+  try {
+    if (KEYS.fraktion) for (const a of (await queryAll(client, 'RatAntraege')).filter(x => NOW - new Date(x._createdDate).getTime() <= 48 * H)) {
+      const key = 'antrag-neu:' + a._id; if (logKeys.has(key)) continue;
+      let d = {}; try { d = await decryptJson(KEYS.fraktion.aes, a.daten); } catch (e) { /* ohne Titel */ }
+      await send(byMembers(subs, (st.routing.antrag || []).filter(id => id !== a._owner)), { title: 'Neuer Antrag zur Prüfung', body: `${d.titel || 'Antrag'} – von ${a.vonName || '?'}`, tag: key, url: url('/mitglieder/#ratsarbeit/a-' + a._id) }, key, logKeys);
+    }
+  } catch (e) { log('Anträge:', e.message); }
+  try {
+    for (const i of (await queryAll(client, 'Ideen')).filter(x => NOW - new Date(x._createdDate).getTime() <= 48 * H)) {
+      const key = 'idee-neu:' + i._id; if (logKeys.has(key)) continue;
+      await send(byMembers(subs, (st.routing.antrag || []).filter(id => id !== i._owner)), { title: 'Neue Idee von ' + (i.vonName || 'einem Mitglied'), body: i.titel || '', tag: key, url: url('/mitglieder/#ideen') }, key, logKeys);
+    }
+  } catch (e) { log('Ideen:', e.message); }
+  // Jahresplan: Aufgaben, die in zwei Tagen fällig sind (oder überfällig, einmal)
+  try {
+    for (const p of (await queryAll(client, 'Planungen')).filter(x => !x.vorlage)) {
+      let aufgaben = []; try { aufgaben = JSON.parse(p.aufgaben || '[]'); } catch (e) { continue; }
+      for (const a of aufgaben.filter(x => x.wer && !x.erledigt && x.faellig && x.faellig <= bald)) {
+        const key = `planung:${p._id}:${a.id}:${a.faellig}`; if (logKeys.has(key)) continue;
+        await send(byMembers(subs, [a.wer]), { title: a.faellig < heute ? 'Überfällig: ' + a.titel : 'Bald fällig: ' + a.titel, body: `${p.titel} · bis ${fmtDe(a.faellig + 'T12:00:00').slice(0, 10)}`, tag: key, url: url('/mitglieder/#planung/p-' + p._id) }, key, logKeys);
+      }
+    }
+  } catch (e) { log('Jahresplan:', e.message); }
+  // Helferlisten: am Vortag ab 17 Uhr an alle Eingetragenen
+  try {
+    if (hourBerlin(NOW) >= 17) {
+      const listen = (await queryAll(client, 'Helferlisten')).filter(l => l.datum === morgen);
+      if (listen.length) {
+        const helfer = await queryAll(client, 'Helfer');
+        for (const l of listen) for (const h of helfer.filter(x => x.listeId === l._id && x.memberId)) {
+          const key = `helfer-erinnerung:${l._id}:${h.memberId}`; if (logKeys.has(key)) continue;
+          const schicht = (l.schichten || []).find(s => s.id === h.schichtId);
+          await send(byMembers(subs, [h.memberId]), { title: 'Morgen hilfst du mit: ' + l.titel, body: [schicht?.zeit, l.ort].filter(Boolean).join(' · ') || 'Danke, dass du dabei bist!', tag: key, url: url('/mitglieder/#termine/hl-' + l._id) }, key, logKeys);
+        }
+      }
+    }
+  } catch (e) { log('Helfer-Erinnerung:', e.message); }
+}
+
 // ---------- Ablauf ----------
 (async () => {
   log('Push-Dienst startet' + (DRY ? ' (Trockenlauf)' : ''));
@@ -554,7 +728,11 @@ async function ratSync(st, subs, logKeys) {
   await processActions(st, subs, logKeys);
   await contentPushes(st, subs, logKeys);
   await memberPushes(st, subs, logKeys);
-  await boardPushes(subs, pending, st.routing, logKeys);
   await ratSync(st, subs, logKeys);
+  await boardPushes(subs, pending, st.routing, logKeys);
+  await vorgangErinnerungen(st, subs, logKeys);
+  await stammtisch(st);
+  await weitereErinnerungen(st, subs, logKeys);
+  await abonnenten();
   log('fertig', stats);
 })().catch(e => { console.error('Push-Dienst abgebrochen:', e.message, e.details ? JSON.stringify(e.details).slice(0, 300) : ''); process.exit(1); });

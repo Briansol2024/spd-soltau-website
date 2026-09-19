@@ -1275,3 +1275,117 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
   .druck-text{white-space:pre-line}
   .druck-unterschrift{margin-top:36pt}
 }
+
+/* ===== Vorstand als Kacheln ===== */
+.vs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@container site (max-width:600px){.vs-grid{grid-template-columns:minmax(0,1fr)}}
+.vs-kachel{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:16px;background:var(--grau);border-left:6px solid var(--rot);color:var(--ink);text-decoration:none;transition:background .15s,box-shadow .15s}
+.vs-kachel:hover{background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.vs-kachel svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.vs-ico{display:grid;place-items:center;width:48px;height:48px;background:var(--schwarz);color:#fff}
+.vs-kachel b{display:block;font:700 20px/1 var(--display);text-transform:uppercase}
+.vs-kachel small{display:block;font-size:14px;color:var(--muted);margin-top:4px}
+.vs-kachel .mb-badge{position:static}
+/* Anliegen (Vorgänge) */
+.vg-kopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vg-zeile{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:8px 0}
+.vg-feld{display:inline-flex;align-items:center;gap:8px;font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.vg-feld select{font:inherit;font-size:14px;text-transform:none;letter-spacing:0;padding:8px 10px;border:2px solid var(--schwarz);background:#fff;color:var(--ink)}
+.vg-notiz summary{cursor:pointer;font-weight:700;color:var(--rot);font-size:14px}
+.vg-notiz textarea{width:100%;font:inherit;font-size:14.5px;padding:10px;border:2px solid var(--schwarz);margin:8px 0;box-sizing:border-box}
+.inbox-item.erledigt{opacity:.7}
+/* Ideen */
+.idee-form{margin-bottom:20px}
+.idee-liste{display:grid;gap:10px}
+.idee{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;padding:14px;border:1px solid var(--linie);background:#fff}
+.idee-like{display:grid;gap:2px;justify-items:center;width:56px;padding:8px 4px;border:2px solid var(--schwarz);background:#fff;font-size:20px;line-height:1;cursor:pointer}
+.idee-like b{font:700 14px/1 var(--body)}
+.idee-like.an{background:var(--rot);border-color:var(--rot);color:#fff}
+.idee-body b{font-size:17px}
+.idee-body p{margin:6px 0 0}
+.idee-antwort{background:var(--grau);padding:8px 10px}
+.idee-tools{margin-top:8px;font-size:14px}
+.idee-tools summary{cursor:pointer;color:var(--rot);font-weight:700}
+.idee-tools textarea{width:100%;font:inherit;font-size:14px;padding:8px;border:2px solid var(--schwarz);margin:8px 0;box-sizing:border-box}
+.idee-karte{border-left:6px solid var(--rot)}
+/* Wahlkampf */
+.wk-summe{padding:12px 14px;background:var(--schwarz);color:#fff;margin:14px 0}
+.wk-summe b{color:#fff;font:800 22px/1 var(--display)}
+.wk-ort{margin-top:22px}
+.wk-balken{height:8px;background:var(--grau);margin:8px 0 10px}
+.wk-balken i{display:block;height:100%;background:var(--rot)}
+.wk-liste{display:grid;gap:6px}
+.wk-strasse{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 12px;background:#fff;border:1px solid var(--linie);border-left:6px solid var(--linie)}
+.wk-strasse.verteilt{border-left-color:#F28C00}
+.wk-strasse.gespraeche{border-left-color:#177A38}
+.wk-strasse .small{grid-column:1}
+.wk-btns{grid-row:1/span 2;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.wk-btns .chip{font-size:12px;padding:7px 9px}
+@container site (max-width:600px){.wk-strasse{grid-template-columns:minmax(0,1fr)}.wk-btns{grid-row:auto;justify-content:flex-start}}
+.wk-plakate{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.wk-plakat{display:grid;background:#fff;border:1px solid var(--linie)}
+.wk-plakat img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.wk-plakat.ab img{filter:grayscale(1);opacity:.6}
+.wk-nofoto{aspect-ratio:4/3;background:var(--grau);display:grid;place-items:center;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.wk-plakat-txt{padding:10px 12px;display:grid;gap:6px}
+/* Wissen */
+.wissen-form{max-width:none;margin-bottom:12px}
+.wissen-form input{font-size:18px}
+.wissen-chips{margin-bottom:18px}
+.wissen-gruppe{padding-top:20px;margin-top:20px}
+/* Jahresplan */
+.pl-wer select{font:inherit;font-size:13px;padding:6px 8px;border:2px solid var(--schwarz);background:#fff;max-width:160px}
+.rz-zeile .pl-wer{grid-column:2;justify-self:start}
+.pl-add{margin-top:16px}
+/* Versammlung */
+.vs-leiste{margin-bottom:22px}
+.vs-tops{margin:0;padding-left:22px;display:grid;gap:6px;font-size:16px}
+.vs-antrag-karte{padding:12px 0;border-top:1px solid var(--linie);display:grid;gap:8px}
+.vs-antrag-karte h4{font:700 20px/1.1 var(--display);text-transform:uppercase}
+.vs-ergebnis b{color:var(--rot)}
+.vs-protokoll{width:100%;font:inherit;font-size:14px;padding:10px;border:2px solid var(--schwarz);box-sizing:border-box}
+.vs-protokoll-text{white-space:pre-wrap}
+.rows .vs-antrag{display:grid;gap:6px;padding:10px;border:1px solid var(--linie);margin-bottom:8px}
+.rows .vs-antrag input,.rows .vs-antrag textarea{font:inherit;padding:8px 10px;border:2px solid var(--schwarz)}
+/* Sitzungen: Zusatzfelder und Sitzungsmodus */
+.top-mehr{grid-column:1/-1;font-size:13px}
+.top-mehr summary{cursor:pointer;color:var(--rot);font-weight:700}
+.top-mehr input,.top-mehr textarea{display:block;width:100%;margin-top:6px;font:inherit;font-size:14px;padding:8px 10px;border:2px solid var(--schwarz);box-sizing:border-box}
+.fokus{display:grid;gap:18px}
+.fokus-kopf{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fokus-kopf b{font:800 20px/1 var(--display);text-transform:uppercase}
+.fokus-zaehler{margin-left:auto;font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fokus-top{background:var(--grau);padding:24px;display:grid;gap:14px;border-left:8px solid var(--rot)}
+.fokus-nr{font:800 14px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--rot)}
+.fokus-titel{font:800 clamp(26px,3.6cqw,40px)/1.05 var(--display);text-transform:uppercase;text-wrap:balance}
+.fokus-haltung{justify-self:start;padding:12px 18px;font:800 22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;background:#fff;border:3px solid var(--schwarz)}
+.fokus-haltung.pos-dafür{background:#177A38;border-color:#177A38;color:#fff}
+.fokus-haltung.pos-dagegen{background:var(--rot);border-color:var(--rot);color:#fff}
+.fokus-haltung.pos-nderungsantrag{background:#F28C00;border-color:#F28C00;color:#fff}
+.fokus-block{display:grid;gap:4px}
+.fokus-block p{font-size:18px;line-height:1.5;margin:0}
+.fokus-block textarea{width:100%;font:inherit;font-size:16px;padding:10px;border:2px solid var(--schwarz);box-sizing:border-box}
+.fokus-label{font:700 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.fokus-nav{display:flex;gap:10px;justify-content:space-between}
+.fokus-nav .btn{flex:1;justify-content:center}
+.fokus-alle summary{cursor:pointer;font:800 16px/1 var(--display);text-transform:uppercase;padding:10px 0}
+.fokus-tabelle{width:100%;border-collapse:collapse;font-size:14px}
+.fokus-tabelle th{text-align:left;font:700 11px/1.3 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:2px solid var(--schwarz)}
+.fokus-tabelle td{padding:8px;border-bottom:1px solid var(--linie);vertical-align:top;cursor:pointer}
+.fokus-tabelle tr.aktiv td{background:var(--grau)}
+/* Termin-Umfrage (Stammtisch) und Newsletter-Vorschau */
+.termin-poll{margin-top:10px}
+.termin-poll .poll{padding:16px}
+.nl-liste{display:grid;gap:6px;max-height:260px;overflow:auto;padding:8px 10px;background:#fff;border:2px solid var(--schwarz)}
+.nl-preview{margin-top:16px}
+.nl-mail{border:1px solid var(--linie);padding:0 0 12px;background:#fff}
+.nl-mail-kopf{background:var(--rot);color:#fff;padding:12px 16px;font:800 18px/1 var(--display);text-transform:uppercase}
+.nl-mail h3,.nl-mail h4,.nl-mail p{padding:0 16px}
+.nl-mail h3{font:800 22px/1.1 var(--display);text-transform:uppercase;margin:14px 0 8px}
+.nl-mail h4{font:800 15px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;color:var(--rot)}
+.pk-liste{display:grid;gap:8px}
+.pk{display:grid;gap:2px;padding:8px 0;border-top:1px solid var(--linie)}
+.pk .linkbtn{justify-self:start}
+.newsletter .note{flex-basis:100%;margin-top:8px}
+.top-ergebnis{margin:4px 0 0;color:#145A2A}
+.vs-kachel b .mb-badge{font:700 11px/20px var(--body);vertical-align:middle;margin-left:4px}

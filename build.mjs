@@ -296,6 +296,7 @@ async function main() {
     ['mitmachen/index.html', '/mitmachen/', 'Mitmachen', 'Mitglied werden, Newsletter oder ein Nachmittag am Infostand – so können Sie Soltau mitgestalten.', T.mitmachenPage(d)],
     ['kontakt/index.html', '/kontakt/', 'Kontakt', 'Ihr Anliegen an die SPD Soltau: Schlagloch, Kita-Platz, Ratsbeschluss – wir antworten.', T.kontaktPage(d)],
     ['roter-bahnhof/index.html', '/roter-bahnhof/', 'Roter Bahnhof', 'Den Roten Bahnhof in Soltau für Treffen, Vorträge und kleine Veranstaltungen anfragen.', T.roterBahnhofPage(d)],
+    ['newsletter/index.html', '/newsletter/', 'Newsletter', 'Newsletter der SPD Soltau: anmelden, bestätigen, abmelden.', T.newsletterPage(d)],
     ['rat-und-rathaus/index.html', '/rat-und-rathaus/', 'Aus Rat & Rathaus', 'Sitzungen des Rates, Amtsblatt, Meldungen aus dem Rathaus und laufende Beteiligungen – automatisch aus den öffentlichen Quellen der Stadt Soltau.', T.ratRathausPage(d)],
     ['mitglieder/index.html', '/mitglieder/', 'Mitgliederbereich', 'Mitgliederbereich der SPD Soltau: Anmelden, Termine zusagen, Benachrichtigungen, App.', T.mitgliederPage(d)],
     ['impressum/index.html', '/impressum/', 'Impressum', 'Impressum des SPD Ortsvereins Soltau.', T.impressumPage(d)],

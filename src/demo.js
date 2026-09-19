@@ -34,12 +34,14 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'whatsapp', empfaenger: [], gruppen: [{ name: 'SPD Soltau – Mitglieder', url: 'https://chat.whatsapp.com/BEISPIEL1' }, { name: 'Ratsfraktion', url: 'https://chat.whatsapp.com/BEISPIEL2' }], von: VON },
     ],
     Zusagen: [
+      ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: uid(), _owner: ME, eventId: ev.find(e => /stammtisch/i.test(e.title)).id, eventTitel: 'Stammtisch', eventDatum: ev.find(e => /stammtisch/i.test(e.title)).date, status: 'zusage', grund: '', memberId: ME, name: 'Max Mustermann', _createdDate: daysAgo(1) }] : []),
       { _id: uid(), _owner: ids[1], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, status: 'zusage', grund: '', memberId: ids[1], name: people[1].name, _createdDate: daysAgo(2) },
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, status: 'zusage', grund: '', memberId: ids[2], name: people[2].name, _createdDate: daysAgo(1) },
       { _id: uid(), _owner: ids[3], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, status: 'absage', grund: 'Spätschicht', memberId: ids[3], name: people[3].name, _createdDate: daysAgo(1) },
       { _id: uid(), _owner: ids[4], eventId: e1.id, eventTitel: e1.title, eventDatum: e1.date, status: 'zusage', grund: '', memberId: ids[4], name: people[4].name, _createdDate: daysAgo(1) },
     ],
     Umfragen: [
+      ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: 'demo-u5', _owner: OWNER, _createdDate: daysAgo(1), frage: 'Wo treffen wir uns am ' + new Date(ev.find(e => /stammtisch/i.test(e.title)).date + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' }) + '?', beschreibung: 'Die Umfrage sehen nur die, die zugesagt haben. Sie schließt am Tag des Treffens.', optionen: ["Alexander's (Wilhelmstraße 2)", 'Hildes Café & Shop (Frielingen 9)', 'Brauhaus Joh. Albrecht (Winsener Straße 34d)', "Meyn's Hotel (Poststraße 19)", 'La Mamma (Unter den Linden 15)'], mehrfach: false, offen: true, endetAm: ev.find(e => /stammtisch/i.test(e.title)).date, eventId: ev.find(e => /stammtisch/i.test(e.title)).id, nurZusagen: true, von: 'App', title: 'Stammtisch' }] : []),
       { _id: 'demo-u1', _owner: OWNER, _createdDate: daysAgo(2), frage: 'Sommerfest am 12. oder 19. Juli?', beschreibung: 'Der Rote Bahnhof ist an beiden Tagen frei.', optionen: ['12. Juli', '19. Juli', 'Mir egal'], mehrfach: false, offen: true, endetAm: inDays(6), von: VON, title: 'Sommerfest' },
       { _id: 'demo-u4', _owner: ids[1], _createdDate: daysAgo(1), frage: 'Welche Aktionen wünschst du dir 2027?', beschreibung: 'Mehrfachauswahl möglich.', optionen: ['Infostände', 'Haustürgespräche', 'Themenabende', 'Ausflug'], mehrfach: true, offen: true, endetAm: inDays(14), von: VON, title: 'Aktionen 2027' },
       { _id: 'demo-u2', _owner: ids[1], _createdDate: daysAgo(20), frage: 'Welche Themen sollen wir 2027 in den Vordergrund stellen?', beschreibung: '', optionen: ['Kita & Schule', 'Verkehr & Bahn', 'Wohnen', 'Ortschaften'], mehrfach: true, offen: false, endetAm: daysAgo(5).slice(0, 10), von: people[1].name, title: 'Themen 2027' },
@@ -49,6 +51,7 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
     ],
     Stimmen: [
       ...ids.slice(1, 9).map((id, i) => ({ _id: uid(), _owner: id, umfrageId: 'demo-u1', auswahl: [i % 3 === 0 ? 1 : 0], memberId: id, _createdDate: daysAgo(1) })),
+      ...ids.slice(5, 9).map((id, i) => ({ _id: uid(), _owner: id, umfrageId: 'demo-u5', auswahl: [i % 2], memberId: id, _createdDate: daysAgo(0.5) })),
       ...ids.slice(1, 12).map((id, i) => ({ _id: uid(), _owner: id, umfrageId: 'demo-u2', auswahl: [i % 4, (i + 1) % 4], memberId: id, _createdDate: daysAgo(10) })),
       ...Array.from({ length: 37 }, (_, i) => ({ _id: uid(), _owner: 'demo-v' + i, umfrageId: 'demo-u3', auswahl: [i % 7 === 0 ? 3 : i % 3], memberId: '', _createdDate: daysAgo(0) })),
     ],
@@ -71,8 +74,16 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       { _id: uid(), _owner: ids[1], _createdDate: daysAgo(1), sitzung: inDays(12), gremium: 'Rat der Stadt Soltau', titel: 'Konstituierende Sitzung', link: 'https://www.soltau.de/', tops: [
         { nr: '3', titel: 'Wahl der stellvertretenden Bürgermeister*innen', position: 'dafür', einordnung: 'Wir schlagen Birhat Kaçar vor.' },
         { nr: '5', titel: 'Besetzung der Ausschüsse', position: 'offen', einordnung: 'Verteilung nach Hare/Niemeyer – Details in der Fraktionssitzung.' },
-        { nr: '7', titel: 'Haushaltssatzung 2027 – Einbringung', position: 'offen', einordnung: 'Erst Einbringung, Beschluss im Dezember.' },
-      ], von: people[1].name, title: 'Konstituierende Sitzung' },
+        { nr: '7', titel: 'Haushaltssatzung 2027 – Einbringung', position: 'offen', einordnung: 'Erst Einbringung, Beschluss im Dezember.', redner: people[5].name, diskussion: 'Kämmerei fragt nach Prioritäten – wir nennen Kita, Radwege, Marktstraße.' },
+      ], von: people[1].name, title: 'Konstituierende Sitzung', typ: 'Rat', ort: 'Alte Reithalle' },
+      { _id: uid(), _owner: ids[1], _createdDate: daysAgo(3), sitzung: inDays(5), typ: 'Vorstand', gremium: 'Vorstandssitzung', titel: 'Sommerfest und Website', ort: 'Roter Bahnhof', zeit: '19:00', tops: [
+        { nr: '1', titel: 'Sommerfest 2027 – Termin', position: 'offen', einordnung: 'Vorschlag: 19. Juni, Rote-Bahnhof-Wiese.', redner: 'Max', diskussion: '', ergebnis: '' },
+        { nr: '2', titel: 'Website: neue Bereiche im Mitgliederbereich', position: 'dafür', einordnung: 'Jahresplan und Ideen freischalten.', redner: 'Brian', diskussion: 'Alle wollen die Sitzungsmodus-Ansicht ausprobieren.', ergebnis: '' },
+      ], von: people[1].name, title: 'Vorstandssitzung' },
+      { _id: uid(), _owner: ids[1], _createdDate: daysAgo(40), sitzung: daysAgo(10).slice(0, 10), typ: 'Rat', gremium: 'Rat der Stadt Soltau', titel: 'Marktstraße', ort: 'Alte Reithalle', zeit: '18:00', tops: [
+        { nr: '9', titel: 'Sanierung Marktstraße – Bauabschnitt 1', position: 'dafür', einordnung: 'Mit unserem Änderungsantrag: zwölf zusätzliche Bäume.', redner: people[5].name, diskussion: 'Fraktion einstimmig dafür, Bäume als Bedingung.', ergebnis: 'Beschlossen 21:8 – Änderungsantrag angenommen.' },
+        { nr: '10', titel: 'Vergnügungssteuer – Änderung', position: 'dagegen', einordnung: 'Belastet kleine Vereine.', redner: people[6].name, diskussion: '', ergebnis: 'Abgelehnt mit 14:15.' },
+      ], von: people[1].name, title: 'Rat der Stadt Soltau' },
     ],
     Profile: [
       { _id: uid(), _owner: ME, memberId: ME, name: 'Max Mustermann', verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'weber.soltau@gmail.com', geburtstag: '', geburtstagSichtbar: false, eintritt: 2019, fahreAb: 'Kernstadt' },
@@ -110,6 +121,45 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       { _id: 'demo-a2', _owner: ids[5], _createdDate: daysAgo(20), b: 'soziales', status: 'eingereicht', gremium: 'Sozialausschuss', sitzung: inDays(30), von: ids[5], vonName: people[5].name, zustimmung: [ME, ids[5], ids[6], ids[7], ids[8]], eingereichtAm: daysAgo(3), daten: JSON.stringify({ titel: 'Kita-Bedarfsplanung jährlich fortschreiben', beschluss: 'Die Verwaltung wird beauftragt, die Kita-Bedarfsplanung jährlich fortzuschreiben und dem Sozialausschuss jeweils im ersten Quartal vorzulegen.', begruendung: 'Nur mit aktuellen Zahlen lassen sich Plätze rechtzeitig schaffen.' }) },
     ],
     RatDateiTeile: [], RatSchluessel: [],
+    // Anliegen (Vorgänge) – in der App verschlüsselt, hier offen
+    Vorgaenge: [
+      { _id: 'demo-vg1', _createdDate: daysAgo(0.2), typ: 'registrierung', key: 'demo-in-1', status: 'offen', zustaendig: '', zustaendigName: '', daten: JSON.stringify({ title: 'Neue Registrierungsanfrage', body: 'Nina Beispiel (nina@example.com) möchte in den Mitgliederbereich.', details: { Name: 'Nina Beispiel', 'E-Mail': 'nina@example.com', Registriert: 'heute, 09:12 Uhr' }, payload: { memberId: 'demo-neu', name: 'Nina Beispiel' } }) },
+      { _id: 'demo-vg2', _createdDate: daysAgo(0.4), typ: 'buchung', key: 'demo-in-2', status: 'offen', zustaendig: ids[1], zustaendigName: people[1].name, daten: JSON.stringify({ title: 'Buchungsanfrage Roter Bahnhof', body: 'TSV Soltau (Jugendabteilung): 10.10.2026 18:00–21:00 Uhr – Elternabend', details: { Name: 'Petra Muster', 'Verein/Gruppe': 'TSV Soltau', Wann: '10.10.2026 18:00–21:00 Uhr', Anlass: 'Elternabend', Personen: '25', 'E-Mail': 'petra@example.com', Telefon: '05191 000000' }, payload: { buchungId: 'demo-b1' } }) },
+      { _id: 'demo-vg3', _createdDate: daysAgo(3), typ: 'anfrage', key: 'demo-in-4', status: 'in Arbeit', zustaendig: ME, zustaendigName: 'Max Mustermann', notiz: JSON.stringify({ text: 'Mit Lea telefoniert – kommt zum nächsten Stammtisch.' }), daten: JSON.stringify({ title: 'Mitgliedsantrag über die Website', body: 'Lea Neumann möchte SPD-Mitglied werden.', details: { Art: 'Mitglied werden', Name: 'Lea Neumann', 'E-Mail': 'lea@example.com', Telefon: '0170 0000000', Nachricht: 'Ich bin neu in Soltau und möchte mich einbringen.' }, payload: { anfrageId: 'demo-a2' } }) },
+      { _id: 'demo-vg4', _createdDate: daysAgo(9), typ: 'anfrage', key: 'demo-in-3', status: 'beantwortet von Max Mustermann', erledigtAm: daysAgo(6), zustaendig: ME, zustaendigName: 'Max Mustermann', daten: JSON.stringify({ title: 'Anfrage über die Website', body: 'Wann wird der Radweg nach Harber saniert?', details: { Art: 'Kontakt', Thema: 'Verkehr', Name: 'Peter Beispiel', 'E-Mail': 'peter@example.com' }, payload: { anfrageId: 'demo-a1' } }) },
+    ],
+    Ideen: [
+      { _id: 'demo-i1', _owner: ids[12], _createdDate: daysAgo(1), titel: 'Trinkwasserspender auf dem Marktplatz', text: 'Im Sommer wäre das für Familien und ältere Leute super.', von: ids[12], vonName: people[12].name, status: 'neu', likes: [ids[5], ids[6], ME] },
+      { _id: 'demo-i2', _owner: ids[13], _createdDate: daysAgo(5), titel: 'Mehr Bänke am Böhme-Ufer', text: '', von: ids[13], vonName: people[13].name, status: 'aufgegriffen', likes: [ids[7]], antwort: 'Nehmen wir in den Bauausschuss mit – Kosten werden geprüft.' },
+      { _id: 'demo-i3', _owner: ids[6], _createdDate: daysAgo(20), titel: 'Nachtbus am Wochenende nach Munster', text: 'Viele Jugendliche kommen abends nicht nach Hause.', von: ids[6], vonName: people[6].name, status: 'antrag', likes: [ids[5], ids[8], ids[9], ids[10]] },
+    ],
+    Versammlungen: [
+      { _id: 'demo-vs1', _owner: OWNER, _createdDate: daysAgo(10), titel: 'Mitgliederversammlung 2026', datum: inDays(21), zeit: '19:00', ort: 'Roter Bahnhof, Am Bahnhof 1t', status: 'geplant', tops: JSON.stringify(['Begrüßung', 'Bericht des Vorstands', 'Kassenbericht und Entlastung', 'Anträge', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'x1', titel: 'Roter Bahnhof: neue Bestuhlung', text: 'Der Ortsverein stellt 1.500 € für neue Stühle bereit.', status: 'offen' }, { id: 'x2', titel: 'Stammtisch monatlich', text: 'Der Stammtisch findet künftig jeden dritten Freitag statt.', status: 'offen' }]), anwesend: [], protokoll: '', von: VON },
+      { _id: 'demo-vs2', _owner: OWNER, _createdDate: daysAgo(200), titel: 'Mitgliederversammlung 2025', datum: daysAgo(190).slice(0, 10), zeit: '19:00', ort: 'Roter Bahnhof', status: 'beendet', tops: JSON.stringify(['Begrüßung', 'Bericht des Vorstands', 'Wahlen', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'y1', titel: 'Website neu aufsetzen', text: 'Die Website wird bis zur Kommunalwahl neu gebaut.', status: 'angenommen', ergebnis: { ja: 18, nein: 1, enth: 2, n: 21 } }]), anwesend: ids.slice(0, 12), protokoll: 'Protokoll: Mitgliederversammlung 2025\nAnwesend: 21 Mitglieder\nBeschlüsse: Website neu aufsetzen – angenommen (18 Ja, 1 Nein, 2 Enthaltungen)', von: VON },
+    ],
+    Abstimmungen: [],
+    WkStrassen: [
+      ...['Marktstraße', 'Poststraße', 'Winsener Straße', 'Wilhelmstraße', 'Bergstraße', 'Lüneburger Straße'].map((st, i) => ({ _id: 'demo-ws' + i, _owner: OWNER, ort: 'Kernstadt', strasse: st, status: ['gespraeche', 'verteilt', 'offen', 'verteilt', 'offen', 'offen'][i], von: i < 4 ? people[1 + (i % 4)].name : '', datum: i < 4 ? daysAgo(3 + i).slice(0, 10) : '', title: st })),
+      ...['Dorfstraße', 'Am Sportplatz', 'Heideweg'].map((st, i) => ({ _id: 'demo-wh' + i, _owner: OWNER, ort: 'Harber', strasse: st, status: i === 0 ? 'verteilt' : 'offen', von: i === 0 ? people[2].name : '', datum: i === 0 ? daysAgo(2).slice(0, 10) : '', title: st })),
+    ],
+    WkPlakate: [
+      { _id: 'demo-wp1', _owner: ids[5], _createdDate: daysAgo(4), standort: 'Winsener Straße / Ecke Poststraße, Laterne', status: 'haengt', foto: '', notiz: 'Genehmigung Nr. 12', von: people[5].name, datum: daysAgo(4).slice(0, 10), title: 'Plakat' },
+      { _id: 'demo-wp2', _owner: ids[6], _createdDate: daysAgo(6), standort: 'Bahnhofsvorplatz, Zaun', status: 'abgehaengt', foto: '', notiz: '', von: people[6].name, datum: daysAgo(1).slice(0, 10), title: 'Plakat' },
+    ],
+    Planungen: [
+      { _id: 'demo-pl1', _owner: OWNER, _createdDate: daysAgo(30), titel: 'Sommerfest 2027', datum: inDays(260), vorlage: false, von: VON, vonId: OWNER, aufgaben: JSON.stringify([{ id: 'p1', titel: 'Termin und Ort festlegen', faellig: inDays(170), wer: ids[1], werName: people[1].name, erledigt: true }, { id: 'p2', titel: 'Genehmigungen und GEMA klären', faellig: inDays(200), wer: ME, werName: 'Max Mustermann', erledigt: false }, { id: 'p3', titel: 'Helferliste anlegen', faellig: inDays(230), wer: '', werName: '', erledigt: false }, { id: 'p4', titel: 'Musik / Programm', faellig: inDays(230), wer: ids[3], werName: people[3].name, erledigt: false }]) },
+      { _id: 'demo-pl2', _owner: OWNER, _createdDate: daysAgo(10), titel: 'Mitgliederversammlung 2026', datum: inDays(21), vorlage: false, von: VON, vonId: OWNER, aufgaben: JSON.stringify([{ id: 'q1', titel: 'Einladung mit Tagesordnung verschicken', faellig: inDays(-7), wer: ids[1], werName: people[1].name, erledigt: true }, { id: 'q2', titel: 'Kassenbericht vorbereiten', faellig: inDays(7), wer: ids[4], werName: people[4].name, erledigt: false }, { id: 'q3', titel: 'Versammlung in der App anlegen', faellig: inDays(1), wer: ME, werName: 'Max Mustermann', erledigt: true }, { id: 'q4', titel: 'Getränke besorgen', faellig: inDays(20), wer: ME, werName: 'Max Mustermann', erledigt: false }]) },
+      { _id: 'demo-pl3', _owner: OWNER, _createdDate: daysAgo(60), titel: 'Infostand', datum: '', vorlage: true, von: VON, vonId: OWNER, aufgaben: JSON.stringify([{ id: 'r1', titel: 'Standgenehmigung beantragen', tage: 21 }, { id: 'r2', titel: 'Material bestellen', tage: 14 }, { id: 'r3', titel: 'Helferliste anlegen', tage: 14 }, { id: 'r4', titel: 'Pavillon und Tisch organisieren', tage: 3 }]) },
+    ],
+    Pressekontakte: [
+      { _id: 'demo-pk1', _owner: OWNER, redaktion: 'Böhme-Zeitung', name: 'Redaktion Soltau', email: 'redaktion@example.com', telefon: '05191 000000', notiz: 'Redaktionsschluss Di 16 Uhr', von: VON, title: 'Böhme-Zeitung' },
+      { _id: 'demo-pk2', _owner: OWNER, redaktion: 'NDR Studio Lüneburg', name: '', email: 'lueneburg@example.com', telefon: '', notiz: '', von: VON, title: 'NDR' },
+    ],
+    Newsletter: [
+      { _id: 'demo-nl0', ziel: 'status', betreff: '', empfaenger: 148, text: JSON.stringify({ aktiv: 148, smtp: true }), gesendetAm: daysAgo(0) },
+      { _id: 'demo-nl1', ziel: 'beide', betreff: 'SPD Soltau – Neues aus dem Rat, September', empfaenger: 203, gesendetAm: daysAgo(12), von: VON, text: '' },
+      { _id: 'demo-nl2', ziel: 'presse', betreff: 'Pressemitteilung SPD Soltau: Radweg nach Harber: Sanierung kommt', empfaenger: 2, gesendetAm: daysAgo(4), von: VON, text: '' },
+    ],
     Fahrgemeinschaften: [
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
       { _id: uid(), _owner: ids[7], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'suche', ab: 'Wolterdingen', plaetze: 1, zeit: '', memberId: ids[7], name: people[7].name, hinweis: '' },

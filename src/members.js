@@ -13,6 +13,10 @@ import { HELP_TOPICS, PLATFORMS, stepsFor, topicById, videoName, posterName, gue
 import { makeDemoClient } from './demo.js';
 import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
+import { makeVorstand } from './vorstand.js';
+import { makeVorstandMehr } from './vorstand-mehr.js';
+import { makeBereiche } from './bereiche.js';
+import { stammtischConfig, istStammtisch, STAMMTISCH_DEFAULT } from './lib/stammtisch.mjs';
 
 const SPD = window.SPD || {};
 const CFG = (SPD.app = SPD.app || {});
@@ -28,7 +32,8 @@ const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Er
 const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrichseck', 'Harber', 'Hötzingen', 'Leitzingen', 'Marbostel', 'Meinern', 'Mittelstendorf', 'Moide', 'Oeningen', 'Tetendorf', 'Wolterdingen', 'Woltem'];
 const SECTIONS = [
   ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],
-  ['rat', 'Rat'], ['ratsarbeit', 'Ratsarbeit'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'], ['hilfe', 'Hilfe'],
+  ['rat', 'Sitzungen'], ['versammlung', 'Versammlung'], ['wahlkampf', 'Wahlkampf'], ['planung', 'Jahresplan'], ['wissen', 'Wissen'], ['ideen', 'Ideen'],
+  ['ratsarbeit', 'Ratsarbeit'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'], ['hilfe', 'Hilfe'],
 ];
 const ORTE_TERMIN = ['Roter Bahnhof, Am Bahnhof 1t', 'Altes Rathaus', 'Alte Reithalle', 'Marktplatz', 'Online'];
 
@@ -345,7 +350,7 @@ async function loadSettings() {
 }
 const anyRight = () => RIGHTS.some(([k]) => me.can(k));
 const inFraktion = () => !!settings?.groups.fraktion.has(me.id); // Ratsarbeit: nur die Gruppe Fraktion (Vorstand → Gruppen), nicht der Vorstand als solcher
-const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitglieder: 'mitglieder' };
+const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitglieder: 'mitglieder', versammlung: 'versammlung', wahlkampf: 'wahlkampf' };
 const secVisible = k => k === 'hilfe' || (k === 'ratsarbeit' ? inFraktion() : (k !== 'vorstand' || anyRight()) && (k !== 'beitraege' || me.can('beitraege')) && (!SEC_VIS[k] || me.sees(SEC_VIS[k])));
 const visibleEvents = () => (SPD.events || []).filter(ev => me.sees('termine:' + (ev.typ || 'Öffentlich')));
 
@@ -373,12 +378,16 @@ const ICON = {
   chev: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>',
   list: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
   upload: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>',
+  idea: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
+  vote: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16v8H4zM8 12V5h8v7M10 8l1.5 1.5L14.5 6"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+  search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
 };
 // Gruppierte Bereichsliste – am PC als Seitenleiste, am Handy im „Mehr“-Blatt
 function navGroups() {
   const sec = (k, l, icon) => secVisible(k) ? [k, l, icon] : null;
   return [
-    ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('umfragen', 'Umfragen', ICON.poll), sec('dokumente', 'Dokumente', ICON.doc), sec('rat', 'Ratsvorbereitung', ICON.rat), sec('mitglieder', 'Mitglieder', ICON.users)]],
+    ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('umfragen', 'Umfragen', ICON.poll), sec('ideen', 'Ideen', ICON.idea), sec('dokumente', 'Dokumente', ICON.doc), sec('rat', 'Sitzungen', ICON.rat), sec('versammlung', 'Versammlungen', ICON.vote), sec('wahlkampf', 'Wahlkampf', ICON.flag), sec('planung', 'Jahresplan', ICON.list), sec('wissen', 'Wissen', ICON.search), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Fraktion', [sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
     ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('hilfe', 'Hilfe & Anleitungen', ICON.help)]],
     ['Vorstand', [sec('vorstand', 'Vorstand', ICON.inbox)]],
@@ -428,18 +437,14 @@ function renderShell() {
 // Zähler: offene Vorgänge im Eingang (Vorstand), meine offenen Aufgaben (Ratsarbeit)
 async function updateBadges() {
   const setBadge = (key, n) => document.querySelectorAll(`[data-badge="${key}"]`).forEach(b => { b.textContent = n > 99 ? '99+' : String(n); b.hidden = !n; });
-  if (anyRight()) {
-    let n = 0;
-    try { n += (await db.list('Eingang', { eq: { status: 'offen' }, limit: 100 })).length; } catch (e) { /* kein Zugriff */ }
-    try { const local = await inboxAll(); n += local.filter(l => !l.done).length; } catch (e) { /* egal */ }
-    setBadge('vorstand', n);
-  }
+  if (me.can('freigaben')) setBadge('vorstand', await vorstand.badge());
   if (inFraktion()) setBadge('ratsarbeit', await ratsarbeit.badge());
 }
-const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: secVorstand, hilfe: secHilfe };
+const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe,
+  versammlung: v => bereiche.versammlung(v), wahlkampf: v => bereiche.wahlkampf(v), wissen: v => bereiche.wissen(v), planung: v => bereiche.planung(v), ideen: v => bereiche.ideen(v) };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
-  if (['eingang', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
+  if (['eingang', 'anliegen', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
   if (key === 'push' || key === 'app-install') key = 'profil';
   if (key === 'mehr') { key = 'start'; $('#mb-more', document.body)?.click(); }
   if (!RENDER[key] || !secVisible(key)) key = 'start';
@@ -541,10 +546,12 @@ async function secStart(v) {
   const freeSlots = openLists.reduce((n, l) => n + (l.schichten || []).reduce((m, s) => m + Math.max(0, (s.plaetze || 0) - helfer.filter(h => h.listeId === l._id && h.schichtId === s.id).length), 0), 0);
   const bdays = upcomingBirthdays(profiles, 14);
   const ratKarte = await ratsarbeit.startKarte();
+  const planKarte = await bereiche.startKarte();
+  const ideenKarte = bereiche.ideenKarte();
   v.innerHTML = `
   ${myProfile?.verzeichnisSichtbar || settings.board.has(me.id) ? '' : '<p class="note note-info" style="margin-bottom:20px">Du stehst noch nicht im Mitgliederverzeichnis – andere Mitglieder finden dich also nicht. Einschalten kannst du das unter <a href="#profil">Mein Profil</a>.</p>'}
   <div class="start-grid">
-    ${ratKarte}
+    ${ratKarte}${planKarte}
     <div class="mb-card">
       <h3>Nächste Termine</h3>
       ${events.length ? events.map(ev => { const mine = zusagen.find(z => z.eventId === ev.id && z.memberId === me.id); return `<a class="start-ev" href="#termine/ev-${esc(ev.id)}"><b>${esc(fmtShort(ev.date))}</b> ${esc(ev.title)} <span class="small muted">${esc(ev.zeit || '')}</span>${mine ? `<span class="badge ${mine.status === 'zusage' ? 'badge-mit' : ''}">${mine.status === 'zusage' ? 'zugesagt' : 'abgesagt'}</span>` : '<span class="badge">offen</span>'}</a>`; }).join('') : '<p class="muted small">Keine Termine eingetragen.</p>'}
@@ -563,6 +570,7 @@ async function secStart(v) {
       <a class="btn btn-schwarz btn-sm" href="#dokumente">Alle Dokumente</a>
     </div>` : ''}
     ${(settings.snap.whatsapp?.gruppen || []).length ? `<div class="mb-card"><h3>Unsere WhatsApp-Gruppen</h3><p class="small muted">Die App schickt Push-Nachrichten – in den Gruppen läuft der Austausch. Termine, Helferlisten und Umfragen lassen sich mit einem Tipp dorthin teilen.</p>${settings.snap.whatsapp.gruppen.map(g => `<a class="start-ev" href="${esc(g.url)}" target="_blank" rel="noopener">${WA_ICON} ${esc(g.name)}<span class="badge" style="margin-left:auto">Beitreten</span></a>`).join('')}</div>` : ''}
+    ${ideenKarte}
     <div class="mb-card">
       <h3>Geburtstage</h3>
       ${bdays.length ? bdays.map(b => `<p class="small">🎂 <b>${esc(b.name)}</b> – ${esc(b.text)}</p>`).join('') : '<p class="muted small">In den nächsten zwei Wochen keine eingetragenen Geburtstage.</p>'}
@@ -613,7 +621,8 @@ function monatsKalender(events, ansichtEvents) {
 }
 async function secTermine(v) {
   const events = visibleEvents().slice(0, 40);
-  const [zusagen, listen, helfer, fahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => [])]);
+  const [zusagen, listen, helfer, fahrten, terminPolls, stimmen] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => []), db.list('Umfragen', { eq: { nurZusagen: true } }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => [])]);
+  secTermine.polls = { terminPolls: terminPolls.map(u => ({ ...u, col: 'Umfragen' })), stimmen };
   const today = todayIso();
   const ics = CFG.ics || {};
   // Listen, die an einem angezeigten Termin hängen, stehen direkt im Termin – der Rest unten
@@ -700,6 +709,7 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
         <button type="button" class="btn btn-schwarz btn-sm" data-save-grund>Speichern</button>
       </div>
       <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
+      ${terminPoll(ev, mine)}
       ${me.sees('helfer') ? myLists.map(l => helperList(l, helfer, events, true)).join('') : ''}
       ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
       <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
@@ -717,6 +727,14 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
       <p class="note" hidden></p>
     </div>
   </article>`;
+}
+// Umfrage zum Termin (z. B. Stammtisch: „Wo treffen wir uns?“) – sichtbar nur für Zusagen (und wer Umfragen verwalten darf)
+function terminPoll(ev, mine) {
+  const p = secTermine.polls; if (!p) return '';
+  const u = p.terminPolls.find(x => x.eventId === ev.id && x.offen !== false);
+  if (!u) return '';
+  if (mine?.status !== 'zusage' && !me.can('umfragen')) return `<p class="small muted">🍽️ Zu diesem Termin gibt es eine Umfrage („${esc(u.frage)}“) – sie erscheint, sobald du zugesagt hast.</p>`;
+  return `<div class="termin-poll">${pollCard(u, p.stimmen, true)}<p class="small muted">Diese Umfrage sehen nur die, die zugesagt haben.</p></div>`;
 }
 // embedded = innerhalb der Terminkarte (kompakter, ohne Termin-Hinweis)
 function helperList(l, helfer, events, embedded = false) {
@@ -751,6 +769,8 @@ function helperForm(events) {
   </form>`;
 }
 function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
+  // Umfragen innerhalb von Terminkarten (Stammtisch)
+  if (secTermine.polls?.terminPolls.length) wirePolls(v, secTermine.polls.terminPolls, secTermine.polls.stimmen);
   v.addEventListener('click', async e => {
     // Zu-/Absagen
     const b = e.target.closest('button[data-status],button[data-save-grund]');
@@ -844,7 +864,8 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
 // ---------- Umfragen ----------
 async function secUmfragen(v) {
   const [intern, pub, stimmen] = await Promise.all([db.list('Umfragen', { desc: '_createdDate' }).catch(() => []), db.list('UmfragenOeffentlich', { desc: '_createdDate' }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => [])]);
-  const all = [...intern.map(u => ({ ...u, col: 'Umfragen' })), ...pub.map(u => ({ ...u, col: 'UmfragenOeffentlich' }))].sort((a, b) => String(b._createdDate).localeCompare(String(a._createdDate)));
+  const meineZusagen = new Set((await db.list('Zusagen', { eq: { memberId: me.id } }).catch(() => [])).filter(z => z.status === 'zusage').map(z => z.eventId));
+  const all = [...intern.filter(u => !u.nurZusagen || meineZusagen.has(u.eventId) || me.can('umfragen')).map(u => ({ ...u, col: 'Umfragen' })), ...pub.map(u => ({ ...u, col: 'UmfragenOeffentlich' }))].sort((a, b) => String(b._createdDate).localeCompare(String(a._createdDate)));
   const today = todayIso();
   const open = all.filter(u => u.offen && (!u.endetAm || u.endetAm >= today)), closed = all.filter(u => !open.includes(u));
   v.innerHTML = `
@@ -953,29 +974,37 @@ async function secDokumente(v) {
   });
 }
 
-// ---------- Ratsvorbereitung ----------
+// ---------- Sitzungen: Rat, Ausschüsse, Fraktion, Vorstand, Versammlung – Haltung, Diskussion, Ergebnis je Punkt; Sitzungsmodus ----------
 const POS = ['offen', 'dafür', 'dagegen', 'Enthaltung', 'Änderungsantrag'];
+const SITZUNG_TYPEN = ['Rat', 'Ausschuss', 'Fraktion', 'Vorstand', 'Versammlung', 'Sonstiges'];
+const typVis = t => ({ Rat: 'Rat', Ausschuss: 'Rat', Fraktion: 'Fraktion', Vorstand: 'Vorstand' }[t] || 'Mitglieder');
+const sitzungTyp = r => r.typ || (/vorstand/i.test(r.gremium || '') ? 'Vorstand' : /fraktion/i.test(r.gremium || '') ? 'Fraktion' : /ausschuss/i.test(r.gremium || '') ? 'Ausschuss' : 'Rat');
+const fokus = { i: 0 };
 async function secRat(v, editId = null, vorlage = null) {
-  const all = await db.list('Ratsvorbereitung', { desc: 'sitzung' }).catch(() => []);
+  const all = (await db.list('Ratsvorbereitung', { desc: 'sitzung' }).catch(() => [])).filter(r => me.sees('termine:' + typVis(sitzungTyp(r))));
   const today = todayIso();
+  const sub = location.hash.split('/')[1] || '';
+  if (sub.startsWith('fokus-')) { const r = all.find(x => x._id === sub.slice(6)); if (r) return fokusSitzung(v, r); }
   const next = all.filter(r => (r.sitzung || '') >= today).sort((a, b) => a.sitzung.localeCompare(b.sitzung)), past = all.filter(r => (r.sitzung || '') < today);
   const editing = editId ? all.find(r => r._id === editId) : null;
-  // Sitzungen der Stadt aus dem Bürgerinformationssystem (beim Bau geholt) – noch nicht in der Ratsvorbereitung
+  // Sitzungen der Stadt aus dem Bürgerinformationssystem (beim Bau geholt) – noch nicht angelegt
   const stadt = (SPD.sitzungen || []).filter(s => s.datum >= today && !all.some(r => r.sitzung === s.datum && String(r.gremium).toLowerCase().includes(String(s.gremium).toLowerCase().split(' ')[0])));
-  const form = vorlage ? { gremium: vorlage.gremium, sitzung: vorlage.datum, zeit: vorlage.zeit, titel: '', link: vorlage.url, hinweis: '', tops: (vorlage.tops || []).map(t => ({ nr: t.nr, titel: t.titel + (t.vorlage ? ` (${t.vorlage})` : ''), position: 'offen', einordnung: '' })) } : editing;
+  const form = vorlage ? { typ: /^Rat\b/.test(vorlage.gremium) ? 'Rat' : 'Ausschuss', gremium: vorlage.gremium, sitzung: vorlage.datum, zeit: vorlage.zeit, ort: vorlage.ort, titel: '', link: vorlage.url, hinweis: '', tops: (vorlage.tops || []).map(t => ({ nr: t.nr, titel: t.titel + (t.vorlage ? ` (${t.vorlage})` : ''), position: 'offen', einordnung: '' })) } : editing;
   v.innerHTML = `
-  ${sectionHead('Ratsvorbereitung', 'Tagesordnung mit der Einordnung der Fraktion – nur intern')}
+  ${sectionHead('Sitzungen', 'Rat, Ausschüsse, Fraktion, Vorstand – unsere Haltung, was besprochen wurde, was rauskam')}
   ${me.can('rat') ? `<div class="mb-create"><details class="mb-details" id="r-new" ${form ? 'open' : ''}><summary>${editing ? 'Sitzung bearbeiten' : vorlage ? 'Sitzung aus dem Bürgerinformationssystem' : 'Sitzung anlegen'}</summary>${ratForm(form)}</details></div>` : ''}
-  ${me.can('rat') && stadt.length && !vorlage ? `<section class="rat-stadt"><h4 class="doc-cat">Nächste Sitzungen der Stadt <span class="small muted">(Bürgerinformationssystem, automatisch)</span></h4><div class="doc-list">${stadt.map((s2, i) => `<article class="doc"><div class="doc-body"><b>${esc(s2.gremium)}</b><p class="small muted">${esc(fmtDate(s2.datum))} · ${esc(s2.zeit)} Uhr · ${esc(s2.ort)} · ${s2.tops.length ? `${s2.tops.length} öffentliche Tagesordnungspunkte` : 'Tagesordnung noch nicht veröffentlicht'}</p></div><div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" data-uebernehmen="${i}">${s2.tops.length ? 'Tagesordnung übernehmen' : 'Sitzung anlegen'}</button></div></article>`).join('')}</div><p class="small muted">Übernehmen legt die Sitzung mit allen Punkten an – die Fraktion trägt dann nur noch ihre Haltung je Punkt ein.</p></section>` : ''}
+  ${me.can('rat') && stadt.length && !vorlage ? `<section class="rat-stadt"><h4 class="doc-cat">Nächste Sitzungen der Stadt <span class="small muted">(Bürgerinformationssystem, automatisch)</span></h4><div class="doc-list">${stadt.map((s2, i) => `<article class="doc"><div class="doc-body"><b>${esc(s2.gremium)}</b><p class="small muted">${esc(fmtDate(s2.datum))} · ${esc(s2.zeit)} Uhr · ${esc(s2.ort)} · ${s2.tops.length ? `${s2.tops.length} öffentliche Tagesordnungspunkte` : 'Tagesordnung noch nicht veröffentlicht'}</p></div><div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" data-uebernehmen="${i}">${s2.tops.length ? 'Tagesordnung übernehmen' : 'Sitzung anlegen'}</button></div></article>`).join('')}</div><p class="small muted">Übernehmen legt die Sitzung mit allen Punkten an – ihr tragt dann nur noch eure Haltung je Punkt ein.</p></section>` : ''}
   <div class="rat-list">${next.length ? next.map(r => ratCard(r)).join('') : '<p class="muted">Keine kommende Sitzung eingetragen.</p>'}</div>
-  ${past.length ? `<section class="mb-sub"><h4 class="doc-cat">Vergangene Sitzungen</h4><div class="rat-list">${past.slice(0, 6).map(r => ratCard(r)).join('')}</div></section>` : ''}`;
+  ${past.length ? `<section class="mb-sub"><h4 class="doc-cat">Vergangene Sitzungen <span class="small muted">mit Ergebnissen</span></h4><div class="rat-list">${past.slice(0, 8).map(r => ratCard(r)).join('')}</div></section>` : ''}`;
   wireRat(v, all, stadt);
 }
+const posBadge = p => `<span class="pos pos-${esc(String(p || 'offen').replace(/[^a-zä]/gi, '').toLowerCase())}">${esc(p || 'offen')}</span>`;
 function ratCard(r) {
+  const tops = r.tops || [], entschieden = tops.filter(t => t.ergebnis).length;
   return `<article class="mb-card rat" data-id="${esc(r._id)}">
-    <div class="hl-head"><div><span class="tag">${esc(r.gremium || 'Rat')}</span> <span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><h4>${esc(r.titel || 'Sitzung')}</h4></div>
-      <div class="mb-actions">${r.link ? `<a class="btn btn-line btn-sm" href="${esc(r.link)}" target="_blank" rel="noopener">Ratsinfo</a>` : ''}${me.can('rat') ? '<button type="button" class="btn btn-line btn-sm" data-edit-rat>Bearbeiten</button>' : ''}</div></div>
-    ${(r.tops || []).length ? `<div class="tops">${r.tops.map(t => `<div class="top"><div class="top-nr">TOP ${esc(t.nr || '')}</div><div><b>${esc(t.titel)}</b> <span class="pos pos-${esc((t.position || 'offen').replace(/[^a-zä]/gi, '').toLowerCase())}">${esc(t.position || 'offen')}</span>${t.einordnung ? `<p class="small">${nl2br(t.einordnung)}</p>` : ''}</div></div>`).join('')}</div>` : '<p class="small muted">Noch keine Tagesordnungspunkte eingetragen.</p>'}
+    <div class="hl-head"><div><span class="tag ${sitzungTyp(r) === 'Vorstand' ? 'tag-schwarz' : ''}">${esc(sitzungTyp(r))}</span> <span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><h4>${esc(r.gremium || 'Sitzung')}${r.titel ? ' – ' + esc(r.titel) : ''}</h4></div>
+      <div class="mb-actions"><a class="btn btn-rot btn-sm" href="#rat/fokus-${esc(r._id)}">Sitzungsmodus</a>${r.link ? `<a class="btn btn-line btn-sm" href="${esc(r.link)}" target="_blank" rel="noopener">Bürgerinfosystem</a>` : ''}${me.can('rat') ? '<button type="button" class="btn btn-line btn-sm" data-edit-rat>Bearbeiten</button>' : ''}</div></div>
+    ${tops.length ? `<div class="tops">${tops.map(t => `<div class="top"><div class="top-nr">TOP ${esc(t.nr || '')}</div><div><b>${esc(t.titel)}</b> ${posBadge(t.position)}${t.ergebnis ? `<p class="small top-ergebnis"><b>Ergebnis:</b> ${esc(t.ergebnis)}</p>` : ''}${t.einordnung ? `<p class="small">${nl2br(t.einordnung)}</p>` : ''}${t.redner ? `<p class="small muted">Spricht: ${esc(t.redner)}</p>` : ''}</div></div>`).join('')}</div><p class="small muted">${tops.length} Punkte · ${tops.filter(t => t.position && t.position !== 'offen').length} mit Haltung · ${entschieden} mit Ergebnis</p>` : '<p class="small muted">Noch keine Tagesordnungspunkte eingetragen.</p>'}
     ${r.hinweis ? `<p class="small"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
     <p class="small muted">Stand: ${esc(fmtWhen(r._updatedDate || r._createdDate))} · ${esc(r.von || '–')}</p>
   </article>`;
@@ -984,24 +1013,27 @@ function ratForm(r) {
   const tops = r?.tops?.length ? r.tops : [{ nr: '', titel: '', position: 'offen', einordnung: '' }];
   return `<form class="form mb-form" id="f-rat" data-id="${esc(r?._id || '')}" novalidate>
     <div class="mb-3">
-      <div class="field"><label for="ra-gr">Gremium</label><input id="ra-gr" name="gremium" type="text" list="gremien" required value="${esc(r?.gremium || 'Rat der Stadt Soltau')}"><datalist id="gremien"><option value="Rat der Stadt Soltau"><option value="Verwaltungsausschuss"><option value="Bauausschuss"><option value="Sozialausschuss"><option value="Finanzausschuss"><option value="Fraktionssitzung"></datalist></div>
+      <div class="field"><label for="ra-typ">Art</label><select id="ra-typ" name="typ">${opt(SITZUNG_TYPEN, r ? sitzungTyp(r) : 'Rat')}</select></div>
+      <div class="field"><label for="ra-gr">Gremium</label><input id="ra-gr" name="gremium" type="text" list="gremien" required value="${esc(r?.gremium || 'Rat der Stadt Soltau')}"><datalist id="gremien"><option value="Rat der Stadt Soltau"><option value="Verwaltungsausschuss"><option value="Bauausschuss"><option value="Sozialausschuss"><option value="Finanzausschuss"><option value="Schulausschuss"><option value="Kulturausschuss"><option value="Fraktionssitzung"><option value="Vorstandssitzung"><option value="Mitgliederversammlung"></datalist></div>
       <div class="field"><label for="ra-datum">Sitzung am</label><input id="ra-datum" name="sitzung" type="date" required value="${esc(r?.sitzung || '')}"></div>
+    </div>
+    <div class="mb-3">
       <div class="field"><label for="ra-zeit">Uhrzeit</label><input id="ra-zeit" name="zeit" type="time" value="${esc(r?.zeit || '')}"></div>
+      <div class="field"><label for="ra-ort">Ort</label><input id="ra-ort" name="ort" type="text" value="${esc(r?.ort || '')}" placeholder="z. B. Alte Reithalle"></div>
+      <div class="field"><label for="ra-titel">Titel (optional)</label><input id="ra-titel" name="titel" type="text" value="${esc(r?.titel || '')}" placeholder="z. B. Haushalt 2027"></div>
     </div>
-    <div class="mb-2">
-      <div class="field"><label for="ra-titel">Titel</label><input id="ra-titel" name="titel" type="text" value="${esc(r?.titel || '')}" placeholder="z. B. Haushalt 2027"></div>
-      <div class="field"><label for="ra-link">Link (Ratsinformationssystem, optional)</label><input id="ra-link" name="link" type="url" value="${esc(r?.link || '')}"></div>
-    </div>
-    <div class="field"><label>Tagesordnungspunkte</label>
+    <div class="field"><label for="ra-link">Link (Bürgerinformationssystem, optional)</label><input id="ra-link" name="link" type="url" value="${esc(r?.link || '')}"></div>
+    <div class="field"><label>Tagesordnungspunkte – je Punkt: Haltung, Argumente, wer spricht, was intern diskutiert wurde, Ergebnis</label>
       <div id="ra-tops" class="rows">${tops.map(t => topRow(t)).join('')}</div>
-      <button type="button" class="linkbtn" id="ra-add">+ TOP hinzufügen</button>
+      <button type="button" class="linkbtn" id="ra-add">+ Punkt hinzufügen</button>
     </div>
-    <div class="field"><label for="ra-hinweis">Hinweis für die Fraktion (optional)</label><textarea id="ra-hinweis" name="hinweis" rows="2">${esc(r?.hinweis || '')}</textarea></div>
+    <div class="field"><label for="ra-hinweis">Hinweis für alle (optional)</label><textarea id="ra-hinweis" name="hinweis" rows="2">${esc(r?.hinweis || '')}</textarea></div>
     <p class="note" hidden></p>
     <div class="mb-actions"><button class="btn btn-rot" type="submit">${r?._id ? 'Änderungen speichern' : 'Sitzung speichern'}</button>${r ? '<button class="btn btn-line" type="button" id="ra-cancel">Abbrechen</button>' : ''}${r?._id ? '<button class="btn btn-line" type="button" id="ra-del">Löschen</button>' : ''}</div>
   </form>`;
 }
-const topRow = t => `<div class="row top-row"><input type="text" placeholder="Nr." value="${esc(t.nr || '')}" aria-label="TOP-Nummer"><input type="text" placeholder="Titel des Tagesordnungspunkts" value="${esc(t.titel || '')}" aria-label="Titel"><select aria-label="Position">${opt(POS, t.position || 'offen')}</select><textarea rows="2" placeholder="Einordnung der Fraktion (optional)" aria-label="Einordnung">${esc(t.einordnung || '')}</textarea><button type="button" class="linkbtn" data-del-top>entfernen</button></div>`;
+const topRow = t => `<div class="row top-row"><input type="text" placeholder="Nr." value="${esc(t.nr || '')}" aria-label="TOP-Nummer"><input type="text" placeholder="Titel des Tagesordnungspunkts" value="${esc(t.titel || '')}" aria-label="Titel"><select aria-label="Haltung">${opt(POS, t.position || 'offen')}</select><textarea rows="2" placeholder="Unsere Haltung und Argumente (optional)" aria-label="Argumente">${esc(t.einordnung || '')}</textarea><details class="top-mehr"><summary>Mehr: wer spricht · intern diskutiert · Ergebnis</summary><input type="text" placeholder="Wer spricht dazu?" value="${esc(t.redner || '')}" aria-label="Redner"><textarea rows="2" placeholder="Was wurde bei uns intern besprochen?" aria-label="Diskussion">${esc(t.diskussion || '')}</textarea><textarea rows="2" placeholder="Ergebnis / Beschluss (nach der Sitzung)" aria-label="Ergebnis">${esc(t.ergebnis || '')}</textarea></details><button type="button" class="linkbtn" data-del-top>entfernen</button></div>`;
+const topLesen = r => ({ nr: r.children[0].value.trim(), titel: r.children[1].value.trim(), position: r.children[2].value, einordnung: r.children[3].value.trim(), redner: r.querySelector('[aria-label=Redner]').value.trim(), diskussion: r.querySelector('[aria-label=Diskussion]').value.trim(), ergebnis: r.querySelector('[aria-label=Ergebnis]').value.trim() });
 function wireRat(v, all, stadt = []) {
   const f = $('#f-rat');
   if (f) {
@@ -1012,8 +1044,8 @@ function wireRat(v, all, stadt = []) {
     f.addEventListener('submit', async e => {
       e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
       const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
-      const tops = $$('#ra-tops .top-row').map(r => ({ nr: r.children[0].value.trim(), titel: r.children[1].value.trim(), position: r.children[2].value, einordnung: r.children[3].value.trim() })).filter(t => t.titel);
-      const data = { gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, hinweis: fd.get('hinweis').trim(), von: me.name };
+      const tops = $$('#ra-tops .top-row').map(topLesen).filter(t => t.titel);
+      const data = { typ: fd.get('typ'), gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), ort: fd.get('ort').trim(), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, hinweis: fd.get('hinweis').trim(), von: me.name };
       try {
         const cur = all.find(r => r._id === f.dataset.id);
         if (cur) await db.update('Ratsvorbereitung', { ...cur, ...data }); else await db.insert('Ratsvorbereitung', data);
@@ -1025,6 +1057,44 @@ function wireRat(v, all, stadt = []) {
     const u = e.target.closest('button[data-uebernehmen]'); if (u) { secRat(v, null, stadt[+u.dataset.uebernehmen]); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const b = e.target.closest('button[data-edit-rat]'); if (!b) return; secRat(v, b.closest('.rat').dataset.id);
   });
+}
+// Sitzungsmodus: ein Punkt groß auf dem Bildschirm – Haltung, Argumente, wer spricht, intern Besprochenes; Ergebnis direkt eintragen.
+// Darunter alle Punkte auf einen Blick (Haltung · Ergebnis).
+function fokusSitzung(v, r) {
+  const tops = r.tops || [];
+  fokus.i = Math.min(Math.max(fokus.i, 0), Math.max(tops.length - 1, 0));
+  const t = tops[fokus.i] || {};
+  const kann = me.can('rat');
+  v.innerHTML = `<div class="fokus">
+    <p class="small rz-zurueck"><a href="#rat">← Sitzungen</a></p>
+    <div class="fokus-kopf"><span class="tag ${sitzungTyp(r) === 'Vorstand' ? 'tag-schwarz' : ''}">${esc(sitzungTyp(r))}</span><b>${esc(r.gremium || 'Sitzung')}</b><span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><span class="fokus-zaehler">${tops.length ? `Punkt ${fokus.i + 1} von ${tops.length}` : 'keine Punkte'}</span></div>
+    ${tops.length ? `<div class="fokus-top">
+      <div class="fokus-nr">TOP ${esc(t.nr || fokus.i + 1)}</div>
+      <h2 class="fokus-titel">${esc(t.titel || '')}</h2>
+      <div class="fokus-haltung pos-${esc(String(t.position || 'offen').replace(/[^a-zä]/gi, '').toLowerCase())}">${esc(t.position || 'offen')}</div>
+      ${t.einordnung ? `<div class="fokus-block"><span class="fokus-label">Unsere Haltung &amp; Argumente</span><p>${nl2br(t.einordnung)}</p></div>` : ''}
+      ${t.redner ? `<div class="fokus-block"><span class="fokus-label">Es spricht</span><p>${esc(t.redner)}</p></div>` : ''}
+      ${t.diskussion ? `<div class="fokus-block"><span class="fokus-label">Intern besprochen</span><p>${nl2br(t.diskussion)}</p></div>` : ''}
+      <div class="fokus-block"><span class="fokus-label">Ergebnis</span>${kann ? `<textarea id="fo-ergebnis" rows="2" placeholder="Wie wurde entschieden? (wird sofort gespeichert)">${esc(t.ergebnis || '')}</textarea><div class="mb-actions"><button class="btn btn-schwarz btn-sm" type="button" id="fo-save">Ergebnis speichern</button><span class="small muted" id="fo-msg"></span></div>` : `<p>${t.ergebnis ? nl2br(t.ergebnis) : '<span class="muted">noch offen</span>'}</p>`}</div>
+    </div>
+    <div class="fokus-nav"><button class="btn btn-line" type="button" id="fo-prev" ${fokus.i === 0 ? 'disabled' : ''}>‹ Vorheriger</button><button class="btn btn-rot" type="button" id="fo-next" ${fokus.i >= tops.length - 1 ? 'disabled' : ''}>Nächster ›</button></div>` : '<p class="muted">Diese Sitzung hat noch keine Tagesordnungspunkte.</p>'}
+    <details class="fokus-alle" ${tops.length > 1 ? 'open' : ''}><summary>Alle Punkte auf einen Blick</summary>
+      <table class="fokus-tabelle"><thead><tr><th>TOP</th><th>Punkt</th><th>Haltung</th><th>Ergebnis</th></tr></thead><tbody>${tops.map((x, i) => `<tr class="${i === fokus.i ? 'aktiv' : ''}" data-i="${i}"><td>${esc(x.nr || i + 1)}</td><td>${esc(x.titel)}${x.redner ? `<br><small class="muted">${esc(x.redner)}</small>` : ''}</td><td>${posBadge(x.position)}</td><td>${x.ergebnis ? esc(x.ergebnis) : '<span class="muted">–</span>'}</td></tr>`).join('')}</tbody></table>
+    </details>
+    ${r.hinweis ? `<p class="small"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
+  </div>`;
+  const go = i => { fokus.i = i; fokusSitzung(v, r); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  $('#fo-prev', v)?.addEventListener('click', () => go(fokus.i - 1));
+  $('#fo-next', v)?.addEventListener('click', () => go(fokus.i + 1));
+  $$('.fokus-tabelle tbody tr', v).forEach(tr => tr.addEventListener('click', () => go(+tr.dataset.i)));
+  $('#fo-save', v)?.addEventListener('click', async () => {
+    const btn = $('#fo-save', v); busy(btn, true);
+    try { const neu = tops.map((x, i) => i === fokus.i ? { ...x, ergebnis: $('#fo-ergebnis', v).value.trim() } : x); r = await db.update('Ratsvorbereitung', { ...r, tops: neu }); $('#fo-msg', v).textContent = 'Gespeichert.'; }
+    catch (err) { $('#fo-msg', v).textContent = 'Nicht gespeichert: ' + errText(err); }
+    busy(btn, false);
+  });
+  v.onkeydown = e => { if (e.target.tagName === 'TEXTAREA') return; if (e.key === 'ArrowRight' && fokus.i < tops.length - 1) go(fokus.i + 1); if (e.key === 'ArrowLeft' && fokus.i > 0) go(fokus.i - 1); };
+  v.tabIndex = -1; v.focus({ preventScroll: true });
 }
 
 // ---------- Beiträge für „Aktuelles“ (Wix Blog) ----------
@@ -1221,29 +1291,13 @@ function wireInstall() {
   });
 }
 
-// ---------- Vorstand ----------
-async function secVorstand(v) {
-  const panels = [
-    me.can('freigaben') && ['eingang', 'Eingang'],
-    me.can('verwaltung') && ['wer', 'Benachrichtigen'],
-    me.can('verwaltung') && ['gruppen', 'Gruppen'],
-    me.can('verwaltung') && ['rechte', 'Rechte'],
-    me.can('verwaltung') && ['sicht', 'Sichtbarkeit'],
-    me.can('nachrichten') && ['nachricht', 'Nachricht'],
-    me.can('verwaltung') && ['whatsapp', 'WhatsApp'],
-  ].filter(Boolean);
-  const wanted = (location.hash.split('/')[1] || '').replace(/-.*$/, '');
-  const cur = panels.find(([k]) => k === wanted)?.[0] || panels[0]?.[0];
-  v.innerHTML = `
-  <nav class="mb-subnav" id="vs-nav">${panels.map(([k, l]) => `<a href="#vorstand/${k}" ${k === cur ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
-  <div id="vs-panel"></div>`;
-  const panel = $('#vs-panel');
-  if (cur === 'eingang') { panel.innerHTML = `${sectionHead('Eingang', 'Anfragen an den Vorstand – persönlich für dich abgelegt')}<div id="inbox"><p class="muted">Lade …</p></div>`; renderInbox(); }
-  if (cur === 'wer') { panel.innerHTML = `${sectionHead('Wer wird benachrichtigt?', 'Push-Nachrichten an den Vorstand')}<div id="routing"></div>`; renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät und den Vorgang in ihren Eingang (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.'); }
-  if (cur === 'gruppen') { panel.innerHTML = `${sectionHead('Wer gehört wozu?', 'Vorstand, Rat und Fraktion')}<div id="groups"></div>`; renderMatrix('groups', GROUPS.map(([k, l, i]) => [k, l, i, k === 'vorstand' ? '(Standard: Wix-Rolle „Vorstandsmitglied“)' : '(noch niemand eingetragen)']), k => [...settings.groups[k]], k => k === 'vorstand' ? 'vorstand' : 'gruppe:' + k, 'Häkchen = gehört dazu. Mitglied ist jede freigeschaltete Person. Ratsmitglieder zählen automatisch zur Fraktion. Die Gruppen steuern die Sichtbarkeit (Vorstand → Sichtbarkeit) und stehen im Mitgliederverzeichnis; den Vorstand können nur Vorstandsmitglieder oder Verwalter ändern.'); }
-  if (cur === 'rechte') { panel.innerHTML = `${sectionHead('Wer darf was?', 'Rechte im Mitgliederbereich')}<div id="rights"></div>`; renderMatrix('rights', RIGHTS.map(([k, l]) => [k, l, '']), k => [...settings.rights[k]], k => 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand (Vorstand → Gruppen). Das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.'); }
-  if (cur === 'sicht') { panel.innerHTML = `${sectionHead('Wer sieht was?', 'Sichtbarkeit im Mitgliederbereich')}<div id="visibility"></div>`; renderVisibility(); }
-  if (cur === 'nachricht') {
+// ---------- Vorstand: Tafeln (Einstellungen) – die Übersicht und die Anliegen liefert src/vorstand.js ----------
+const tafeln = {
+  wer: panel => { panel.innerHTML = `${sectionHead('Wer wird benachrichtigt?', 'Push-Nachrichten an den Vorstand')}<div id="routing"></div>`; renderMatrix('routing', BOARD_TOPICS, k => settings.routing[k], k => k, 'Häkchen = diese Person bekommt eine Push-Nachricht auf ihr Gerät und den Vorgang in ihren Eingang (📱 = hat Push aktiviert). Solange für ein Thema nichts gespeichert ist, bekommt der gesamte Vorstand die Nachricht.'); },
+  gruppen: panel => { panel.innerHTML = `${sectionHead('Wer gehört wozu?', 'Vorstand, Rat und Fraktion')}<div id="groups"></div>`; renderMatrix('groups', GROUPS.map(([k, l, i]) => [k, l, i, k === 'vorstand' ? '(Standard: Wix-Rolle „Vorstandsmitglied“)' : '(noch niemand eingetragen)']), k => [...settings.groups[k]], k => k === 'vorstand' ? 'vorstand' : 'gruppe:' + k, 'Häkchen = gehört dazu. Mitglied ist jede freigeschaltete Person. Ratsmitglieder zählen automatisch zur Fraktion. Die Gruppen steuern die Sichtbarkeit (Vorstand → Sichtbarkeit) und stehen im Mitgliederverzeichnis; den Vorstand können nur Vorstandsmitglieder oder Verwalter ändern.'); },
+  rechte: panel => { panel.innerHTML = `${sectionHead('Wer darf was?', 'Rechte im Mitgliederbereich')}<div id="rights"></div>`; renderMatrix('rights', RIGHTS.map(([k, l]) => [k, l, '']), k => [...settings.rights[k]], k => 'recht:' + k, 'Häkchen = darf das. Solange für ein Recht nichts gespeichert ist, darf es der gesamte Vorstand (Vorstand → Gruppen). Das Recht „Verwaltung“ können nur Vorstandsmitglieder oder Verwalter ändern.'); },
+  sicht: panel => { panel.innerHTML = `${sectionHead('Wer sieht was?', 'Sichtbarkeit im Mitgliederbereich')}<div id="visibility"></div>`; renderVisibility(); },
+  nachricht: panel => {
     panel.innerHTML = `${sectionHead('Nachricht an alle', 'Push an alle, die Benachrichtigungen aktiviert haben')}
     <form class="form mb-form" id="f-broadcast" novalidate>
       <div class="field"><label for="b-titel">Überschrift</label><input id="b-titel" type="text" required maxlength="60" placeholder="z. B. Mitgliederversammlung verschoben"></div>
@@ -1254,8 +1308,29 @@ async function secVorstand(v) {
       <p id="b-wa" class="small" hidden>Dieselbe Nachricht auch woanders hinschicken: <button type="button" class="btn btn-line btn-sm share" data-share="">${SHARE_ICON}Teilen</button></p>
     </form>`;
     $('#f-broadcast').addEventListener('submit', onBroadcast);
-  }
-  if (cur === 'whatsapp') {
+  },
+  stammtisch: panel => {
+    const cfg = stammtischConfig(settings.snap);
+    panel.innerHTML = `${sectionHead('Stammtisch-Umfrage', 'Automatisch zu jedem Stammtisch: „Wo treffen wir uns?“')}
+    <p class="small muted">Für jeden Termin, dessen Titel das Muster enthält, legt der Push-Dienst eine Umfrage mit den Lokalen an. Sie steht direkt im Termin – sehen und abstimmen kann nur, wer zugesagt hat. Die Umfrage schließt sich am Tag des Treffens von selbst.</p>
+    <form class="form mb-form" id="f-st" novalidate>
+      <div class="field"><label for="st-muster">Termine, deren Titel enthält</label><input id="st-muster" type="text" required value="${esc(cfg.muster)}"></div>
+      <div class="field"><label for="st-lokale">Lokale – eins je Zeile</label><textarea id="st-lokale" rows="10">${esc(cfg.lokale.join('\n'))}</textarea></div>
+      <p class="note" id="st-msg" hidden></p>
+      <div class="mb-actions"><button class="btn btn-rot" type="submit">Speichern</button><button class="btn btn-line btn-sm" type="button" id="st-standard">Standardliste einsetzen</button></div>
+    </form>`;
+    $('#st-standard').addEventListener('click', () => { $('#st-lokale').value = STAMMTISCH_DEFAULT.lokale.join('\n'); });
+    $('#f-st').addEventListener('submit', async e => {
+      e.preventDefault(); const f = e.target; const btn = f.querySelector('[type=submit]'); busy(btn, true);
+      const lokale = $('#st-lokale').value.split('\n').map(x => x.trim()).filter(Boolean);
+      try {
+        await db.insert('Benachrichtigungen', { title: `Stammtisch: ${lokale.length} Lokale`, thema: 'stammtisch', muster: $('#st-muster').value.trim() || 'stammtisch', lokale, empfaenger: [], von: me.name });
+        await loadSettings(); msg($('#st-msg'), 'Gespeichert – gilt für die nächsten Termine.', 'ok');
+      } catch (err) { msg($('#st-msg'), 'Nicht gespeichert: ' + errText(err)); }
+      busy(btn, false);
+    });
+  },
+  whatsapp: panel => {
     panel.innerHTML = `${sectionHead('WhatsApp-Gruppen', 'Einladungslinks für Mitglieder')}
     <p class="small muted">Eine Zeile pro Gruppe: <b>Name | Einladungslink</b> (in WhatsApp: Gruppeninfo → „Per Link einladen“). Die Links sehen nur angemeldete Mitglieder – wer den Link hat, kann beitreten. Automatisch in Gruppen posten kann die App nicht (WhatsApp bietet dafür keine Schnittstelle); Termine, Helferlisten und Umfragen haben aber einen „WhatsApp“-Knopf, der den fertigen Text in die Gruppe schickt.</p>
     <form class="form mb-form" id="f-wa" novalidate>
@@ -1272,8 +1347,8 @@ async function secVorstand(v) {
       } catch (err) { msg($('#wa-msg'), 'Nicht gespeichert: ' + errText(err)); }
       busy(btn, false);
     });
-  }
-}
+  },
+};
 // Sichtbarkeit: je Bereich/Termintyp „alle Mitglieder“ oder eine Kombination aus Gruppen (Rat, Fraktion) und einzelnen Personen
 function renderVisibility() {
   const box = $('#visibility'); if (!box) return;
@@ -1317,52 +1392,6 @@ function renderVisibility() {
       msg($('#vis-msg'), n ? 'Gespeichert – gilt sofort für alle beim nächsten Öffnen.' : 'Nichts geändert.', 'ok');
     } catch (err) { msg($('#vis-msg'), 'Speichern fehlgeschlagen: ' + errText(err)); busy(btn, false); }
   });
-}
-async function renderInbox() {
-  const box = $('#inbox'); if (!box) return;
-  // Zwei Quellen: die eigenen Einträge in der Sammlung Eingang (vom Push-Dienst für jedes Vorstandsmitglied angelegt)
-  // und die Push-Nachrichten, die auf diesem Gerät angekommen sind
-  let remote = [];
-  try { remote = (await db.list('Eingang', { desc: '_createdDate', limit: 100 })).map(r => ({ id: r.key || r._id, _id: r._id, title: r.title, body: r.body, data: { typ: r.typ, id: r.key, ...(r.payload ? JSON.parse(r.payload) : {}), details: r.details || {} }, receivedAt: new Date(r._createdDate).getTime(), done: r.status && r.status !== 'offen' ? r.status : '', remote: true })); } catch (e) { remote = []; }
-  const local = await inboxAll();
-  const seen = new Set(remote.map(r => r.id));
-  const list = [...remote, ...local.filter(l => !seen.has(l.id))].sort((a, b) => (b.receivedAt || 0) - (a.receivedAt || 0)).slice(0, 100);
-  const LABEL = { registrierung: 'Registrierung', buchung: 'Buchung', anfrage: 'Anfrage' };
-  const TABS = [['registrierung', 'Mitgliederanfragen'], ['buchung', 'Mietanfragen'], ['anfrage', 'Allgemeine Anfragen']];
-  const count = t => list.filter(it => (it.data?.typ || 'anfrage') === t && !it.done).length;
-  const wantedTab = (location.hash.split('/')[1] || '').split('-')[1];
-  const tab = TABS.some(([k]) => k === wantedTab) ? wantedTab : (TABS.find(([k]) => count(k))?.[0] || 'registrierung');
-  const showDone = !!renderInbox.showDone;
-  const shown = list.filter(it => (it.data?.typ || 'anfrage') === tab && (showDone || !it.done));
-  box.innerHTML = `<nav class="inbox-tabs">${TABS.map(([k, l]) => `<a href="#vorstand/eingang-${k}" class="chip" aria-pressed="${k === tab}">${l}${count(k) ? ` <b>${count(k)}</b>` : ''}</a>`).join('')}<label class="check small"><input type="checkbox" id="inbox-done" ${showDone ? 'checked' : ''}> <span>Erledigte anzeigen</span></label></nav>` + (shown.length ? '' : `<p class="muted">${showDone ? 'Nichts in diesem Bereich.' : 'Nichts Offenes in diesem Bereich.'}</p>`) + shown.map(it => {
-    const d = it.data || {};
-    const actions = it.done ? '' : d.typ === 'registrierung'
-      ? `<button class="btn btn-rot btn-sm" data-act="mitglied_freigeben">Freischalten</button><button class="btn btn-line btn-sm" data-act="mitglied_ablehnen">Ablehnen</button>`
-      : d.typ === 'buchung' ? `<button class="btn btn-rot btn-sm" data-act="buchung_annehmen">Annehmen</button><button class="btn btn-line btn-sm" data-act="buchung_ablehnen">Ablehnen</button>`
-        : d.typ === 'anfrage' ? `<button class="btn btn-rot btn-sm" data-act="anfrage_erledigt">Erledigt</button>` : '';
-    return `<article class="inbox-item" data-id="${esc(it.id)}">
-      <div><span class="tag ${d.typ === 'buchung' ? 'tag-schwarz' : ''}">${esc(LABEL[d.typ] || d.typ || 'Info')}</span> <span class="small muted">${esc(fmtWhen(it.receivedAt))}</span>${it.done ? ` <span class="badge">${esc(it.done)}</span>` : ''}</div>
-      <h4>${esc(it.title || '')}</h4>
-      <p class="small">${nl2br(it.body || '')}</p>
-      ${d.details ? `<dl class="inbox-details">${Object.entries(d.details).filter(([, val]) => val).map(([k, val]) => `<dt>${esc(k)}</dt><dd>${/@/.test(val) ? `<a href="mailto:${esc(val)}">${esc(val)}</a>` : /^[\d +\/-]{6,}$/.test(val) ? `<a href="tel:${esc(val)}">${esc(val)}</a>` : nl2br(val)}</dd>`).join('')}</dl>` : ''}
-      <div class="mb-actions">${actions}</div>
-      <p class="note" hidden></p>
-    </article>`;
-  }).join('');
-  $('#inbox-done')?.addEventListener('change', e => { renderInbox.showDone = e.target.checked; renderInbox(); });
-  updateBadges();
-  box.onclick = async e => {
-    const b = e.target.closest('button[data-act]'); if (!b) return;
-    const art = b.closest('.inbox-item'); const it = list.find(x => x.id === art.dataset.id); if (!it) return;
-    busy(b, true);
-    try {
-      await db.insert('Aktionen', { title: `${b.dataset.act}: ${it.title || ''}`, typ: b.dataset.act, payload: JSON.stringify(it.data || {}), status: 'offen', von: me.name });
-      it.done = b.textContent.trim() + (DEMO ? '' : ' (wird ausgeführt)');
-      if (it.remote && it._id) { try { const cur = (await db.list('Eingang', { eq: { _id: it._id }, limit: 1 }))[0]; if (cur) await db.update('Eingang', { ...cur, status: it.done }); } catch (e) { /* lokal reicht */ } }
-      else await inboxPut(it);
-      renderInbox();
-    } catch (err) { msg(art.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(b, false); }
-  };
 }
 // Tabelle Mitglied × Thema/Recht – speichert je geändertem Thema einen Schnappschuss
 function renderMatrix(boxId, rows, current, themaOf, hint) {
@@ -1409,6 +1438,19 @@ async function onBroadcast(e) {
 
 // Ratsarbeit (Working Space der Fraktion) – eigenes Modul, bekommt Zugriff auf Client, Zustand und Bausteine
 const schluessel = makeSchluessel({ db, store, DEMO, me: () => me });
+const vorstandMehr = makeVorstandMehr({ db, store, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, opt, ICON, SHARE_ICON, shareText, appLink, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, SPD });
+// Blatt (Sheet) für Bereiche außerhalb der Ratsarbeit
+function blatt(titel, inner, wire) {
+  blattZu();
+  const el = document.createElement('div'); el.className = 'rz-blatt'; el.id = 'mb-blatt';
+  el.innerHTML = `<div class="rz-blatt-in" role="dialog" aria-label="${esc(titel)}"><div class="rz-blatt-kopf"><b>${esc(titel)}</b><button type="button" class="mb-sheet-close" data-zu aria-label="Schließen">${ICON.close}</button></div><div class="rz-blatt-inhalt">${inner}<p class="note" id="mb-blatt-msg" hidden></p></div></div>`;
+  document.body.appendChild(el); document.body.classList.add('sheet-open');
+  el.addEventListener('click', e => { if (e.target === el || e.target.closest('[data-zu]')) blattZu(); });
+  if (wire) wire(el);
+}
+function blattZu() { document.getElementById('mb-blatt')?.remove(); if (!document.getElementById('rz-blatt')) document.body.classList.remove('sheet-open'); }
+const bereiche = makeBereiche({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
+const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: vorstandMehr, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====

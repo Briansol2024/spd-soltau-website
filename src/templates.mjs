@@ -163,13 +163,15 @@ const pageEnd = () => `
       <h2 class="title">Nichts verpassen.</h2>
       <p style="font-size:19px">Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.</p>
     </div>
-    <form class="mock" id="form-news" novalidate>
+    <form class="wix-form abo-form" id="form-news" data-collection="Abonnenten" novalidate>
       <div class="form-fields" style="display:contents">
         <label for="nl-mail" style="position:absolute;left:-9999px">E-Mail-Adresse</label>
-        <input id="nl-mail" type="email" required placeholder="E-Mail-Adresse">
+        <input id="nl-mail" name="email" type="email" required placeholder="E-Mail-Adresse" autocomplete="email">
+        <input type="hidden" name="typ" value="anmeldung"><input type="hidden" name="quelle" value="startseite">
         <button class="btn btn-schwarz" type="submit">Anmelden</button>
       </div>
-      <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung über den Link in Ihrer E-Mail.</p>
+      <p class="note" hidden></p>
+      <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung über den Link in Ihrer E-Mail (auch im Spam-Ordner nachsehen).</p>
     </form>
   </div>
 </div>`;
@@ -497,8 +499,9 @@ export function mitmachenPage(d) {
     <div style="display:grid;gap:20px">
       <div class="box">
         <h3>Newsletter</h3>
-        <form class="mock" id="form-news-page" novalidate style="display:grid;gap:10px">
-          <div class="form-fields field"><label for="nl-mail-page">E-Mail-Adresse</label><input id="nl-mail-page" type="email" required><button class="btn btn-schwarz" type="submit" style="justify-self:start;margin-top:8px">Anmelden</button></div>
+        <form class="wix-form abo-form" id="form-news-page" data-collection="Abonnenten" novalidate style="display:grid;gap:10px">
+          <input type="hidden" name="typ" value="anmeldung"><input type="hidden" name="quelle" value="mitmachen">
+          <div class="form-fields field"><label for="nl-mail-page">E-Mail-Adresse</label><input id="nl-mail-page" name="email" type="email" required autocomplete="email"><button class="btn btn-schwarz" type="submit" style="justify-self:start;margin-top:8px">Anmelden</button></div>
           <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung per E-Mail.</p>
         </form>
       </div>
@@ -562,6 +565,27 @@ const legal = (tag, h1, html) => `
   <div class="page-head"><div class="wrap"><span class="tag">${esc(tag)}</span><h1 class="title">${h1}</h1></div></div>
   <div class="wrap section prose">${html}</div>
 </section>`;
+
+// Newsletter: Bestätigung (Double-Opt-in) und Abmeldung über Links aus den E-Mails – site.js meldet das Token an die Sammlung Abonnenten
+export function newsletterPage(d) {
+  return `
+<section>
+  ${pageHead('Newsletter', 'Nichts<br>verpassen', 'Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.')}
+  <div class="wrap section" style="max-width:720px">
+    <div id="abo-status" class="mb-card"><p>Einen Moment …</p></div>
+    <div class="box" style="margin-top:28px">
+      <h3>Neu anmelden</h3>
+      <form class="wix-form abo-form" id="form-news-nl" data-collection="Abonnenten" novalidate style="display:grid;gap:10px">
+        <input type="hidden" name="typ" value="anmeldung"><input type="hidden" name="quelle" value="newsletterseite">
+        <div class="form-fields field"><label for="nl-mail-nl">E-Mail-Adresse</label><input id="nl-mail-nl" name="email" type="email" required autocomplete="email"><button class="btn btn-schwarz" type="submit" style="justify-self:start">Anmelden</button></div>
+        <p class="note" hidden></p>
+        <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung über den Link in Ihrer E-Mail.</p>
+      </form>
+      <p class="small muted">Sie können sich jederzeit über den Link am Ende jeder Ausgabe abmelden. Hinweise zum Datenschutz: <a href="${url('/datenschutz/')}">Datenschutzerklärung</a>.</p>
+    </div>
+  </div>
+</section>`;
+}
 
 export function impressumPage(d) {
   return legal('Rechtliches', 'Impressum', `

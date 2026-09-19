@@ -26,6 +26,7 @@
     "@wix/members": "^1.0.519",
     "@wix/sdk": "^1.15.0",
     "esbuild": "^0.28.2",
+    "nodemailer": "^10.0.10",
     "sharp": "^0.35.4",
     "web-push": "^3.6.7"
   },

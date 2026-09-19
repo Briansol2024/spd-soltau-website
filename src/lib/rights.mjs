@@ -35,6 +35,7 @@ export const BOARD_TOPICS = [
   ['anfrage', 'Kontakt- und Mitgliedsanfragen', 'Jemand hat das Kontakt- oder Mitmachen-Formular abgeschickt.'],
   ['zusage', 'Zu- und Absagen zu Terminen', 'Ein Mitglied hat zu einem Termin zu- oder abgesagt.'],
   ['geburtstag', 'Geburtstage und Jubiläen', 'Ein Mitglied hat heute Geburtstag oder ein rundes Mitgliedsjubiläum.'],
+  ['antrag', 'Neue Anträge und Ideen (Fraktionsvorsitz)', 'Ein Fraktionsmitglied hat einen Antrag angelegt oder ein Mitglied eine Idee eingereicht.'],
 ];
 
 // Gruppen: wer wozu gehört – gepflegt in der App unter Vorstand → Gruppen (Schnappschüsse `vorstand`, `gruppe:rat`, `gruppe:fraktion`).

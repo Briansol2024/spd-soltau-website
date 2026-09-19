@@ -254,9 +254,9 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const btn = f.querySelector('[type=submit]'), note = f.querySelector('.note');
   btn.disabled = true; if (note) note.hidden = true;
-  const data = { status: 'offen' };
+  const data = { status: f.dataset.collection === 'Abonnenten' ? 'neu' : 'offen' };
   new FormData(f).forEach((v, k) => { data[k] = String(v).trim(); });
-  data.title = [data.typ ? { kontakt: 'Kontakt', mitglied: 'Mitgliedsanfrage' }[data.typ] || data.typ : '', data.name || '', data.datum || '', data.von || ''].filter(Boolean).join(' – ');
+  data.title = f.dataset.collection === 'Abonnenten' ? `Anmeldung ${data.email || ''}` : [data.typ ? { kontakt: 'Kontakt', mitglied: 'Mitgliedsanfrage' }[data.typ] || data.typ : '', data.name || '', data.datum || '', data.von || ''].filter(Boolean).join(' – ');
   try {
     await wixInsert(f.dataset.collection, data);
     f.querySelector('.form-fields').hidden = true; f.querySelector('.form-ok').hidden = false;
@@ -265,6 +265,20 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
     btn.disabled = false;
   }
 }));
+
+// Newsletter-Seite: Bestätigen/Abmelden über Token aus der E-Mail
+(async () => {
+  const box = $('#abo-status'); if (!box) return;
+  const q = new URLSearchParams(location.search);
+  const token = q.get('bestaetigen') || q.get('abmelden');
+  if (!token) { box.innerHTML = '<p>Hier können Sie sich für den Newsletter anmelden – oder über den Link in einer Ausgabe abmelden.</p>'; return; }
+  const typ = q.get('bestaetigen') ? 'bestaetigung' : 'abmeldung';
+  try {
+    await wixInsert('Abonnenten', { title: typ, typ, token, status: 'neu' });
+    history.replaceState(null, '', location.pathname);
+    box.innerHTML = typ === 'bestaetigung' ? '<h3>Vielen Dank – Ihre Anmeldung ist bestätigt.</h3><p>Die nächste Ausgabe kommt automatisch. Bis dahin: <a href="../aktuelles/">Aktuelles</a>.</p>' : '<h3>Sie sind abgemeldet.</h3><p>Schade – aber jederzeit gern wieder. Sie bekommen keine weiteren Ausgaben.</p>';
+  } catch (e) { box.innerHTML = '<p class="note note-err">Das hat gerade nicht geklappt (' + e.message + '). Bitte später noch einmal versuchen.</p>'; }
+})();
 
 export async function wixQuery(collection, query) {
   const token = await wixVisitorToken();
