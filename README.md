@@ -45,9 +45,9 @@ src/data-fallback.mjs  Beispiel-/Ersatzinhalte und feste Texte (10-Punkte-Plan, 
 src/lib/wix.mjs      Anbindung an Wix (Blog, Events, CMS) inkl. Rich-Text- und Bild-Umwandlung
 src/members.js       Mitgliederbereich (Anmeldung/Registrierung über Wix, Zu-/Absagen, Push, Vorstands-Werkzeuge) → gebündelt nach assets/mitglieder.js
 src/sw.js            Service Worker (App-Installation, Offline-Grundgerüst, Push-Anzeige, Eingang für den Vorstand)
-push/                Push-Dienst: send.mjs (Versand + Vorstands-Aktionen), setup.mjs (Einrichtung), Aufgabenplanung – siehe push/README.md
+push/                Push-Dienst: send.mjs (Versand + Vorstands-Aktionen), setup.mjs (Einrichtung) – läuft auf GitHub Actions, siehe push/README.md
 .github/workflows/deploy.yml   Automatischer Bau + Veröffentlichung auf GitHub Pages
-.github/workflows/push.yml     Push-Dienst alle 5 Minuten (sobald das Projekt auf GitHub liegt)
+.github/workflows/push.yml     Push-Dienst alle 5 Minuten auf GitHub Actions (seit 19.09.2026, kein PC mehr nötig)
 ```
 
 ## App und Mitgliederbereich
@@ -167,10 +167,13 @@ Einmalig: GitHub-Konto anlegen, dann in einem Terminal `winget install --id GitH
 Danach `tools\GitHub Pages einrichten.cmd` doppelklicken – legt das Repository an, überträgt alle Einstellungen aus `.env` als Variablen/Secrets,
 schaltet Pages ein und startet den Bau. Die alte Wix-Seite bleibt unter spd-soltau.de unverändert online.
 
-**Stand 18.09.2026:** Die Testversion läuft unter **https://neu.spd-soltau.de** (GitHub Pages, eigenes Zertifikat, Passwort wie bisher).
-Dafür: CNAME `neu` → `briansol2024.github.io` in den DNS-Einträgen bei Wix, Repository-Variable `CNAME=neu.spd-soltau.de`, `BASE_PATH` leer,
-Umleitungs-URI `https://neu.spd-soltau.de/mitglieder/` in den Headless-Einstellungen. Die Adresse `briansol2024.github.io/spd-soltau-website` leitet dorthin um.
-Go-live später: `www` bei Wix genauso auf GitHub Pages zeigen lassen, `CNAME=www.spd-soltau.de`, Passwort und `NOINDEX` entfernen.
+**Stand 19.09.2026 – live unter https://spd-soltau.de:** Die DNS-Einträge bei Wix zeigen auf GitHub Pages (A `spd-soltau.de` → 185.199.108/109/110/111.153,
+CNAME `www` → `briansol2024.github.io`; `www` leitet auf die Root-Domain um), Repository-Variablen `CNAME=spd-soltau.de`, `SITE_URL`/`PUSH_SITE_URL=https://spd-soltau.de`,
+Umleitungs-URI `https://spd-soltau.de/mitglieder/` in den Headless-Einstellungen. Die alte Wix-Seite ist damit nicht mehr erreichbar (im Editor unverändert).
+Bis zum Start zeigt die Domain die **Countdown-Seite** (`src/countdown.mjs`, immer auch unter `/bald/`), gesteuert über die Variable `LAUNCH_AT`
+(`2026-09-22T18:00:00+02:00`): davor Countdown als Startseite, echte Startseite unter `/start/`, Passwort und NOINDEX aktiv; ab dem Zeitpunkt
+schaltet der halbstündliche Build von selbst um – echte Startseite, kein Passwort, indexierbar – und `WELCOME_HOURS` (24) lang begrüßt `/bald/?willkommen=1`
+jeden Erstbesucher mit Null und Konfetti (gemerkt in `localStorage`). Aufräumen danach: Variablen `LAUNCH_AT`, `NOINDEX` und Secret `PREVIEW_PASSWORD` entfernen.
 
 ## Vorschau über Tailscale (Testphase)
 
@@ -214,15 +217,15 @@ npm run serve:protected      # http://localhost:8081
 | `VAPID_PRIVATE_KEY`, `WIX_API_KEY` | Secret | Für den Push-Dienst (`push.yml`) |
 | `WIX_SITE_ID`, `PUSH_SITE_URL` | Variable | Für den Push-Dienst |
 
-## Go-live (wenn ihr zufrieden seid)
+## Go-live (erledigt am 19.09.2026, Ablauf zur Erinnerung)
 
-1. `PREVIEW_PASSWORD` löschen, `NOINDEX` leeren, `SITE_URL`/`CNAME` setzen.
-2. Bei Wix unter *Einstellungen → Domains* die DNS-Einträge auf GitHub Pages umstellen
-   (CNAME `www` → `<github-benutzer>.github.io`, A-Records für die Root-Domain).
-   E-Mail-Einträge (MX) unverändert lassen.
-3. In GitHub unter *Settings → Pages* die Domain eintragen und HTTPS erzwingen.
+1. Bei Wix unter *Domains → DNS-Einträge verwalten* A-Records auf GitHub Pages und CNAME `www` → `briansol2024.github.io` (alte Werte: A 185.230.63.171/.186/.107, www → cdn3.wixdns.net).
+2. GitHub Pages: Domain `spd-soltau.de` (`gh api -X PUT repos/…/pages -f cname=…`), nach dem Zertifikat `https_enforced=true`.
+3. Variablen `CNAME`, `SITE_URL`, `PUSH_SITE_URL`, `LAUNCH_AT` setzen; Headless-Umleitungs-URI ergänzen.
+4. Der Start selbst läuft über `LAUNCH_AT` automatisch (siehe oben); Passwort/NOINDEX danach aufräumen.
 
-Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wixsite-Adresse erreichbar.
+Die Wix-Editor-Seite bleibt unangetastet bestehen und ist weiterhin unter der wixsite-Adresse erreichbar. E-Mail-DNS (MX/SPF) zeigt noch auf das alte,
+nicht mehr existierende Microsoft-365-Postfach und wird mit dem neuen Postfach ersetzt.
 
 ## Zeitgesteuert
 

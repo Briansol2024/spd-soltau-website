@@ -26,9 +26,12 @@ Jede Nachricht wird in **PushLog** vermerkt – nichts geht doppelt raus. Einste
 
 1. **Admin-API-Schlüssel** bei Wix erstellen: <https://manage.wix.com/account/api-keys> → „API-Schlüssel generieren“ → Name „SPD Soltau Push-Dienst“ → Sites: nur SPD Soltau → „Alle Website-Berechtigungen“ → „Schlüssel generieren“ → kopieren.
 2. `push\Push-Dienst einrichten.cmd` doppelklicken: fragt den Schlüssel ab (bleibt in `.env` auf diesem PC), prüft den Zugang, legt die CMS-Felder an, macht den ersten Lauf (Mitglieder abgleichen, Startvorstand aus `VORSTAND_EMAILS` setzen), baut die Website neu und legt die Aufgabe „SPD Soltau Push-Dienst“ an (alle 5 Minuten, ohne Fenster). Protokolle: `push/log/`.
+   **Seit 19.09.2026 läuft der Dienst auf GitHub Actions** (`.github/workflows/push.yml`, alle 5 Minuten, GitHub verzögert Cron-Läufe gelegentlich um einige Minuten); die PC-Aufgabe wurde entfernt. Nur einen der beiden Wege nutzen, sonst laufen Aktionen doppelt.
 3. Einzeln bei Bedarf: `node push/setup.mjs`, `node push/send.mjs`, `node push/send.mjs --test` (Testnachricht), `node push/send.mjs --dry` (nur anzeigen).
 
-Sobald der Build auf GitHub Pages läuft, übernimmt `.github/workflows/push.yml` den Dienst (Secrets `WIX_API_KEY`, `VAPID_PRIVATE_KEY`, Vars `WIX_SITE_ID`, `VAPID_PUBLIC_KEY`, `PUSH_SITE_URL`) – dann muss kein PC mehr laufen.
+Auf GitHub braucht der Dienst die Secrets `WIX_API_KEY`, `VAPID_PRIVATE_KEY` (für E-Mail: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, optional `MAIL_REPLY_TO`)
+und die Variablen `WIX_SITE_ID`, `WIX_CLIENT_ID`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `PUSH_SITE_URL`, `SITE_URL`, `VORSTAND_EMAILS`. Läufe und Protokolle: GitHub → Actions → „Push-Dienst“;
+manuell starten mit `gh workflow run Push-Dienst`. Der Dienst hat keinen lokalen Zustand – alles liegt in den Wix-Sammlungen.
 
 ## Werte in `.env`
 
