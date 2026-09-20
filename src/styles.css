@@ -1870,3 +1870,6 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .ow-farben{display:flex;gap:6px;flex-wrap:wrap}
 .ow-swatch{width:26px;height:26px;border:2px solid var(--linie);background:var(--f);cursor:pointer;padding:0}
 .ow-swatch.aktiv{border-color:var(--schwarz);box-shadow:0 0 0 2px #fff inset}
+.rb-auftrag-kopf{position:relative}
+.rb-auftrag-weg{font-size:20px;line-height:1;padding:2px 8px;color:var(--muted)}
+.rb-auftrag-weg:hover{color:var(--rot)}
