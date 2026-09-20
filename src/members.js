@@ -25,8 +25,9 @@ const app = document.getElementById('mitglieder-app');
 if (!app) throw new Error('Mitgliederbereich: Container fehlt');
 const $ = (s, r = app) => r.querySelector(s);
 const $$ = (s, r = app) => [...r.querySelectorAll(s)];
-// Vorschau mit Beispieldaten (?demo) nur für freigegebene Tester: auf localhost immer, sonst erst nach einer echten Anmeldung
-// mit einer Adresse aus TESTER (setzt auf dem Gerät das Merkmal „spd-tester“). Alle anderen landen bei ?demo in der normalen Anmeldung.
+// Demo-Modus (?demo, Beispieldaten) ist der Vorführschalter für Brians Konto: auf localhost immer, sonst nur solange
+// weber.soltau@gmail.com angemeldet ist (die Anmeldung setzt das Merkmal „spd-tester“, das Abmelden löscht es wieder).
+// Alle anderen landen bei ?demo in der normalen Anmeldung; einen öffentlichen Demo-Link gibt es nicht.
 const TESTER = ['weber.soltau@gmail.com'];
 const istTester = () => { try { return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || localStorage.getItem('spd-tester') === '1'; } catch (e) { return false; } };
 const demoGewuenscht = /[?&]demo\b/.test(location.search);
@@ -334,6 +335,7 @@ async function logout() {
   let logoutUrl = null;
   try { ({ logoutUrl } = await client.auth.logout(REDIRECT)); } catch (e) { /* lokal abmelden reicht */ }
   store.del('spd-tokens'); store.del('spd-oauth'); store.del('spd-me');
+  try { localStorage.removeItem('spd-tester'); } catch (e) { /* ohne Speicher */ }
   location.href = logoutUrl || REDIRECT;
 }
 
@@ -440,7 +442,7 @@ function navList() {
 function renderShell() {
   const first = me.name.split(' ')[0] || me.name;
   view(`
-  ${DEMO && !VIDEO ? '<p class="note note-info demo-note"><b>Vorschau mit Beispieldaten.</b> So sieht der Mitgliederbereich nach der Anmeldung aus – Änderungen werden hier nicht gespeichert. <a href="./">Zur echten Anmeldung</a></p>' : ''}
+  ${DEMO && !VIDEO ? `<p class="note note-info demo-note"><b>Demo-Modus.</b> Beispieldaten zum Vorführen – nichts wird gespeichert. <a href="${esc(demoLink(false))}">Demo beenden</a></p>` : ''}
   <div class="mb-layout">
     <aside class="mb-side" aria-label="Bereiche">${navList()}</aside>
     <div class="mb-main">
@@ -757,7 +759,7 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
       ${me.sees('helfer') ? myLists.map(l => helperList(l, helfer, events, true)).join('') : ''}
       ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
       <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
-        <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} Platz${(r.plaetze || 1) === 1 ? '' : 'e'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
+        <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} ${(r.plaetze || 1) === 1 ? 'Platz' : 'Plätze'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
         <form class="form mb-form ride-form" novalidate>
           <div class="mb-3">
             <div class="field"><label>Ich …</label><select name="typ"><option value="biete">biete Plätze an</option><option value="suche">suche eine Mitfahrt</option></select></div>

@@ -32,10 +32,20 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
   const ids = people.map(p => p.memberId);
   const OWNER = mitglied ? ids[1] : ME; // wer die Einstellungen gespeichert hat (muss zum Vorstand gehören)
   const VON = mitglied ? people[1].name : 'Max Mustermann';
+  // Zwei Demo-Termine nur im Speicher: Infostand am nächsten Samstag und die Mitgliederversammlung in drei Wochen –
+  // daran hängen Helferliste, Zusagen und Fahrgemeinschaften, und die Versammlung passt zum Termin
+  const lokal = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const naechsterSamstag = () => { const d = new Date(); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); return lokal(d); };
+  const demoEvents = [
+    { id: 'demo-ev-infostand', slug: 'infostand-wochenmarkt', date: naechsterSamstag(), title: 'Infostand auf dem Wochenmarkt', ort: 'Marktplatz', zeit: '09:00 Uhr', typ: 'Öffentlich', info: 'Wir sind mit Zelt, Kaffee und offenen Ohren auf dem Wochenmarkt. Kommt vorbei!', url: null, demo: true },
+    { id: 'demo-ev-mv', slug: 'mitgliederversammlung', date: inDays(21), title: 'Mitgliederversammlung', ort: 'Roter Bahnhof, Am Bahnhof 1t', zeit: '19:00 Uhr', typ: 'Mitglieder', info: 'Bericht des Vorstands, Kassenbericht, Anträge – Abstimmung per Handy in der App.', url: null, demo: true },
+  ];
+  if (Array.isArray(SPD.events) && !SPD.events.some(e => e.demo)) { SPD.events.push(...demoEvents); SPD.events.sort((a, b) => String(a.date).localeCompare(String(b.date))); }
   // Beispieldaten hängen an öffentlichen Terminen, damit sie auch für normale Mitglieder sichtbar sind
   const ev = (SPD.events || []).slice(0, 8);
   const pub = ev.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat');
-  const e0 = pub[0] || ev[0] || { id: 'ev-demo-1', title: 'Fraktionssitzung', date: inDays(5), zeit: '19:00 Uhr', ort: 'Altes Rathaus', typ: 'Fraktion' };
+  const e0 = pub.find(e => e.typ === 'Rat') || pub.find(e => !e.demo) || pub[0] || ev[0] || { // Sitzung: Zusagen und Fahrgemeinschaften
+    id: 'ev-demo-1', title: 'Fraktionssitzung', date: inDays(5), zeit: '19:00 Uhr', ort: 'Altes Rathaus', typ: 'Fraktion' };
   const e1 = pub.find(e => /markt|stammtisch|fest/i.test(e.title)) || pub[1] || e0;
 
   const data = {
@@ -54,6 +64,9 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, status: 'zusage', grund: '', memberId: ids[2], name: people[2].name, _createdDate: daysAgo(1) },
       { _id: uid(), _owner: ids[3], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, status: 'absage', grund: 'Spätschicht', memberId: ids[3], name: people[3].name, _createdDate: daysAgo(1) },
       { _id: uid(), _owner: ids[4], eventId: e1.id, eventTitel: e1.title, eventDatum: e1.date, status: 'zusage', grund: '', memberId: ids[4], name: people[4].name, _createdDate: daysAgo(1) },
+      ...[2, 3].map(i => ({ _id: uid(), _owner: ids[i], eventId: 'demo-ev-infostand', eventTitel: 'Infostand auf dem Wochenmarkt', eventDatum: demoEvents[0].date, status: 'zusage', grund: '', memberId: ids[i], name: people[i].name, _createdDate: daysAgo(2) })),
+      ...[1, 2, 5, 6, 8, 11].map(i => ({ _id: uid(), _owner: ids[i], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, status: 'zusage', grund: '', memberId: ids[i], name: people[i].name, _createdDate: daysAgo(1) })),
+      { _id: uid(), _owner: ids[3], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, status: 'absage', grund: 'Urlaub', memberId: ids[3], name: people[3].name, _createdDate: daysAgo(1) },
     ],
     Umfragen: [
       ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: 'demo-u5', _owner: OWNER, _createdDate: daysAgo(1), frage: 'Wo treffen wir uns am ' + new Date(ev.find(e => /stammtisch/i.test(e.title)).date + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' }) + '?', beschreibung: 'Die Umfrage sehen nur die, die zugesagt haben. Sie schließt am Tag des Treffens.', optionen: ["Alexander's (Wilhelmstraße 2)", 'Hildes Café & Shop (Frielingen 9)', 'Brauhaus Joh. Albrecht (Winsener Straße 34d)', "Meyn's Hotel (Poststraße 19)", 'La Mamma (Unter den Linden 15)'], mehrfach: false, offen: true, endetAm: ev.find(e => /stammtisch/i.test(e.title)).date, eventId: ev.find(e => /stammtisch/i.test(e.title)).id, nurZusagen: true, von: 'App', title: 'Stammtisch' }] : []),
@@ -149,10 +162,11 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
       { _id: 'demo-i3', _owner: ids[6], _createdDate: daysAgo(20), titel: 'Nachtbus am Wochenende nach Munster', text: 'Viele Jugendliche kommen abends nicht nach Hause.', von: ids[6], vonName: people[6].name, status: 'antrag', likes: [ids[5], ids[8], ids[9], ids[10]] },
     ],
     Versammlungen: [
+      { _id: 'demo-vs0', _owner: OWNER, _createdDate: daysAgo(14), titel: 'Außerordentliche Mitgliederversammlung', datum: inDays(0), zeit: '19:00', ort: 'Roter Bahnhof, Am Bahnhof 1t', status: 'laeuft', tops: JSON.stringify(['Begrüßung', 'Sommerfest 2027', 'Stammtisch', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'z1', titel: 'Sommerfest 2027 am 19. Juni', text: 'Der Ortsverein richtet am 19. Juni 2027 ein Sommerfest auf der Wiese am Roten Bahnhof aus. Der Vorstand wird beauftragt, ein Programm vorzubereiten.', status: 'abstimmung' }, { id: 'z2', titel: 'Stammtisch: erstes Getränk geht auf den Ortsverein', text: 'Für neue Mitglieder beim ersten Besuch.', status: 'offen' }]), anwesend: ids.slice(1, 10), protokoll: '', von: VON },
       { _id: 'demo-vs1', _owner: OWNER, _createdDate: daysAgo(10), titel: 'Mitgliederversammlung 2026', datum: inDays(21), zeit: '19:00', ort: 'Roter Bahnhof, Am Bahnhof 1t', status: 'geplant', tops: JSON.stringify(['Begrüßung', 'Bericht des Vorstands', 'Kassenbericht und Entlastung', 'Anträge', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'x1', titel: 'Roter Bahnhof: neue Bestuhlung', text: 'Der Ortsverein stellt 1.500 € für neue Stühle bereit.', status: 'offen' }, { id: 'x2', titel: 'Stammtisch monatlich', text: 'Der Stammtisch findet künftig jeden dritten Freitag statt.', status: 'offen' }]), anwesend: [], protokoll: '', von: VON },
       { _id: 'demo-vs2', _owner: OWNER, _createdDate: daysAgo(200), titel: 'Mitgliederversammlung 2025', datum: daysAgo(190).slice(0, 10), zeit: '19:00', ort: 'Roter Bahnhof', status: 'beendet', tops: JSON.stringify(['Begrüßung', 'Bericht des Vorstands', 'Wahlen', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'y1', titel: 'Website neu aufsetzen', text: 'Die Website wird bis zur Kommunalwahl neu gebaut.', status: 'angenommen', ergebnis: { ja: 18, nein: 1, enth: 2, n: 21 } }]), anwesend: ids.slice(0, 12), protokoll: 'Protokoll: Mitgliederversammlung 2025\nAnwesend: 21 Mitglieder\nBeschlüsse: Website neu aufsetzen – angenommen (18 Ja, 1 Nein, 2 Enthaltungen)', von: VON },
     ],
-    Abstimmungen: [],
+    Abstimmungen: ids.slice(1, 7).map((id, i) => ({ _id: uid(), _owner: id, versammlungId: 'demo-vs0', antragId: 'z1', memberId: id, name: people[i + 1].name, stimme: i === 4 ? 'nein' : 'ja', title: `${people[i + 1].name} – Sommerfest 2027 am 19. Juni`, _createdDate: daysAgo(0) })),
     WkStrassen: [
       ...['Marktstraße', 'Poststraße', 'Winsener Straße', 'Wilhelmstraße', 'Bergstraße', 'Lüneburger Straße'].map((st, i) => ({ _id: 'demo-ws' + i, _owner: OWNER, ort: 'Kernstadt', strasse: st, status: ['gespraeche', 'verteilt', 'offen', 'verteilt', 'offen', 'offen'][i], von: i < 4 ? people[1 + (i % 4)].name : '', datum: i < 4 ? daysAgo(3 + i).slice(0, 10) : '', title: st })),
       ...['Dorfstraße', 'Am Sportplatz', 'Heideweg'].map((st, i) => ({ _id: 'demo-wh' + i, _owner: OWNER, ort: 'Harber', strasse: st, status: i === 0 ? 'verteilt' : 'offen', von: i === 0 ? people[2].name : '', datum: i === 0 ? daysAgo(2).slice(0, 10) : '', title: st })),
@@ -179,6 +193,9 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
     Fahrgemeinschaften: [
       { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
       { _id: uid(), _owner: ids[7], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'suche', ab: 'Wolterdingen', plaetze: 1, zeit: '', memberId: ids[7], name: people[7].name, hinweis: '' },
+      { _id: uid(), _owner: ids[9], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, typ: 'biete', ab: 'Tetendorf', plaetze: 2, zeit: '18:30', memberId: ids[9], name: people[9].name, hinweis: 'Fahre über Ahlften.' },
+      { _id: uid(), _owner: ids[11], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, typ: 'suche', ab: 'Harber', plaetze: 1, zeit: '', memberId: ids[11], name: people[11].name, hinweis: '' },
+      ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: uid(), _owner: ids[12], eventId: ev.find(e => /stammtisch/i.test(e.title)).id, eventTitel: 'Stammtisch', eventDatum: ev.find(e => /stammtisch/i.test(e.title)).date, typ: 'biete', ab: 'Wolterdingen', plaetze: 3, zeit: '18:45', memberId: ids[12], name: people[12].name, hinweis: '' }] : []),
     ],
     Aktionen: [
       { _id: uid(), _owner: ME, _createdDate: daysAgo(1), typ: 'beitrag_erstellen', title: 'Beitrag: Radweg nach Harber', payload: JSON.stringify({ titel: 'Radweg nach Harber: Sanierung kommt' }), status: 'erledigt', ergebnis: 'veröffentlicht', von: 'Max Mustermann' },
