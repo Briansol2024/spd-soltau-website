@@ -8,7 +8,8 @@ import { TEIL_BYTES, toB64 } from './lib/rat.mjs';
 const MAX_UPLOAD = 40 * 1024 * 1024;
 // Takes aus dem Skript lesen – Take-Format, sonst Absätze
 export function takesAus(skript) {
-  const text = String(skript || '').replace(/\r/g, '');
+  let text = String(skript || '').replace(/\r/g, '');
+  const dp = text.match(/^\s*(?:\*\*)?DREHPLAN(?:\*\*)?\s*:?\s*$/im); if (dp) text = text.slice(0, dp.index); // Drehplan gehört nicht zu den Takes
   const bloecke = text.split(/\n(?=\s*TAKE\s*\d+)/i).map(b => b.trim()).filter(b => /^TAKE\s*\d+/i.test(b));
   if (bloecke.length) return bloecke.map((b, i) => {
     const zeilen = b.split('\n'); const kopf = zeilen[0];
