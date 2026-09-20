@@ -165,14 +165,10 @@ body.gruen .handy .screen{background:#00B140}
 .foto figcaption{font:700 30px/1.2 var(--body);color:#222;text-align:center}
 @keyframes fotoPop{from{opacity:0;transform:translateY(80px) rotate(calc(var(--rot) - 8deg)) scale(.85)}to{opacity:1;transform:rotate(var(--rot))}}
 @keyframes fotoWisch{from{opacity:0;transform:translateX(-160px) rotate(calc(var(--rot) - 10deg))}to{opacity:1;transform:rotate(var(--rot))}}
-[data-anim=wisch] .foto-pos.rechts{animation-name:fotoWischR}
 @keyframes fotoWischR{from{opacity:0;transform:translateX(160px) rotate(calc(var(--rot) + 10deg))}to{opacity:1;transform:rotate(var(--rot))}}
 @keyframes fotoWeich{from{opacity:0;filter:blur(16px);transform:rotate(var(--rot)) scale(1.06)}to{opacity:1;filter:blur(0);transform:rotate(var(--rot))}}
 @keyframes fotoFall{0%{opacity:0;transform:translateY(-300px) rotate(calc(var(--rot) - 6deg))}60%{opacity:1;transform:translateY(16px) rotate(var(--rot))}82%{transform:translateY(-6px) rotate(var(--rot))}100%{opacity:1;transform:rotate(var(--rot))}}
 @keyframes schweben{from{transform:translateY(0)}to{transform:translateY(-12px)}}
-[data-anim=wisch] .foto-pos{animation-name:fotoWisch;animation-timing-function:var(--ease)}
-[data-anim=weich] .foto-pos{animation-name:fotoWeich;animation-timing-function:var(--ease);animation-duration:.9s}
-[data-anim=fall] .foto-pos{animation-name:fotoFall;animation-timing-function:ease-out;animation-duration:.8s}
 
 /* ---------- Riesentitel: ein Wort, bildschirmfüllend – in CapCut hinter die Person legen ---------- */
 .riesen{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;text-align:center;padding:0 30px}
@@ -205,37 +201,152 @@ body.gruen .handy .screen{background:#00B140}
 @keyframes rahmenRein{to{opacity:1}}
 @keyframes rahmenRaus{to{opacity:0}}
 
-/* ---------- Animationsarten (?anim=pop|wisch|weich|fall|tipp): gleiche Zeiten, anderer Weg ins Bild ----------
-   pop = Standard (springt rein) · wisch = wischt von der Seite rein · weich = blendet weich ein · fall = fällt von oben mit Nachwippen · tipp = Buchstabe für Buchstabe */
+/* ---------- Zahl zählt hoch ---------- */
+.zahl{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;text-align:center;padding:0 60px}
+.zahl.oben{align-content:start;padding-top:230px}.zahl.unten{align-content:end;padding-bottom:420px}
+.zahl .box{display:grid;justify-items:center;gap:14px;animation:popIn .5s var(--spring) both}
+.zahl .wert{display:flex;align-items:baseline;gap:18px;color:#fff;font:800 230px/.9 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.zahl .wert .einheit{font-size:84px;color:var(--rot)}
+.zahl .unter{margin:0;font:700 40px/1.2 var(--body);color:#fff;background:var(--schwarz);padding:16px 26px 14px;animation:fadeDown .5s var(--ease) both .9s}
+/* ---------- Abstimmungs-Balken ---------- */
+.balken{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;padding:0 60px}
+.balken.oben{align-content:start;padding-top:230px}.balken.unten{align-content:end;padding-bottom:420px}
+.balken .box{position:relative;width:100%;max-width:960px;background:var(--schwarz);color:#fff;padding:38px 44px 42px;display:grid;gap:22px;animation:popIn .5s var(--spring) both}
+.balken .box .ey{justify-self:start}
+.balken .reihe{display:grid;grid-template-columns:250px minmax(0,1fr) 120px;align-items:center;gap:22px;font:800 44px/1 var(--display);text-transform:uppercase}
+.balken .reihe .bar{height:38px;background:#2a2a2a;overflow:hidden}
+.balken .reihe .bar i{display:block;height:100%;width:var(--w);background:#fff;transform:scaleX(0);transform-origin:left;animation:wachsen .9s var(--ease) both var(--d)}
+.balken .reihe.ja .bar i{background:var(--rot)}.balken .reihe.enth .bar i{background:#8a8a8a}
+.balken .reihe .v{text-align:right;font-variant-numeric:tabular-nums}
+.balken .ergebnis{position:absolute;right:-20px;top:-46px;background:var(--rot);color:#fff;font:800 52px/1 var(--display);text-transform:uppercase;padding:18px 26px 14px;transform:rotate(-5deg);animation:stempelRein .45s cubic-bezier(.2,1.4,.4,1) both 1.7s}
+.balken .ergebnis.schwarz{background:#fff;color:var(--schwarz)}
+@keyframes wachsen{to{transform:scaleX(1)}}
+/* ---------- Vorher / Nachher ---------- */
+.vorher{position:absolute;inset:0;display:grid;align-content:center;justify-items:center}
+.vorher.oben{align-content:start;padding-top:200px}
+.vorher .karte{position:relative;width:940px;height:1180px;overflow:hidden;background:#222;box-shadow:0 30px 70px rgba(0,0,0,.45);animation:popIn .6s var(--spring) both}
+.vorher .bild{position:absolute;inset:0;display:grid;place-items:center;font:800 60px/1 var(--display);text-transform:uppercase;letter-spacing:.1em;color:#777}
+.vorher .bild img{width:100%;height:100%;object-fit:cover;display:block}
+.vorher .b1{background:#3a3a3a}.vorher .b2{background:#c9c4be;color:#888;clip-path:inset(0 100% 0 0);animation:wischer 1.6s var(--ease) both 1s}
+.vorher .teiler{position:absolute;top:0;bottom:0;left:0;width:8px;background:#fff;box-shadow:0 0 30px rgba(0,0,0,.5);animation:teiler 1.6s var(--ease) both 1s}
+.vorher .tag{position:absolute;bottom:34px;font:800 40px/1 var(--display);text-transform:uppercase;padding:16px 22px 12px;background:#fff;color:var(--schwarz)}
+.vorher .t1{right:34px;animation:fadeDown .4s var(--ease) both .5s}
+.vorher .t2{left:34px;background:var(--rot);color:#fff;animation:popIn .4s var(--spring) both 2.4s}
+@keyframes wischer{to{clip-path:inset(0 0 0 0)}}
+@keyframes teiler{from{left:0}to{left:calc(100% - 8px)}}
+/* ---------- Kommentar-Karte ---------- */
+.kommentar{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;padding:0 70px}
+.kommentar.oben{align-content:start;padding-top:230px}.kommentar.unten{align-content:end;padding-bottom:420px}
+.kommentar .karte{width:100%;max-width:940px;background:#fff;color:#111;border-radius:28px;padding:34px 38px;display:grid;grid-template-columns:96px minmax(0,1fr);gap:26px;box-shadow:0 26px 60px rgba(0,0,0,.4);animation:popIn .5s var(--spring) both}
+.kommentar .avatar{width:96px;height:96px;border-radius:50%;background:var(--rot);color:#fff;display:grid;place-items:center;font:800 46px/1 var(--display);text-transform:uppercase}
+.kommentar .inhalt{display:grid;gap:10px;min-width:0}
+.kommentar .inhalt b{font:700 34px/1.2 var(--body)}
+.kommentar .inhalt b small{font-weight:400;color:#888;margin-left:14px}
+.kommentar .inhalt p{margin:0;font:400 42px/1.3 var(--body);color:#111}
+.kommentar .inhalt .fuss{font:700 28px/1 var(--body);color:#888;display:flex;gap:22px;align-items:center}
+.kommentar .fuss .herz{color:var(--rot);animation:popIn .4s var(--spring) both 1.1s}
+/* ---------- Bild-Szene (deckend, Foto mit langsamer Fahrt) ---------- */
+.szene{position:absolute;inset:0;overflow:hidden;background:#000}
+.szene .bild{position:absolute;inset:-6%;background:#1a1a1a;display:grid;place-items:center;font:800 70px/1 var(--display);text-transform:uppercase;letter-spacing:.1em;color:#555;animation:fahrtZoom var(--fd,5s) linear both}
+.szene .bild img{width:100%;height:100%;object-fit:cover;display:block}
+.szene.raus .bild{animation-name:fahrtRaus}.szene.links .bild{animation-name:fahrtLinks}.szene.rechts .bild{animation-name:fahrtRechts}
+.szene .ort{position:absolute;left:70px;bottom:400px;display:grid;justify-items:start;gap:10px;animation:wischIn .6s var(--ease) both .4s}
+.szene .ort b{font:800 64px/1 var(--display);text-transform:uppercase;color:#fff;background:var(--schwarz);padding:22px 28px 18px}
+.szene .ort .ey{animation:none}
+@keyframes fahrtZoom{from{transform:scale(1)}to{transform:scale(1.14)}}
+@keyframes fahrtRaus{from{transform:scale(1.14)}to{transform:scale(1)}}
+@keyframes fahrtLinks{from{transform:translateX(3%) scale(1.06)}to{transform:translateX(-3%) scale(1.06)}}
+@keyframes fahrtRechts{from{transform:translateX(-3%) scale(1.06)}to{transform:translateX(3%) scale(1.06)}}
+/* ---------- Bilder-Kreis: Fotos kreisen um die Person, je Thema eins nach vorn (in CapCut hinter die freigestellte Kopie) ---------- */
+.kreis{position:absolute;inset:0;animation:popIn .6s var(--ease) both}
+.kreis .kk{position:absolute;left:0;top:0;width:var(--kw,300px);padding:12px 12px 16px;background:#fff;box-shadow:0 24px 50px rgba(0,0,0,.4);transform-origin:50% 50%;will-change:transform}
+.kreis .kk img,.kreis .kk .platz{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#ddd}
+.kreis .kk .platz{display:grid;place-items:center;font:800 60px/1 var(--display);color:#aaa}
+.kreis .kk small{display:block;margin-top:10px;font:700 24px/1.2 var(--body);color:#222;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- Karten-Pin ---------- */
+.pin{position:absolute;inset:0}
+.pin .karte{position:absolute;left:70px;top:420px;width:940px;height:940px;overflow:hidden;background:#e8e4dd;box-shadow:0 30px 70px rgba(0,0,0,.45);animation:popIn .5s var(--spring) both}
+.pin .karte img{width:100%;height:100%;object-fit:cover;display:block}
+.pin .punkt{position:absolute;left:50%;top:50%;width:0;height:0}
+.pin .nadel{position:absolute;left:-34px;top:-92px;width:68px;height:92px;animation:nadel .6s cubic-bezier(.2,1.3,.4,1) both .2s}
+.pin .nadel svg{width:68px;height:92px;display:block;filter:drop-shadow(0 10px 14px rgba(0,0,0,.4))}
+.pin .ring{position:absolute;left:-26px;top:-14px;width:52px;height:28px;border-radius:50%;border:5px solid var(--rot);opacity:0;animation:ring 1s ease-out .7s 2}
+.pin .label{position:absolute;left:54px;top:-96px;white-space:nowrap;font:800 46px/1 var(--display);text-transform:uppercase;color:#fff;background:var(--schwarz);padding:18px 24px 14px;animation:popIn .4s var(--spring) both .8s}
+.pin .label.links{left:auto;right:54px}
+@keyframes nadel{from{opacity:0;transform:translateY(-320px)}60%{opacity:1;transform:translateY(0)}78%{transform:translateY(-22px)}100%{opacity:1;transform:none}}
+@keyframes ring{0%{opacity:.8;transform:scale(.4)}100%{opacity:0;transform:scale(2.6)}}
+body.schwarz{background:#000}
+
+/* ---------- Animationsarten (?anim=…): gleiche Zeiten, anderer Weg ins Bild – Block wird aus patch_kit2.py erzeugt ----------
+   pop = Standard · wisch = von der Seite · weich = weich einblenden · fall = von oben mit Nachwippen · zoom = aus der Ferne · hoch = von unten hochschieben
+   dreh = klappt aus der Fläche · mitte = aus der Mitte auf · federn = federt ein · blitz = kurz hell, dann normal · tipp = Buchstabe für Buchstabe */
 @keyframes wischIn{from{clip-path:inset(0 100% 0 0);transform:translateX(-40px)}to{clip-path:inset(0 0 0 0);transform:none}}
 @keyframes wischInR{from{clip-path:inset(0 0 0 100%);transform:translateX(40px)}to{clip-path:inset(0 0 0 0);transform:none}}
 @keyframes weichIn{from{opacity:0;filter:blur(14px);transform:scale(1.05)}to{opacity:1;filter:blur(0);transform:none}}
 @keyframes fallIn{0%{opacity:0;transform:translateY(-140px)}60%{opacity:1;transform:translateY(14px)}82%{transform:translateY(-6px)}100%{opacity:1;transform:none}}
+@keyframes zoomIn{from{opacity:0;transform:scale(.2);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes hochIn{from{clip-path:inset(100% 0 0 0);transform:translateY(70px)}to{clip-path:inset(0 0 0 0);transform:none}}
+@keyframes drehIn{from{opacity:0;transform:perspective(1400px) rotateX(-85deg)}to{opacity:1;transform:perspective(1400px) rotateX(0)}}
+@keyframes mitteIn{from{clip-path:inset(0 50% 0 50%);opacity:.5}to{clip-path:inset(0 0 0 0);opacity:1}}
+@keyframes federnIn{0%{opacity:0;transform:scale(.4)}55%{opacity:1;transform:scale(1.18)}72%{transform:scale(.94)}88%{transform:scale(1.04)}100%{opacity:1;transform:none}}
+@keyframes blitzIn{0%{opacity:0;filter:brightness(5) blur(8px)}35%{opacity:1;filter:brightness(2.6) blur(0)}100%{opacity:1;filter:brightness(1)}}
 @keyframes stempelWisch{from{clip-path:inset(0 100% 0 0);transform:rotate(-8deg)}to{clip-path:inset(0 0 0 0);transform:rotate(-8deg)}}
 @keyframes stempelWeich{from{opacity:0;transform:rotate(-8deg) scale(1.15);filter:blur(10px)}to{opacity:1;transform:rotate(-8deg) scale(1);filter:blur(0)}}
 @keyframes stempelFall{0%{opacity:0;transform:rotate(-8deg) translateY(-220px)}60%{opacity:1;transform:rotate(-8deg) translateY(18px)}100%{opacity:1;transform:rotate(-8deg)}}
+@keyframes stempelZoom{from{opacity:0;transform:rotate(-8deg) scale(.2)}to{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes stempelDreh{from{opacity:0;transform:perspective(1400px) rotateX(-85deg) rotate(-8deg)}to{opacity:1;transform:perspective(1400px) rotateX(0) rotate(-8deg)}}
+@keyframes stempelFedern{0%{opacity:0;transform:rotate(-8deg) scale(.4)}55%{opacity:1;transform:rotate(-8deg) scale(1.18)}72%{transform:rotate(-8deg) scale(.94)}100%{opacity:1;transform:rotate(-8deg)}}
 @keyframes tippIn{from{opacity:0}to{opacity:1}}
 @keyframes tpc{0%{opacity:1}100%{opacity:0}}
-/* Elemente mit einer Einblend-Animation */
-[data-anim=wisch] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte){animation-name:wischIn;animation-timing-function:var(--ease)}
-[data-anim=weich] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i,.riesen .t,.schild .karte){animation-name:weichIn;animation-timing-function:var(--ease);animation-duration:.8s}
-[data-anim=fall] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i,.riesen .t,.schild .karte){animation-name:fallIn;animation-timing-function:ease-out;animation-duration:.7s}
-/* Elemente mit Ein- und Ausblendung */
-[data-anim=wisch] .wort .z{animation-name:wischIn,wortOut;animation-timing-function:var(--ease),var(--ease)}
+
+[data-anim=wisch] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort){animation-name:wischIn;animation-timing-function:var(--ease);animation-duration:.5s}
+[data-anim=wisch] .wort .z{animation-name:wischIn,wortOut;animation-timing-function:var(--ease),var(--ease);animation-duration:.5s,.45s}
 [data-anim=wisch] .wort.rechts .z{animation-name:wischInR,wortOut}
+[data-anim=wisch] .stempel span{animation-name:stempelWisch;animation-timing-function:var(--ease);animation-duration:.5s}
+[data-anim=weich] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort,.intro h1 i){animation-name:weichIn;animation-timing-function:var(--ease);animation-duration:.8s}
 [data-anim=weich] .wort .z{animation-name:weichIn,wortOut;animation-timing-function:var(--ease),var(--ease);animation-duration:.8s,.45s}
-[data-anim=fall] .wort .z{animation-name:fallIn,wortOut;animation-timing-function:ease-out,var(--ease);animation-duration:.7s,.45s}
-[data-anim=weich] .binde .name,[data-anim=weich] .binde .rolle{animation-name:weichIn,bindeOut;animation-duration:.8s,.5s}
-[data-anim=fall] .binde .name,[data-anim=fall] .binde .rolle{animation-name:fallIn,bindeOut;animation-timing-function:ease-out,var(--ease);animation-duration:.7s,.5s}
+[data-anim=weich] .binde .name,[data-anim=weich] .binde .rolle{animation-name:weichIn,bindeOut;animation-timing-function:var(--ease),var(--ease);animation-duration:.8s,.5s}
 [data-anim=weich] .intro h1 i.bang{animation-name:weichIn,bang}
-[data-anim=fall] .intro h1 i.bang{animation-name:fallIn,bang}
-[data-anim=wisch] .stempel span{animation-name:stempelWisch;animation-timing-function:var(--ease)}
 [data-anim=weich] .stempel span{animation-name:stempelWeich;animation-timing-function:var(--ease);animation-duration:.8s}
+[data-anim=fall] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort,.intro h1 i){animation-name:fallIn;animation-timing-function:ease-out;animation-duration:.7s}
+[data-anim=fall] .wort .z{animation-name:fallIn,wortOut;animation-timing-function:ease-out,var(--ease);animation-duration:.7s,.45s}
+[data-anim=fall] .binde .name,[data-anim=fall] .binde .rolle{animation-name:fallIn,bindeOut;animation-timing-function:ease-out,var(--ease);animation-duration:.7s,.5s}
+[data-anim=fall] .intro h1 i.bang{animation-name:fallIn,bang}
 [data-anim=fall] .stempel span{animation-name:stempelFall;animation-timing-function:ease-out;animation-duration:.7s}
+[data-anim=zoom] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort,.intro h1 i){animation-name:zoomIn;animation-timing-function:var(--spring);animation-duration:.7s}
+[data-anim=zoom] .wort .z{animation-name:zoomIn,wortOut;animation-timing-function:var(--spring),var(--ease);animation-duration:.7s,.45s}
+[data-anim=zoom] .binde .name,[data-anim=zoom] .binde .rolle{animation-name:zoomIn,bindeOut;animation-timing-function:var(--spring),var(--ease);animation-duration:.7s,.5s}
+[data-anim=zoom] .intro h1 i.bang{animation-name:zoomIn,bang}
+[data-anim=zoom] .stempel span{animation-name:stempelZoom;animation-timing-function:var(--spring);animation-duration:.7s}
+[data-anim=hoch] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort){animation-name:hochIn;animation-timing-function:var(--ease);animation-duration:.6s}
+[data-anim=hoch] .wort .z{animation-name:hochIn,wortOut;animation-timing-function:var(--ease),var(--ease);animation-duration:.6s,.45s}
+[data-anim=dreh] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort,.intro h1 i){animation-name:drehIn;animation-timing-function:var(--spring);animation-duration:.75s;transform-origin:50% 0}
+[data-anim=dreh] .wort .z{animation-name:drehIn,wortOut;animation-timing-function:var(--spring),var(--ease);animation-duration:.75s,.45s;transform-origin:50% 0}
+[data-anim=dreh] .binde .name,[data-anim=dreh] .binde .rolle{animation-name:drehIn,bindeOut;animation-timing-function:var(--spring),var(--ease);animation-duration:.75s,.5s;transform-origin:50% 0}
+[data-anim=dreh] .intro h1 i.bang{animation-name:drehIn,bang}
+[data-anim=dreh] .stempel span{animation-name:stempelDreh;animation-timing-function:var(--spring);animation-duration:.75s}
+[data-anim=mitte] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort){animation-name:mitteIn;animation-timing-function:var(--ease);animation-duration:.5s}
+[data-anim=mitte] .wort .z{animation-name:mitteIn,wortOut;animation-timing-function:var(--ease),var(--ease);animation-duration:.5s,.45s}
+[data-anim=federn] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort,.intro h1 i){animation-name:federnIn;animation-timing-function:ease-out;animation-duration:.9s}
+[data-anim=federn] .wort .z{animation-name:federnIn,wortOut;animation-timing-function:ease-out,var(--ease);animation-duration:.9s,.45s}
+[data-anim=federn] .binde .name,[data-anim=federn] .binde .rolle{animation-name:federnIn,bindeOut;animation-timing-function:ease-out,var(--ease);animation-duration:.9s,.5s}
+[data-anim=federn] .intro h1 i.bang{animation-name:federnIn,bang}
+[data-anim=federn] .stempel span{animation-name:stempelFedern;animation-timing-function:ease-out;animation-duration:.9s}
+[data-anim=blitz] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte,.zahl .box,.balken .box,.vorher .karte,.kommentar .karte,.pin .label,.szene .ort,.intro h1 i){animation-name:blitzIn;animation-timing-function:ease-out;animation-duration:.6s}
+[data-anim=blitz] .wort .z{animation-name:blitzIn,wortOut;animation-timing-function:ease-out,var(--ease);animation-duration:.6s,.45s}
+[data-anim=blitz] .binde .name,[data-anim=blitz] .binde .rolle{animation-name:blitzIn,bindeOut;animation-timing-function:ease-out,var(--ease);animation-duration:.6s,.5s}
+[data-anim=blitz] .intro h1 i.bang{animation-name:blitzIn,bang}
+[data-anim=wisch] .foto-pos{animation-name:fotoWisch;animation-timing-function:var(--ease)}
+[data-anim=wisch] .foto-pos.rechts{animation-name:fotoWischR}
+[data-anim=weich] .foto-pos{animation-name:fotoWeich;animation-timing-function:var(--ease);animation-duration:.9s}
+[data-anim=fall] .foto-pos{animation-name:fotoFall;animation-timing-function:ease-out;animation-duration:.8s}
+[data-anim=zoom] .foto-pos,[data-anim=federn] .foto-pos{animation-name:fotoZoom;animation-timing-function:var(--spring);animation-duration:.8s}
+@keyframes fotoZoom{from{opacity:0;transform:rotate(var(--rot)) scale(.2)}to{opacity:1;transform:rotate(var(--rot))}}
+
 /* Tippen: Buchstaben einzeln (JS wickelt sie ein), Cursor blinkt solange getippt wird */
 .tp{opacity:0;animation:tippIn 1ms steps(1,end) both}
 .tp-c{display:inline-block;width:.08em;height:.85em;background:currentColor;margin-left:.06em;vertical-align:-.06em;opacity:0;animation:tpc .5s steps(2,start) forwards}
-[data-anim=tipp] .gross,[data-anim=tipp] .zitat p,[data-anim=tipp] .riesen .t,[data-anim=tipp] .aufruf .name,[data-anim=tipp] .ey,[data-anim=tipp] .liste .titel,[data-anim=tipp] .szene-text,[data-anim=tipp] .vs .karte,[data-anim=tipp] .outro .claim,[data-anim=tipp] .outro .cta,[data-anim=tipp] .intro .tag,[data-anim=tipp] .aufruf .sub,[data-anim=tipp] .zitat .wer,[data-anim=tipp] .gegen .z{animation-name:none}
+[data-anim=tipp] .gross,[data-anim=tipp] .zitat p,[data-anim=tipp] .riesen .t,[data-anim=tipp] .zahl .unter,[data-anim=tipp] .kommentar .karte p,[data-anim=tipp] .szene .ort b,[data-anim=tipp] .pin .label,[data-anim=tipp] .aufruf .name,[data-anim=tipp] .ey,[data-anim=tipp] .liste .titel,[data-anim=tipp] .szene-text,[data-anim=tipp] .vs .karte,[data-anim=tipp] .outro .claim,[data-anim=tipp] .outro .cta,[data-anim=tipp] .intro .tag,[data-anim=tipp] .aufruf .sub,[data-anim=tipp] .zitat .wer,[data-anim=tipp] .gegen .z{animation-name:none}
 [data-anim=tipp] .wort .z{animation-name:none,wortOut}
 [data-anim=tipp] .binde .name,[data-anim=tipp] .binde .rolle{animation-name:bindeIn,bindeOut}
 
@@ -248,7 +359,8 @@ const q = new URLSearchParams(location.search);
 const clip = q.get('clip') || 'intro';
 const bg = q.get('bg') || 'gruen';
 if (bg !== 'keins') document.body.classList.add(bg);
-const anim = ['wisch', 'weich', 'fall', 'tipp'].includes(q.get('anim')) ? q.get('anim') : 'pop';
+window.__ticks = [];
+const anim = ['wisch', 'weich', 'fall', 'zoom', 'hoch', 'dreh', 'mitte', 'federn', 'blitz', 'tipp'].includes(q.get('anim')) ? q.get('anim') : 'pop';
 document.body.dataset.anim = anim;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const letters = (word, delay0, step, rotIdx = []) => [...word].map((ch, i) => `<i class="${rotIdx.includes(i) ? 'rot' : ''}${i === word.length - 1 && /[!,]/.test(ch) && clip === 'intro' && word.endsWith('!') ? ' bang' : ''}" style="animation-delay:${(delay0 + i * step).toFixed(2)}s${i === word.length - 1 && word.endsWith('!') ? ',1.9s' : ''}">${esc(ch)}</i>`).join('');
@@ -317,6 +429,47 @@ if (clip === 'intro') {
   // Position/Größe per Adresse: &x=60&y=440&w=470 (Pixel im 1080×1920-Bild) &label=Text
   const st = [q.get('x') && `--hx:${q.get('x')}px`, q.get('y') && `--hy:${q.get('y')}px`, q.get('w') && `--hw:${q.get('w')}px`].filter(Boolean).join(';');
   html = `<div class="handy" style="${st}"><div class="screen"></div><span class="cam"></span><span class="btn b1"></span><span class="btn b2"></span><span class="btnl"></span>${q.get('label') ? `<span class="label">${esc(q.get('label'))}</span>` : ''}</div>`;
+} else if (clip === 'zahl') {
+  // Zahl zählt hoch: von → bis (deutsch geschrieben: 2,4 · 1.250), einheit dahinter, label darüber, text darunter
+  const deZahl = v => parseFloat(String(v || '0').replace(/\./g, '').replace(',', '.')) || 0; const dez = (String(q.get('bis') || '').split(',')[1] || '').length;
+  const von = deZahl(q.get('von')), bis = deZahl(q.get('bis') || '100'); const fmt = v => v.toLocaleString('de-DE', { minimumFractionDigits: dez, maximumFractionDigits: dez });
+  html = `<div class="zahl ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="box">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<div class="wert"><span class="n">${fmt(von)}</span>${q.get('einheit') ? `<span class="einheit">${esc(q.get('einheit'))}</span>` : ''}</div>${q.get('text') ? `<p class="unter">${esc(q.get('text'))}</p>` : ''}</div></div>`;
+  window.__ticks.push(t => { const p = Math.min(1, Math.max(0, (t - 400) / 1400)); const e = 1 - Math.pow(1 - p, 3); const n = document.querySelector('.zahl .n'); if (n) n.textContent = fmt(von + (bis - von) * e); });
+} else if (clip === 'balken') {
+  // Abstimmung: ja/nein/enth wachsen als Balken, Zahlen zählen mit, Ergebnis-Stempel am Ende
+  const ja = +q.get('ja') || 0, nein = +q.get('nein') || 0, enth = +q.get('enth') || 0; const max = Math.max(ja, nein, enth, 1);
+  const reihen = [['Ja', ja, 'ja'], ['Nein', nein, 'nein'], ['Enthaltung', enth, 'enth']].filter(([, v, k]) => k !== 'enth' || v > 0);
+  html = `<div class="balken ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="box">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}${reihen.map(([l, v, k], i) => `<div class="reihe ${k}" style="--w:${(v / max * 100).toFixed(1)}%;--d:${(.5 + i * .25).toFixed(2)}s"><span>${l}</span><span class="bar"><i></i></span><span class="v" data-bis="${v}" data-ab="${(500 + i * 250)}">0</span></div>`).join('')}${q.get('beschluss') ? `<span class="ergebnis ${/abgelehnt/i.test(q.get('beschluss')) ? 'schwarz' : ''}">${esc(q.get('beschluss'))}</span>` : ''}</div></div>`;
+  window.__ticks.push(t => { document.querySelectorAll('.balken .v').forEach(el => { const p = Math.min(1, Math.max(0, (t - +el.dataset.ab) / 900)); el.textContent = Math.round(+el.dataset.bis * (1 - Math.pow(1 - p, 3))); }); });
+} else if (clip === 'vorher') {
+  // Vorher/Nachher: zwei Fotos, der Wischer schiebt das „Nachher“ von links über das „Vorher“
+  const b = (u, k, t) => `<div class="bild ${k}">${u ? `<img src="${esc(u)}" alt="">` : esc(t)}</div>`;
+  html = `<div class="vorher ${q.get('pos') === 'oben' ? 'oben' : ''}"><div class="karte">${b(q.get('url1'), 'b1', 'Vorher')}${b(q.get('url2'), 'b2', 'Nachher')}<span class="teiler"></span><span class="tag t1">${esc(q.get('text1') || 'Vorher')}</span><span class="tag t2">${esc(q.get('text2') || 'Nachher')}</span></div></div>`;
+} else if (clip === 'kommentar') {
+  // Kommentar-Karte wie bei Instagram: name, text, likes
+  const name = q.get('name') || 'anna_s'; const likes = q.get('likes') || '';
+  html = `<div class="kommentar ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="karte"><span class="avatar">${esc(name.replace(/^@/, '').charAt(0))}</span><div class="inhalt"><b>${esc(name)}<small>${esc(q.get('wann') || '2 Std.')}</small></b><p>${esc(q.get('text') || 'Wann kommt der Radweg?')}</p><span class="fuss">${likes ? `<span class="herz">♥ ${esc(likes)}</span>` : ''}<span>Antworten</span></span></div></div></div>`;
+} else if (clip === 'szene') {
+  // Bild-Szene (deckend): Foto mit langsamer Fahrt über die ganze Clip-Länge, Ortszeile unten links
+  const fahrt = { raus: 'raus', links: 'links', rechts: 'rechts' }[q.get('fahrt')] || '';
+  html = `<div class="szene ${fahrt}" style="--fd:${parseFloat(q.get('dauer')) || 5}s"><div class="bild">${q.get('url') ? `<img src="${esc(q.get('url'))}" alt="">` : 'Foto'}</div>${q.get('text') ? `<div class="ort">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<b>${esc(q.get('text'))}</b></div>` : ''}</div>`;
+} else if (clip === 'kreis') {
+  // Bilder-Kreis: bilder = Adressen mit | (leer → nummerierte Platzhalter), takt = Sekunden je Bild, art = schritt|fliessend, pos = oben|mitte|unten
+  const urls = (q.get('bilder') || '').split('|').map(x => x.trim()).filter(Boolean); const n = Math.max(3, urls.length || +q.get('anzahl') || 4);
+  const namen = (q.get('text') || '').split('|'); const takt = Math.max(1, parseFloat(q.get('takt')) || 3) * 1000; const fliessend = q.get('art') === 'fliessend';
+  const cy = { oben: 700, unten: 1250 }[q.get('pos')] || 980, rx = 430, ry = 150; const kw = q.get('gr') === 'gross' ? 380 : 300;
+  html = `<div class="kreis" style="--kw:${kw}px">${Array.from({ length: n }, (_, i) => `<figure class="kk" data-i="${i}">${urls[i] ? `<img src="${esc(urls[i])}" alt="">` : `<div class="platz">${i + 1}</div>`}${namen[i] ? `<small>${esc(namen[i])}</small>` : ''}</figure>`).join('')}</div>`;
+  window.__ticks.push(t => {
+    const s = Math.max(0, t - 600) / takt; const k = Math.floor(s), f = s - k; const ease = f < .5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+    const phi = fliessend ? (t / takt) * (2 * Math.PI / n) : (k + ease) * (2 * Math.PI / n);
+    document.querySelectorAll('.kreis .kk').forEach(el => { const i = +el.dataset.i; const a = (2 * Math.PI * i) / n - phi; const d = Math.cos(a); const sc = .55 + .45 * (d + 1) / 2;
+      el.style.transform = `translate(${(540 + rx * Math.sin(a) - kw / 2).toFixed(1)}px,${(cy + ry * d - kw / 2 - 20).toFixed(1)}px) scale(${sc.toFixed(3)})`; el.style.zIndex = String(Math.round(100 + 50 * d)); el.style.filter = `brightness(${(.62 + .38 * (d + 1) / 2).toFixed(2)})`; }); // keine Transparenz – sonst grünstichig beim Keying
+  });
+} else if (clip === 'pin') {
+  // Karten-Pin: fällt auf x/y (Prozent) – auf ein Kartenbild oder frei (dann in CapCut per Tracking anheften)
+  const x = Math.min(100, Math.max(0, parseFloat(q.get('x')) || 50)), y = Math.min(100, Math.max(0, parseFloat(q.get('y')) || 50));
+  const punkt = `<div class="punkt" style="left:${x}%;top:${y}%"><span class="ring"></span><span class="nadel"><svg viewBox="0 0 68 92"><path d="M34 2C16 2 2 16 2 34c0 24 32 56 32 56s32-32 32-56C66 16 52 2 34 2z" fill="#E3000F" stroke="#fff" stroke-width="4"/><circle cx="34" cy="34" r="12" fill="#fff"/></svg></span>${q.get('text') ? `<span class="label ${x > 62 ? 'links' : ''}">${esc(q.get('text'))}</span>` : ''}</div>`;
+  html = `<div class="pin">${q.get('url') ? `<div class="karte"><img src="${esc(q.get('url'))}" alt="">${punkt}</div>` : punkt}</div>`;
 } else if (clip === 'gross') {
   const zeilen = (q.get('text') || 'So funktionieren|Parteien nicht.').split('|');
   const pos = { oben: 'oben', unten: 'unten' }[q.get('pos')] || '';
@@ -338,7 +491,7 @@ if (sch) {
 }
 // Tippen: Text in einzelne Buchstaben zerlegen, jeder erscheint nach dem vorigen; Start = bisherige Verzögerung des Elements
 if (anim === 'tipp') {
-  const ziele = document.querySelectorAll('.gross, .wort .z, .zitat p, .liste:not(.fokus) .p span, .binde .name, .aufruf .name, .aufruf .sub, .ey, .liste .titel, .szene-text, .vs .karte, .outro .claim, .outro .cta, .intro .tag, .zitat .wer, .gegen .z, .riesen .t, .schild .karte b, .schild .karte span');
+  const ziele = document.querySelectorAll('.gross, .wort .z, .zitat p, .liste:not(.fokus) .p span, .binde .name, .aufruf .name, .aufruf .sub, .ey, .liste .titel, .szene-text, .vs .karte, .outro .claim, .outro .cta, .intro .tag, .zitat .wer, .gegen .z, .riesen .t, .schild .karte b, .schild .karte span, .zahl .unter, .kommentar .karte p, .szene .ort b, .pin .label');
   ziele.forEach(el => {
     const wirt = el.closest('.liste .p') || el; // Verzögerung steht am Listenpunkt, getippt wird der Text darin
     const cs = getComputedStyle(wirt); const start = (parseFloat(cs.animationDelay) || 0) + (cs.animationName.split(',')[0].trim() !== 'none' ? .35 : 0); // erst reinkommen, dann tippen
@@ -349,12 +502,15 @@ if (anim === 'tipp') {
   });
 }
 if (clip === 'gegen') document.querySelectorAll('.gegen .z:not(.bleibt)').forEach((z, i) => { z.style.setProperty('--d', (1.0 + i * .9).toFixed(2) + 's'); });
-// Bild-für-Bild-Steuerung für render.mjs
+// Bild-für-Bild-Steuerung für render.mjs; __ticks = Abläufe, die kein CSS kann (zählende Zahlen)
 window.__anims = null;
 window.seek = t => {
   if (!window.__anims) { window.__anims = document.getAnimations(); window.__anims.forEach(a => a.pause()); }
   window.__anims.forEach(a => { a.currentTime = t; });
+  window.__ticks.forEach(f => f(t));
 };
+// Vorschau in der App: Ticks laufen in Echtzeit, bis seek() übernimmt
+if (window.__ticks.length) { const t0 = performance.now(); (function lauf() { if (window.__anims) return; window.__ticks.forEach(f => f(performance.now() - t0)); requestAnimationFrame(lauf); })(); }
 </script>
 </body>
 </html>

@@ -23,6 +23,14 @@ Liegen in `video/insta/out/`, jeweils in zwei Fassungen:
 - **schild** – Datenschild mit Linie und Punkt, zum **Anheften an ein Gebäude**: siehe unten „Anheften (Tracking)“
 - **liste** mit Art **Fokus** – alle Punkte stehen unscharf da, einer nach dem anderen wird scharf und bekommt den Rahmen; die Zeit verteilt sich auf die Clip-Länge (Sekunden in der Werkstatt hochsetzen bei vielen Punkten)
 
+- **zahl** – eine Zahl zählt in gut einer Sekunde hoch (deutsch geschrieben: 2,4 · 1.250), Einheit dahinter, Zeile darüber/darunter
+- **balken** – Abstimmung: Ja (rot), Nein (weiß), Enthaltung (grau) wachsen als Balken, Zahlen zählen mit, Stempel obendrauf; kommt aus dem Sitzungsrückblick automatisch
+- **vorher** – zwei Fotos, ein Wischer schiebt das „Nachher“ von links über das „Vorher“
+- **kommentar** – Kommentar-Karte wie bei Instagram (Name, Text, Likes) – Format „Frage aus der Community“
+- **szene** – Foto bildschirmfüllend mit langsamer Fahrt (deckend, kein Grün – als eigene Szene schneiden), Ortszeile unten links
+- **pin** – Karten-Pin fällt auf x/y Prozent eines Kartenbilds – oder ohne Bild frei, zum Anheften per Tracking
+- **kreis** – Fotos kreisen auf einer flachen Bahn um die Person, je Thema kommt das nächste nach vorn (oder fließend). In CapCut **zwischen Video und freigestellte Kopie** legen – dann laufen die hinteren Bilder hinter dem Körper durch
+
 ## Anheften (Tracking): Schrift klebt am Gebäude, obwohl die Kamera sich bewegt
 
 1. Drehen: langsam und gleichmäßig (Gimbal, oder mit gebeugten Knien gehen), das Gebäude bleibt im Bild, eine markante Stelle (Fensterecke, Schild) muss die ganze Zeit sichtbar sein.
@@ -41,6 +49,12 @@ Jeder Baustein kann auf fünf Arten ins Bild kommen – in der App unter „Baus
 | `wisch` | wischt von der Seite ins Bild | Bewegung im Bild, Schnittwechsel |
 | `weich` | blendet weich ein, leicht unscharf → scharf | ruhige, seriöse Aussagen |
 | `fall` | fällt von oben und wippt nach | eine Zahl, ein Ergebnis |
+| `zoom` | kommt aus der Ferne groß | Auftakt, Überraschung |
+| `hoch` | schiebt sich von unten hoch | sachlich, wie Nachrichten |
+| `dreh` | klappt aus der Fläche | „nächster Punkt“ |
+| `mitte` | öffnet sich von der Mitte nach außen | Titel, Namen |
+| `federn` | federt elastisch ein | Spaß, Kinder, Feste |
+| `blitz` | kurz hell, dann normal | Zahlen, Ergebnisse, „Achtung“ |
 | `tipp` | Buchstabe für Buchstabe mit Cursor | Stichworte, Listen, Adressen |
 
 Direkt auf der Bühne: `stage.html?clip=gross&text=…&anim=weich`.

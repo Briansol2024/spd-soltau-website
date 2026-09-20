@@ -30,7 +30,10 @@ export function makeRueckblick(ctx) {
     L.push(`🎬 ${r.gremium || 'Sitzung'} vom ${datum} – ${variante === 'kurz' ? 'Reel, ca. 45 Sekunden' : 'ausführlich, ca. 90 Sekunden'} – Take für Take`);
     L.push('');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
-    take('du in die Kamera, Blick direkt rein', `Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`, `Großer Text „${istRat ? 'Ratssitzung' : r.gremium} ${dat}“ / „So hat der Rat entschieden“ (4 s)`, { einstellung: 'halbnah', position: 'mitte', overlay: 'oben', hintergrund: ort });
+    // Hook zuerst: Schlagwörter der wichtigsten Entscheidungen, dann erst das Moin
+    const schlag = wahl.slice(0, 3).map(t => sprechTitel(t.titel).split(/\s+[–-]\s+|:/)[0].trim()).filter(Boolean);
+    if (schlag.length) take('du nah, Blick direkt rein, ernst', `${schlag.join('. ')}. ${wahl.length === 1 ? 'Eine Entscheidung' : `${['', '', 'Zwei', 'Drei'][schlag.length] || schlag.length} Entscheidungen`} aus dem Rat, die Soltau verändern.`, `Wort-Popper „${schlag.map(s => s.split(' ').slice(-1)[0]).join('|')}“ (3 s) – Wort für Wort beim Sprechen`, { einstellung: 'nah', position: 'rechts', kamera: 'Zoom rein', overlay: 'mitte links', hintergrund: ort });
+    take('du in die Kamera, halbnah, locker', `Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`, `Großer Text „${istRat ? 'Ratssitzung' : r.gremium} ${dat}“ / „So hat der Rat entschieden“ (4 s)`, { einstellung: 'halbnah', position: 'mitte', overlay: 'oben', hintergrund: ort });
     // Je Entscheidung ein Take mit zwei, drei Sätzen am Stück – wenige Schnitte, locker erzählt
     wahl.forEach((t, i) => {
       const z = zahlen(t);
@@ -42,12 +45,12 @@ export function makeRueckblick(ctx) {
       const erg = { angenommen: `und der Rat hat es angenommen${zahlSatz}.`, abgelehnt: `aber der Rat hat es abgelehnt${zahlSatz}.`, geaendert: `und in der geänderten Fassung ist es durchgegangen${zahlSatz}.`, vertagt: 'aber das wurde vertagt – kommt also noch mal auf den Tisch.', zurueckgezogen: 'aber der Antrag wurde zurückgezogen.', kenntnis: 'das hat der Rat zur Kenntnis genommen.' }[t.beschluss] || (t.ergebnis ? `Ergebnis: ${t.ergebnis}.` : '');
       const arg = satz1(t.einordnung);
       const text = [`${einstieg}: ${sprechTitel(t.titel)}.`, arg, haltung && erg ? `${haltung}, ${erg}` : (haltung ? haltung + '.' : erg ? erg.charAt(0).toUpperCase() + erg.slice(1) : ''), t.ergebnis && t.beschluss ? t.ergebnis + '.' : ''].filter(Boolean).join(' ');
-      take(i % 2 ? 'du, etwas näher, ruhig mit Vorlage oder Foto in der Hand' : 'du in die Kamera, locker, gern mit Geste', text, `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „${lesbar(`*${lab}*${stand ? '|' + stand : ''}`)}“ (4 s) – bei „${sprechTitel(t.titel).split(' ')[0]}“ einblenden`,
+      take(i % 2 ? 'du, etwas näher, ruhig mit Vorlage oder Foto in der Hand' : 'du in die Kamera, locker, gern mit Geste', text, z.da ? `Abstimmungs-Balken „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ Ja ${z.ja} / Nein ${z.nein}${z.enth ? ' / Enthaltung ' + z.enth : ''}, Stempel „${lab}“ (5 s) – beim Ergebnis einblenden` : `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „${lab}“ (4 s) – bei „${sprechTitel(t.titel).split(' ')[0]}“ einblenden`,
         i % 2 ? { einstellung: 'nah', position: 'links', overlay: 'oben rechts', hintergrund: ort } : { einstellung: 'halbnah', position: 'rechts', kamera: i === 0 ? 'Zoom rein' : 'steht', overlay: 'oben links', hintergrund: ort });
     });
     if (ent.length > wahl.length) take('du, schneller Schnitt', `Außerdem entschieden: ${ent.slice(wahl.length).map(t => `${sprechTitel(t.titel)} – ${(beschlussLabel(t.beschluss) || t.ergebnis || '').toLowerCase()}`).join(', ')}.`, `Liste „Außerdem entschieden“ / ${ent.slice(wahl.length, wahl.length + 5).map(t => kurzTitel(t.titel)).join(' | ')} (5 s)`, { einstellung: 'halbnah', position: 'links', overlay: 'mitte rechts', hintergrund: ort });
     take('du in die Kamera, Lächeln', 'Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de – und wenn ihr zu einem Punkt Fragen habt, schreibt uns einfach, wir antworten. Bis zur nächsten Sitzung!', 'Großer Text „Alle Vorlagen und Ergebnisse“ / „spd-soltau.de/ratsbericht“ (4 s), danach Schlusskarte aus dem Grundkit', { einstellung: 'nah', position: 'mitte', overlay: 'unten', hintergrund: ort });
-    L.push('DREHPLAN'); L.push(drehplanAuto(r, wahl.length + 2).trim());
+    L.push('DREHPLAN'); L.push(drehplanAuto(r, wahl.length + 3).trim());
     if (frei.length) {
       L.push(''); L.push('— Stichworte aus den Notizen der Fraktion (zur Inspiration, NICHT veröffentlichen):');
       for (const n of frei) { const z = String(n.text || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' / '); if (z) L.push(`• ${vorname(n.name)}: ${z.slice(0, 200)}`); else if (n.skizze) L.push(`• ${vorname(n.name)}: Skizze (siehe unten)`); }
@@ -166,7 +169,8 @@ export function makeRueckblick(ctx) {
     const clips = [{ id: 'intro', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', anim: 'fall' } }];
     ent.slice(0, 8).forEach((t, i) => {
       const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
-      clips.push({ id: `top${slugify(nr)}-${slugify(kurzTitel(t.titel)).slice(0, 24)}`, dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, anim: i % 2 ? 'weich' : 'wisch' } });
+      if (z.da) clips.push({ id: `top${slugify(nr)}-${slugify(kurzTitel(t.titel)).slice(0, 24)}`, dauer: 5, q: { clip: 'balken', pos: 'oben', label: `TOP ${nr} · ${kurzTitel(t.titel)}`, ja: String(z.ja), nein: String(z.nein), enth: String(z.enth || ''), beschluss: lab, anim: i % 2 ? 'hoch' : 'wisch' } });
+      else clips.push({ id: `top${slugify(nr)}-${slugify(kurzTitel(t.titel)).slice(0, 24)}`, dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*`, anim: i % 2 ? 'weich' : 'wisch' } });
       if (stempelText[t.beschluss]) clips.push({ id: `top${slugify(nr)}-stempel`, dauer: 3, q: { clip: 'stempel', text: stempelText[t.beschluss], ...(t.beschluss === 'abgelehnt' ? { art: 'schwarz' } : {}) } });
     });
     if (ent.length > 8) clips.push({ id: 'weitere', dauer: 5, q: { clip: 'liste', titel: 'Außerdem entschieden', text: ent.slice(8, 13).map(t => kurzTitel(t.titel)).join('|') } });
@@ -189,10 +193,14 @@ Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 b
     const ent = tops.filter(hatErgebnis); const istRat = /^Rat\b/.test(r.gremium || '');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
     const stempelText = { angenommen: 'Angenommen', geaendert: 'Angenommen', abgelehnt: 'Abgelehnt', vertagt: 'Vertagt', zurueckgezogen: 'Zurückgezogen', kenntnis: 'Kenntnis' };
-    const out = [{ typ: 'gross', dauer: 4, werte: { label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', pos: 'oben', gr: 'm', anim: 'fall' } }];
+    const schlag = ent.slice(0, 3).map(t => kurzTitel(t.titel).split(/\s+[–-]\s+|:/)[0].trim().split(' ').slice(-1)[0]).filter(Boolean);
+    const out = [];
+    if (schlag.length) out.push({ typ: 'wort', dauer: 3, werte: { text: schlag.map((w, i) => (i === schlag.length - 1 ? '*' : '') + w).join('|'), seite: 'links', anim: 'tipp' } });
+    out.push({ typ: 'gross', dauer: 4, werte: { label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', pos: 'oben', gr: 'm', anim: 'fall' } });
     ent.slice(0, 8).forEach((t, i) => {
       const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
-      out.push({ typ: 'gross', dauer: 4, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, pos: 'oben', gr: 'm', anim: i % 2 ? 'weich' : 'wisch' } });
+      if (z.da) out.push({ typ: 'balken', dauer: 5, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, ja: String(z.ja), nein: String(z.nein), enth: String(z.enth || ''), beschluss: lab, pos: 'oben', anim: i % 2 ? 'hoch' : 'wisch' } });
+      else out.push({ typ: 'gross', dauer: 4, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*`, pos: 'oben', gr: 'm', anim: i % 2 ? 'weich' : 'wisch' } });
       void stempelText;
     });
     out.push({ typ: 'gross', dauer: 4, werte: { label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht', pos: 'oben', gr: 'm', anim: 'tipp' } });

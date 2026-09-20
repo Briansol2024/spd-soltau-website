@@ -1856,3 +1856,10 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .sb-karte figcaption b{color:var(--rot)}
 .ow-anim{display:grid;gap:6px}
 .ow-anim-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ow-bilder{display:grid;gap:8px}
+.ow-thumbs{display:flex;flex-wrap:wrap;gap:8px}
+.ow-thumb{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--grau);padding:4px 8px 4px 4px;font-size:13px;max-width:100%}
+.ow-thumb img,.ow-thumb i{width:56px;height:56px;object-fit:cover;display:grid;place-items:center;background:#ddd;font-style:normal;color:#888}
+.ow-thumb small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ow-bild-aktionen{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ow-bild-aktionen select{font:inherit;font-size:14px;padding:7px 8px;border:2px solid var(--schwarz);max-width:100%}

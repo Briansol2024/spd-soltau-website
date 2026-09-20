@@ -31,10 +31,37 @@ export function takesAus(skript) {
 
 export function makeFilm(ctx) {
   const { db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtWhen, ICON, DEMO, BASE, me, echtesKonto, drehStart } = ctx;
-  const st = { projekte: [], material: [], auftraege: [], konto: null, timer: null, tab: 'skript', neuOverlay: null, take: 0, letztes: '' };
+  const st = { projekte: [], material: [], auftraege: [], konto: null, timer: null, tab: 'skript', neuOverlay: null, take: 0, letztes: '', blobs: {} };
+  // ---- Bilder in Bausteinen: Wert ist eine Adresse oder „material:<id>“ (frisch hochgeladen, Wix legt es innerhalb von 5 Min. ab); mehrere mit | ----
+  const istBild = m => m.url ? /\.(jpe?g|png|webp)(\?|$)/i.test(m.url) || /^image\//.test(m.mime || '') : /^image\//.test(m.mime || '');
+  const bildUrl = (wert, vorschau) => { const m = /^material:(.+)$/.exec(wert); if (!m) return wert; const mat = st.material.find(x => x._id === m[1]); return (mat && mat.url) || (vorschau ? st.blobs[m[1]] || '' : ''); };
+  const werteAufloesen = (werte, vorschau) => { const w = { ...werte }; for (const k of Object.keys(w)) if (/^url|^bilder$/.test(k)) w[k] = String(w[k] || '').split('|').map(x => bildUrl(x.trim(), vorschau)).filter(Boolean).join('|'); return w; };
+  const clipVon = (o, i, vorschau) => overlayClip({ ...o, werte: werteAufloesen(o.werte || {}, vorschau) }, i);
+  const nochNichtAbgelegt = o => Object.entries(o.werte || {}).filter(([k]) => /^url|^bilder$/.test(k)).flatMap(([, v]) => String(v || '').split('|')).some(x => /^material:/.test(x) && !bildUrl(x, false));
+  function bildFeld(p, k, l, wert, mehrfach) {
+    const werte = wert.split('|').map(x => x.trim()).filter(Boolean);
+    const bilder = st.material.filter(m => (m.projektId === p._id || !m.projektId) && istBild(m));
+    const thumbs = werte.map((w, i) => { const u = bildUrl(w, true); const mat = /^material:(.+)$/.exec(w); const m = mat && st.material.find(x => x._id === mat[1]); return `<span class="ow-thumb">${u ? `<img src="${esc(u)}" alt="">` : '<i>?</i>'}<small>${esc(m ? (m.titel || m.name || 'Bild') : w.replace(/^https?:\/\//, '').slice(0, 24))}${m && !m.url ? ' · wird abgelegt' : ''}</small><button type="button" class="linkbtn" data-bild-weg="${i}" aria-label="Entfernen">×</button></span>`; }).join('');
+    return `<div class="field ow-bilder" data-bildfeld="${esc(k)}" data-mehrfach="${mehrfach ? 1 : 0}"><label>${esc(l)}</label><input type="hidden" data-feld="${esc(k)}" value="${esc(wert)}">
+      <div class="ow-thumbs">${thumbs || `<span class="small muted">${mehrfach ? 'Noch keine Fotos – unten hinzufügen.' : 'Kein Foto – Platzhalter.'}</span>`}</div>
+      <div class="ow-bild-aktionen"><label class="btn btn-line btn-sm">Vom Handy hochladen<input type="file" accept="image/*" ${mehrfach ? 'multiple' : ''} hidden data-bild-upload></label>${bilder.length ? `<select class="ow-bild-material" data-bild-material><option value="">Aus dem Material …</option>${bilder.map(m => `<option value="${esc(m.url ? m.url : 'material:' + m._id)}">${esc(m.titel || m.name || 'Bild')}</option>`).join('')}</select>` : ''}<button type="button" class="linkbtn" data-bild-adresse>Bild-Adresse …</button></div>
+      <span class="small muted">Fotos werden fürs Video auf 1600 Pixel verkleinert und im Material des Projekts abgelegt.</span></div>`;
+  }
+  // Foto verkleinern (max. 1600 px, JPEG) und stückweise hochladen wie im Material-Tab; Vorschau sofort über eine lokale Adresse
+  async function bildHochladen(file, p) {
+    const bmp = await createImageBitmap(file).catch(() => null);
+    let blob = file;
+    if (bmp) { const f = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)); const c = document.createElement('canvas'); c.width = Math.round(bmp.width * f); c.height = Math.round(bmp.height * f); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .86)); }
+    const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    const buf = new Uint8Array(await blob.arrayBuffer()); const teile = Math.max(1, Math.ceil(buf.length / TEIL_BYTES));
+    const m = await db.insert('FilmMaterial', { title: name, projektId: p._id, art: 'datei', titel: file.name.replace(/\.[^.]+$/, ''), url: '', name, mime: 'image/jpeg', groesse: buf.length, teile, status: DEMO ? 'fertig' : 'wartet', von: me().name, memberId: me().id });
+    for (let i = 0; i < teile; i++) if (!DEMO) await db.insert('FilmTeile', { title: `${m._id} ${i}`, materialId: m._id, nr: i, daten: toB64(buf.subarray(i * TEIL_BYTES, (i + 1) * TEIL_BYTES)) });
+    st.blobs[m._id] = URL.createObjectURL(blob); st.material.unshift(m);
+    return m;
+  }
   const label = (list, k) => (list.find(([x]) => x === k) || [])[1] || k || '';
   const mb = n => n ? (n > 1048576 ? `${Math.round(n / 1048576 * 10) / 10} MB` : `${Math.round(n / 1024)} KB`) : '';
-  const stageUrl = q => `${BASE}/assets/insta/stage.html?${new URLSearchParams({ ...q, bg: 'gruen' })}`;
+  const stageUrl = q => `${BASE}/assets/insta/stage.html?${new URLSearchParams({ bg: 'gruen', ...q })}`;
   const laeuft = a => ['wartet', 'gestartet', 'laeuft'].includes(a.status);
   const parseJson = (s, d) => { try { return s ? JSON.parse(s) : d; } catch (e) { return d; } };
 
@@ -111,18 +138,18 @@ export function makeFilm(ctx) {
     const nO = st.neuOverlay || { typ: 'gross', werte: { ...(overlayTyp('gross').beispiel) }, dauer: 4 }; const typ = overlayTyp(nO.typ) || OVERLAY_TYPEN[0];
     return `<section class="fp-block">
       <p class="small muted">Die Text-Einblendungen fürs Video. Aus Claudes Antwort kommen sie von selbst hier rein; du kannst welche ändern, löschen oder eigene bauen. „Rendern lassen“ macht daraus fertige Clips auf Grün für CapCut – die ZIP kommt als Push-Nachricht und landet unter Material.</p>
-      <div class="ow-liste" id="ow-liste">${overlays.length ? overlays.map((o, i) => { const t = overlayTyp(o.typ); const c = overlayClip(o, i); return `<div class="ow-item" data-i="${i}"><span class="ow-nr">${String(i + 1).padStart(2, '0')}</span><div><b>${esc(t?.name || o.typ)}</b><small>${esc(Object.entries(c.q).filter(([k]) => !['clip', 'anim', 'dauer', 'url'].includes(k)).map(([, val]) => String(val).replace(/\|/g, ' / ')).join(' · ').slice(0, 90))} · ${esc(c.dauer)} s · ${esc((ANIMATIONEN.find(([av]) => av === (o.werte?.anim || '')) || ANIMATIONEN[0])[1])}</small></div><div class="mb-actions"><button type="button" class="linkbtn" data-ow="zeigen">ansehen</button><button type="button" class="linkbtn" data-ow="hoch" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="linkbtn" data-ow="runter" ${i === overlays.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="linkbtn" data-ow="weg">×</button></div></div>`; }).join('') : '<p class="small muted">Noch keine Overlays. Unten einen Baustein bauen – oder im Skript-Schritt Claudes Antwort einfügen.</p>'}</div>
+      <div class="ow-liste" id="ow-liste">${overlays.length ? overlays.map((o, i) => { const t = overlayTyp(o.typ); const c = clipVon(o, i, true); return `<div class="ow-item" data-i="${i}"><span class="ow-nr">${String(i + 1).padStart(2, '0')}</span><div><b>${esc(t?.name || o.typ)}</b><small>${esc(Object.entries(c.q).filter(([k]) => !['clip', 'anim', 'dauer', 'bg'].includes(k) && !/^url|^bilder$/.test(k)).map(([, val]) => String(val).replace(/\|/g, ' / ')).join(' · ').slice(0, 90))} · ${esc(c.dauer)} s · ${esc((ANIMATIONEN.find(([av]) => av === (o.werte?.anim || '')) || ANIMATIONEN[0])[1])}</small></div><div class="mb-actions"><button type="button" class="linkbtn" data-ow="zeigen">ansehen</button><button type="button" class="linkbtn" data-ow="hoch" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="linkbtn" data-ow="runter" ${i === overlays.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="linkbtn" data-ow="weg">×</button></div></div>`; }).join('') : '<p class="small muted">Noch keine Overlays. Unten einen Baustein bauen – oder im Skript-Schritt Claudes Antwort einfügen.</p>'}</div>
       ${overlays.length ? `<div class="mb-actions"><button type="button" class="btn btn-rot" id="ow-rendern">${overlays.length} Overlays rendern lassen</button><label class="check small"><input type="checkbox" id="ow-alpha"><span>auch mit Transparenz (große ZIP)</span></label></div><p class="small muted" id="ow-msg">${st.konto ? 'Meist 3–10 Minuten. Push-Nachricht, wenn die ZIP fertig ist.' : 'Dafür musst du im Hintergrund echt angemeldet sein.'}</p>` : ''}
       ${jobs.length ? `<div class="rb-auftraege">${jobs.map(a => `<article class="rb-auftrag st-${esc(a.status)}"><div class="rb-auftrag-kopf"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · ${esc(fmtWhen(a._createdDate))}</span></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP laden</a>` : laeuft(a) ? '<span class="rb-spinner"></span>' : ''}</div>${laeuft(a) ? `<div class="rb-balken"><span style="width:${a.status === 'wartet' ? 3 : Math.max(8, +a.fortschritt || 8)}%"></span></div><p class="small muted">${esc(a.status === 'wartet' ? 'Wartet auf den Agenten (bis 5 Minuten).' : a.schritt || 'Der Agent rendert …')}</p>` : `<p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(a.status === 'fertig' ? `Fertig – ${a.dateien || ''} Dateien, ${mb(a.groesse)}.` : a.fehler || a.status)}</p>`}</article>`).join('')}</div>` : ''}
       <details class="mb-details" id="ow-bauen" ${overlays.length ? '' : 'open'}><summary>Baustein bauen</summary>
         <div class="ow">
           <div class="ow-form">
             <div class="field"><label for="ow-typ">Baustein</label><select id="ow-typ">${OVERLAY_TYPEN.map(t => `<option value="${t.id}" ${t.id === typ.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></div>
-            ${typ.felder.map(([k, l, art, ...opts]) => art === 'select' ? `<div class="field"><label for="ow-${k}">${esc(l)}</label><select id="ow-${k}" data-feld="${k}">${opts.map(([ov, ol]) => `<option value="${esc(ov)}" ${String(nO.werte[k] ?? '') === ov ? 'selected' : ''}>${esc(ol)}</option>`).join('')}</select></div>` : art === 'lines' ? `<div class="field"><label for="ow-${k}">${esc(l)}</label><textarea id="ow-${k}" data-feld="${k}" rows="4">${esc(String(nO.werte[k] ?? '').replace(/\|/g, '\n'))}</textarea></div>` : art === 'bild' ? (() => { const bilder = st.material.filter(m => (m.projektId === p._id || !m.projektId) && m.url && /\.(jpe?g|png|webp)(\?|$)/i.test(m.url || m.name || '')); const akt = String(nO.werte[k] ?? ''); return `<div class="field"><label for="ow-${k}">${esc(l)}</label><select id="ow-${k}" data-feld="${k}"><option value="">– kein Foto (Platzhalter) –</option>${bilder.map(m => `<option value="${esc(m.url)}" ${akt === m.url ? 'selected' : ''}>${esc(m.titel || m.name || 'Bild')}</option>`).join('')}${akt && !bilder.some(m => m.url === akt) ? `<option value="${esc(akt)}" selected>${esc(akt.slice(0, 60))}</option>` : ''}<option value="__adresse">Bild-Adresse eingeben …</option></select><span class="small muted">Fotos vorher unter „Material, Links &amp; Notizen“ hochladen.</span></div>`; })() : `<div class="field"><label for="ow-${k}">${esc(l)}</label><input id="ow-${k}" data-feld="${k}" type="text" value="${esc(nO.werte[k] ?? '')}"></div>`).join('')}
+            ${typ.felder.map(([k, l, art, ...opts]) => art === 'select' ? `<div class="field"><label for="ow-${k}">${esc(l)}</label><select id="ow-${k}" data-feld="${k}">${opts.map(([ov, ol]) => `<option value="${esc(ov)}" ${String(nO.werte[k] ?? '') === ov ? 'selected' : ''}>${esc(ol)}</option>`).join('')}</select></div>` : art === 'lines' ? `<div class="field"><label for="ow-${k}">${esc(l)}</label><textarea id="ow-${k}" data-feld="${k}" rows="4">${esc(String(nO.werte[k] ?? '').replace(/\|/g, '\n'))}</textarea></div>` : (art === 'bild' || art === 'bilder') ? bildFeld(p, k, l, String(nO.werte[k] ?? ''), art === 'bilder') : `<div class="field"><label for="ow-${k}">${esc(l)}</label><input id="ow-${k}" data-feld="${k}" type="text" value="${esc(nO.werte[k] ?? '')}"></div>`).join('')}
             <div class="mb-2 tight"><div class="field"><label for="ow-dauer">Sekunden</label><input id="ow-dauer" type="number" min="1" max="20" step="0.5" value="${esc(nO.dauer || typ.dauer)}"></div><div class="field"><label>&nbsp;</label><button type="button" class="btn btn-schwarz btn-sm" id="ow-vorschau">▶ Vorschau</button></div></div>
             <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="ow-add">In die Liste</button></div>
           </div>
-          <div class="ow-preview"><div class="ow-frame"><iframe id="ow-iframe" title="Vorschau" src="${esc(stageUrl(overlayClip(nO, 0).q))}" width="1080" height="1920"></iframe></div>
+          <div class="ow-preview"><div class="ow-frame"><iframe id="ow-iframe" title="Vorschau" src="${esc(stageUrl(clipVon(nO, 0, true).q))}" width="1080" height="1920"></iframe></div>
             <div class="ow-anim"><span class="small muted">Animation – antippen zum Vergleichen:</span><div class="ow-anim-chips">${ANIMATIONEN.map(([av, al, ab]) => `<button type="button" class="chip" data-anim="${esc(av)}" title="${esc(ab)}" aria-pressed="${String(nO.werte.anim || '') === av}">${esc(al)}</button>`).join('')}</div></div></div>
         </div>
       </details>
@@ -182,9 +209,20 @@ export function makeFilm(ctx) {
     // ---- Werkstatt ----
     const lesen = () => { const typ = $('#ow-typ', v).value; const werte = {}; $$('[data-feld]', v).forEach(el => { werte[el.dataset.feld] = el.value; }); return { typ, werte, dauer: +$('#ow-dauer', v).value || overlayTyp(typ).dauer }; };
     $('#ow-typ', v)?.addEventListener('change', () => { const t = overlayTyp($('#ow-typ', v).value); st.neuOverlay = { typ: t.id, werte: { ...t.beispiel }, dauer: t.dauer }; projekt(v, p._id); $('#ow-bauen', v).open = true; });
-    const vorschau = o => { const f = $('#ow-iframe', v); if (f) f.src = stageUrl(overlayClip(o, 0).q) + '&t=' + Date.now(); };
+    const vorschau = o => { const f = $('#ow-iframe', v); if (f) f.src = stageUrl(clipVon(o, 0, true).q) + '&t=' + Date.now(); };
+    // Bildwahl: Upload vom Handy, aus dem Material, Adresse, entfernen
+    const bildSetzen = (feld, werte) => { const inp = $(`[data-bildfeld="${feld}"] input[data-feld]`, v); if (inp) inp.value = werte.filter(Boolean).join('|'); st.neuOverlay = lesen(); projekt(v, p._id); $('#ow-bauen', v).open = true; };
+    const bildWerte = feld => ($(`[data-bildfeld="${feld}"] input[data-feld]`, v)?.value || '').split('|').map(x => x.trim()).filter(Boolean);
+    $$('[data-bild-upload]', v).forEach(inp => inp.addEventListener('change', async e => {
+      const box = e.currentTarget.closest('[data-bildfeld]'); const feld = box.dataset.bildfeld, mehrfach = box.dataset.mehrfach === '1'; const files = [...e.currentTarget.files]; if (!files.length) return;
+      const lab = e.currentTarget.closest('label'); lab.textContent = 'Lädt hoch …';
+      const neu = []; for (const f of files) { try { const m = await bildHochladen(f, p); neu.push('material:' + m._id); } catch (err) { msg($('#fp-skript-msg', v) || lab, 'Foto nicht hochgeladen: ' + errText(err), 'err'); } }
+      bildSetzen(feld, mehrfach ? [...bildWerte(feld), ...neu] : neu.slice(0, 1));
+    }));
+    $$('[data-bild-material]', v).forEach(sel => sel.addEventListener('change', e => { const box = e.currentTarget.closest('[data-bildfeld]'); if (!e.currentTarget.value) return; bildSetzen(box.dataset.bildfeld, box.dataset.mehrfach === '1' ? [...bildWerte(box.dataset.bildfeld), e.currentTarget.value] : [e.currentTarget.value]); }));
+    $$('[data-bild-adresse]', v).forEach(b => b.addEventListener('click', e => { const box = e.currentTarget.closest('[data-bildfeld]'); const u = (window.prompt('Bild-Adresse (https://…)') || '').trim(); if (!/^https?:\/\//.test(u)) return; bildSetzen(box.dataset.bildfeld, box.dataset.mehrfach === '1' ? [...bildWerte(box.dataset.bildfeld), u] : [u]); }));
+    $$('[data-bild-weg]', v).forEach(b => b.addEventListener('click', e => { const box = e.currentTarget.closest('[data-bildfeld]'); const w = bildWerte(box.dataset.bildfeld); w.splice(+e.currentTarget.dataset.bildWeg, 1); bildSetzen(box.dataset.bildfeld, w); }));
     $('#ow-vorschau', v)?.addEventListener('click', () => { st.neuOverlay = lesen(); vorschau(st.neuOverlay); });
-    $('#ow-url', v)?.addEventListener('change', e => { const sel = e.currentTarget; if (sel.value !== '__adresse') return; const u = (window.prompt('Bild-Adresse (https://…)') || '').trim(); st.neuOverlay = lesen(); st.neuOverlay.werte.url = /^https?:\/\//.test(u) ? u : ''; projekt(v, p._id); $('#ow-bauen', v).open = true; });
     $$('.ow-anim-chips [data-anim]', v).forEach(b => b.addEventListener('click', () => { const sel = $('#ow-anim', v); if (sel) sel.value = b.dataset.anim; $$('.ow-anim-chips [data-anim]', v).forEach(x => x.setAttribute('aria-pressed', String(x === b))); st.neuOverlay = lesen(); vorschau(st.neuOverlay); }));
     $('#ow-add', v)?.addEventListener('click', async () => { const o = lesen(); st.neuOverlay = o; overlays.push(o); await speichern({ overlays: JSON.stringify(overlays) }); projekt(v, p._id); });
     $('#ow-liste', v)?.addEventListener('click', async e => {
@@ -199,7 +237,8 @@ export function makeFilm(ctx) {
       const b = e.currentTarget; busy(b, true);
       try {
         if (!st.konto) throw new Error('nicht echt angemeldet');
-        const manifest = { titel: `Overlays ${p.titel}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie in der Liste.', nurGruen: !$('#ow-alpha', v).checked, drehplan: [p.skript, p.drehplan].filter(Boolean).join('\n\n— DREHPLAN —\n'), clips: overlays.map(overlayClip) };
+        const offen = overlays.filter(nochNichtAbgelegt); if (offen.length) throw new Error(`${offen.length === 1 ? 'ein Foto wird' : offen.length + ' Fotos werden'} noch bei Wix abgelegt (bis 5 Minuten) – gleich noch mal versuchen`);
+        const manifest = { titel: `Overlays ${p.titel}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie in der Liste.', nurGruen: !$('#ow-alpha', v).checked, drehplan: [p.skript, p.drehplan].filter(Boolean).join('\n\n— DREHPLAN —\n'), clips: overlays.map((o, i) => clipVon(o, i, false)) };
         await st.konto.db.insert('Auftraege', { typ: 'overlays', status: 'wartet', title: manifest.titel, titel: manifest.titel, projektId: p._id, sitzungId: '', memberId: st.konto.me.id, von: st.konto.me.name, manifest: JSON.stringify(manifest), benachrichtigt: false, fortschritt: 0, schritt: '' });
         st.auftraege = await st.konto.db.list('Auftraege', { desc: '_createdDate', limit: 50 }).catch(() => st.auftraege);
         projekt(v, p._id); pollen(v, p._id);
