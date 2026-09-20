@@ -1,6 +1,7 @@
 // Sitzungsrückblick – nur für Brian (Öffentlichkeitsarbeit): alle Beschlüsse einer Sitzung mit Ja/Nein/Enthaltung,
 // die freigegebenen Notizen aller Teilnehmenden, ein fertiges Instagram-Skript (nur aus öffentlich Sagbarem: Titel,
 // Haltung, Argumente, Ergebnis – nie aus „intern besprochen“) und Ergebnis-Kacheln als PNG für Post oder Story.
+import { AUFTRAG, antwortLesen } from './lib/film.mjs';
 export function makeRueckblick(ctx) {
   const { db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me, echtesKonto, DEMO } = ctx;
   const zahlen = t => {
@@ -166,6 +167,26 @@ export function makeRueckblick(ctx) {
     clips.push({ id: 'abspann', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht' } });
     return { titel: `Overlays ${r.gremium || 'Sitzung'} ${r.sitzung || ''}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie im Drehplan.', nurGruen: !alpha, drehplan, clips };
   }
+  // Overlays als Einträge für die Filmdreh-Werkstatt ({ typ, dauer, werte }) – gleiche Logik wie das Manifest
+  function overlaysAusSitzung(r, tops) {
+    const ent = tops.filter(hatErgebnis); const istRat = /^Rat\b/.test(r.gremium || '');
+    const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
+    const stempelText = { angenommen: 'Angenommen', geaendert: 'Angenommen', abgelehnt: 'Abgelehnt', vertagt: 'Vertagt', zurueckgezogen: 'Zurückgezogen', kenntnis: 'Kenntnis' };
+    const out = [{ typ: 'gross', dauer: 4, werte: { label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', pos: 'oben', gr: 'm' } }];
+    ent.slice(0, 8).forEach((t, i) => {
+      const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
+      out.push({ typ: 'gross', dauer: 4, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, pos: 'oben', gr: 'm' } });
+      if (stempelText[t.beschluss]) out.push({ typ: 'stempel', dauer: 3, werte: { text: stempelText[t.beschluss], art: t.beschluss === 'abgelehnt' ? 'schwarz' : '' } });
+    });
+    out.push({ typ: 'gross', dauer: 4, werte: { label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht', pos: 'oben', gr: 'm' } });
+    return out;
+  }
+  // Auftrag für Claude: alle öffentlichen Fakten der Sitzung + Take-Format (aus der gemeinsamen Bibliothek)
+  function claudeAuftrag(r, tops) {
+    const ent = tops.filter(hatErgebnis);
+    const fakten = ent.map(t => { const z = zahlen(t); return `- TOP ${t.nr}: ${t.titel} – Beschluss: ${beschlussLabel(t.beschluss) || t.ergebnis || 'offen'}${z.da ? ` (${z.ja} Ja, ${z.nein} Nein${z.enth ? ', ' + z.enth + ' Enthaltungen' : ''})` : ''}; SPD: ${t.position || 'offen'}${t.einordnung ? `; unsere Argumente: ${t.einordnung}` : ''}${t.ergebnis && t.beschluss ? `; Anmerkung: ${t.ergebnis}` : ''}`; }).join('\n');
+    return AUFTRAG({ titel: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, art: 'ratsbericht', datum: r.sitzung, skript: '' }, [], `Ein Reel (ca. 45 Sekunden) zur ${r.gremium || 'Sitzung'} vom ${fmtDate(r.sitzung)}. Sprecher: Brian Weber, allein in die Kamera. Nur diese Fakten verwenden, nichts dazuerfinden:\n${fakten || '(noch keine Ergebnisse eingetragen)'}\nWichtigste Entscheidungen zuerst, jede mit Ergebnis und unserer Haltung; am Ende Verweis auf spd-soltau.de/ratsbericht.`);
+  }
   const AUFTRAG_TEXT = { wartet: 'Wartet auf den Agenten – er startet innerhalb von 5 Minuten.', gestartet: 'Der Agent rendert – meist 5 bis 10 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', laeuft: 'Der Agent rendert – meist 5 bis 10 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', fertig: 'Fertig – zum Download bereit.', fehler: 'Das hat nicht geklappt.' };
   const mb = n => n ? `${Math.round(n / 1048576 * 10) / 10} MB` : '';
   async function bildTeilen(dataUrl, name, text) {
@@ -216,7 +237,16 @@ export function makeRueckblick(ctx) {
         <div class="rb-notizen">${frei.map(n => `<article class="rb-notiz"><div class="small muted"><b>${esc(n.name || '?')}</b> · ${esc(new Date(n._updatedDate || n._createdDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))} Uhr</div>${n.text ? `<p>${nl2br(n.text)}</p>` : ''}${n.skizze && n.skizze !== '[]' ? `<a href="${strokesToPng(n.skizze)}" target="_blank" rel="noopener"><img class="rb-skizze" src="${strokesToPng(n.skizze)}" alt="Skizze von ${esc(n.name || '')}"></a>` : ''}</article>`).join('') || '<p class="small muted">Noch keine freigegebenen Notizen. Jede*r kann die eigene Notiz im Sitzungsmodus mit dem Häkchen „Für den Sitzungsrückblick freigeben“ sichtbar machen.</p>'}</div>
       </section>
 
-      <section class="mb-sub"><h4 class="doc-cat">Instagram-Skript <span class="small muted">nur aus Titel, Haltung &amp; Argumenten, Ergebnis – nichts Internes</span></h4>
+      <section class="mb-sub"><h4 class="doc-cat">Video zur Sitzung <span class="small muted">Skript mit Claude → Video-Projekt → Drehmodus</span></h4>
+        <div class="ki-schritt"><span class="fp-schritt-nr">1</span><div><b>Auftrag für Claude kopieren</b> <span class="small muted">Alle Fakten dieser Sitzung plus das Take-Format – in Claude einfügen, dort gern noch etwas dazu sagen.</span>
+          <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-claude-kopieren" ${ent().length ? '' : 'disabled'}>Auftrag kopieren</button><a class="btn btn-line btn-sm" href="https://claude.ai/new" target="_blank" rel="noopener">Claude öffnen</a><span class="small muted" id="rb-claude-msg">${ent().length ? '' : 'Erst Ergebnisse eintragen.'}</span></div></div></div>
+        <div class="ki-schritt"><span class="fp-schritt-nr">2</span><div><b>Claudes Antwort einfügen</b> <span class="small muted">– daraus wird das Video-Projekt mit Skript Take für Take und Overlays.</span>
+          <textarea id="rb-claude-antwort" rows="4" placeholder="Antwort einfügen …"></textarea>
+          <div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="rb-projekt-claude">Video-Projekt anlegen und in den Drehmodus</button><span class="small muted" id="rb-projekt-msg"></span></div></div></div>
+        <p class="small muted">Ohne Claude geht es auch: <button type="button" class="linkbtn" id="rb-projekt-auto" ${ent().length ? '' : 'disabled'}>Video-Projekt aus dem automatischen Skript unten anlegen</button> – dann direkt in den Drehmodus.</p>
+      </section>
+
+      <section class="mb-sub"><h4 class="doc-cat">Automatisches Skript <span class="small muted">ohne Claude – nur aus Titel, Haltung &amp; Argumenten, Ergebnis</span></h4>
         <div class="mb-tabs"><button type="button" class="chip" data-var="kurz" aria-pressed="${variante === 'kurz'}">Reel, ca. 45 s</button><button type="button" class="chip" data-var="lang" aria-pressed="${variante === 'lang'}">Ausführlich, ca. 90 s</button><button type="button" class="chip" id="rb-neu" title="Aus den aktuellen Ergebnissen neu erzeugen">↻ Neu erzeugen</button></div>
         <textarea id="rb-skript" rows="18">${esc(r.skript || skript(r, tops, frei, variante))}</textarea>
         <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-kopieren">Kopieren</button><button type="button" class="btn btn-line btn-sm" id="rb-teilen">Teilen …</button><button type="button" class="btn btn-schwarz btn-sm" id="rb-speichern">Skript speichern</button><span class="small muted" id="rb-skript-msg"></span></div>
@@ -271,6 +301,22 @@ export function makeRueckblick(ctx) {
       $('#rb-kopieren', v).addEventListener('click', async () => { const t = $('#rb-skript', v).value; try { await navigator.clipboard.writeText(t); $('#rb-skript-msg', v).textContent = 'kopiert'; } catch (e) { $('#rb-skript', v).select(); document.execCommand('copy'); $('#rb-skript-msg', v).textContent = 'kopiert'; } });
       $('#rb-teilen', v).addEventListener('click', () => shareText($('#rb-skript', v).value));
       $('#rb-speichern', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { r = await db.update('Ratsvorbereitung', { ...r, skript: $('#rb-skript', v).value }); $('#rb-skript-msg', v).textContent = 'gespeichert'; } catch (err) { $('#rb-skript-msg', v).textContent = 'Nicht gespeichert: ' + errText(err); } busy(b, false); });
+      // Video-Projekt (Filmdreh) aus der Sitzung: mit Claudes Antwort oder aus dem automatischen Skript
+      const projektAnlegen = async (skript, ovl, hinweis) => {
+        const alle = await db.list('FilmProjekte', { limit: 100 }).catch(() => []);
+        const alt = alle.find(x => x.sitzungId === r._id);
+        const daten = { title: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, titel: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, art: 'ratsbericht', status: 'skript', datum: r.sitzung || '', sitzungId: r._id, skript, overlays: JSON.stringify(ovl || []), drehplan: 'A1 Übersichtskachel aus dem Rückblick als Abschlussbild\nA2 spd-soltau.de/ratsbericht scrollen', notizen: `Aus dem Sitzungsrückblick angelegt.${hinweis ? ' Claude fragt: ' + hinweis : ''}`, ki: '[]', takesFertig: '[]', von: me().name, memberId: me().id };
+        const p2 = alt ? await db.update('FilmProjekte', { ...alt, ...daten, notizen: alt.notizen || daten.notizen }) : await db.insert('FilmProjekte', daten);
+        location.hash = '#filmdreh/dreh-' + p2._id;
+      };
+      $('#rb-claude-kopieren', v)?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(claudeAuftrag(r, tops)); $('#rb-claude-msg', v).textContent = 'Kopiert – jetzt in Claude einfügen.'; } catch (e) { await shareText(claudeAuftrag(r, tops)); } });
+      $('#rb-projekt-claude', v)?.addEventListener('click', async e => {
+        const b = e.currentTarget; const ant = antwortLesen($('#rb-claude-antwort', v).value);
+        if (!ant || !ant.skript) { $('#rb-projekt-msg', v).textContent = 'In der Antwort war kein Skript im Take-Format.'; return; }
+        busy(b, true);
+        try { await projektAnlegen(ant.skript, ant.overlays && ant.overlays.length ? ant.overlays : overlaysAusSitzung(r, tops), ant.hinweis); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); }
+      });
+      $('#rb-projekt-auto', v)?.addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { await projektAnlegen($('#rb-skript', v).value, overlaysAusSitzung(r, tops), ''); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); } });
       $('#rb-kachel', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); const url = await kachelUebersicht(r, tops); bildZeigen(url, `Ratssitzung-${r.sitzung || ''}.png`, `So hat der Rat entschieden – ${r.gremium} ${fmtDate(r.sitzung)}`); busy(b, false); });
       // Story-Serie: alle Entscheidungen als 9:16-Bilder, dazu ZIP
       $('#rb-story', v)?.addEventListener('click', async e => {

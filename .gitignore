@@ -15,6 +15,3 @@ video/insta/tmp/
 video/insta/out/
 video/insta/*.log
 video/insta/skripte/auftrag-*.json
-agent/agent.lock
-agent/log/
-agent/claude/

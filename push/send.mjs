@@ -854,20 +854,6 @@ async function filmUploads(subs, logKeys) {
     }
   } catch (e) { log('Filmdreh:', e.message); }
 }
-// ---------- KI-Agent (SKM-Server): meldet sich alle 15 s – bleibt er länger als 15 Minuten still, Push an das Filmteam (alle 6 h) ----------
-async function kiWachhund(subs, emails, logKeys) {
-  try {
-    const [stt] = await queryAll(client, 'KiStatus', q => q.eq('key', 'agent'));
-    const still = !stt || !stt.zuletzt || NOW - new Date(stt.zuletzt).getTime() > 15 * 60 * 1000;
-    const nichtAngemeldet = stt && stt.angemeldet === false;
-    const offene = (await queryAll(client, 'KiAuftraege', q => q.eq('status', 'wartet'))).length;
-    if (!still && !nichtAngemeldet) return;
-    if (!offene && !stt) return; // nie gestartet und nichts wartet – kein Alarm
-    const key = 'ki-offline:' + Math.floor(NOW / (6 * 3600 * 1000)); if (logKeys.has(key)) return;
-    const team = [...emails.entries()].filter(([, mail]) => TESTER_MAILS.includes(mail)).map(([id]) => id);
-    await send(byMembers(subs, team), { title: nichtAngemeldet ? 'KI-Agent: Claude nicht angemeldet' : 'KI-Agent ist offline', body: nichtAngemeldet ? 'Auf dem SKM-Server im Terminal „claude“ starten und /login ausführen.' : `Der Agent hat sich seit ${stt ? Math.round((NOW - new Date(stt.zuletzt).getTime()) / 60000) + ' Minuten' : 'jeher'} nicht gemeldet${offene ? ` – ${offene} Anfrage(n) warten` : ''}. Läuft der SKM-Server?`, tag: 'ki-offline', url: url('/mitglieder/#filmdreh') }, key, logKeys);
-  } catch (e) { log('KI-Wachhund:', e.message); }
-}
 // ---------- Ratsberichte: freigegebene Sitzungen als öffentliche Kopie (nur öffentlich sagbare Felder) – danach Website neu bauen ----------
 const TESTER_MAILS = ['weber.soltau@gmail.com', 'birhat.kacar@web.de']; // dürfen den Overlay-Agenten bestellen (Filmteam)
 async function ratsberichte() {
@@ -945,7 +931,6 @@ const st = await loadSettings(approved);
   await feedback(subs, approved, emails, logKeys);
   await auftraege(subs, approved, emails, logKeys);
   await filmUploads(subs, logKeys);
-  await kiWachhund(subs, emails, logKeys);
   await ratsberichte();
   await abonnenten();
   await statistik();

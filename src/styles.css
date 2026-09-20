@@ -1839,3 +1839,7 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .ki-wartet{display:flex;gap:10px;align-items:center;padding:8px 0}
 .gruen{color:#177A38}
 .ki-weg>summary{cursor:pointer}
+.ki-schritt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 12px;padding:12px 0;border-top:1px solid var(--linie)}
+.ki-schritt:first-of-type{border-top:0}
+.ki-schritt>div{display:grid;gap:8px;min-width:0}
+.ki-schritt .fp-schritt-nr{font-size:22px;line-height:1;padding-top:2px}
