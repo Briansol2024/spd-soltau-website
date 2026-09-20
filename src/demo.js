@@ -207,6 +207,9 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: uid(), _owner: ids[8], fahrtId: 'demo-f3', eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', memberId: ids[8], name: people[8].name, title: `${people[8].name} fährt mit` },
       { _id: uid(), _owner: ids[13], fahrtId: 'demo-f5', eventId: ev.find(e => /stammtisch/i.test(e.title))?.id || '', eventTitel: 'Stammtisch', memberId: ids[13], name: people[13].name, title: `${people[13].name} fährt mit` },
     ],
+    Feedback: [
+      { _id: uid(), _owner: ME, _createdDate: daysAgo(5), memberId: ME, name: 'Max Mustermann', email: 'max.mustermann@example.de', wo: 'app', was: 'fehlt', bereich: 'Termine & Kalender', prio: 'nett', text: 'Im Kalender die Farben der Termintypen stärker unterscheiden – Rot und Schwarz sehe ich auf dem Handy schlecht auseinander.', status: 'zugestellt', title: 'Funktion fehlt – Max Mustermann' },
+    ],
     Aktionen: [
       { _id: uid(), _owner: ME, _createdDate: daysAgo(1), typ: 'beitrag_erstellen', title: 'Beitrag: Radweg nach Harber', payload: JSON.stringify({ titel: 'Radweg nach Harber: Sanierung kommt' }), status: 'erledigt', ergebnis: 'veröffentlicht', von: 'Max Mustermann' },
     ],

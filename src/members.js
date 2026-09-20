@@ -10,6 +10,7 @@ import * as members from '@wix/auto_sdk_members_members';
 import { esc, D, WD, MONS, MONL } from './render.mjs';
 import { RIGHTS, BOARD_TOPICS, GROUPS, VISIBILITY, evaluateSettings, canSee, groupLabels } from './lib/rights.mjs';
 import { HELP_TOPICS, PLATFORMS, stepsFor, topicById, videoName, posterName, guessPlatform } from './lib/hilfe.mjs';
+import * as FB from './lib/feedback.mjs';
 import { makeDemoClient } from './demo.js';
 import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
@@ -438,7 +439,7 @@ function navGroups() {
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
     ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
-    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
+    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), sec('feedback', 'Wünsche zur App', ICON.idea), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
 // Demo-Modus per Schalter (nur Tester): Seite mit der gewünschten Rolle (oder ohne ?demo) neu laden, aktueller Bereich bleibt
@@ -500,7 +501,7 @@ async function updateBadges() {
   if (me.can('freigaben')) setBadge('vorstand', await vorstand.badge());
   if (inFraktion()) setBadge('ratsarbeit', await ratsarbeit.badge());
 }
-const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe,
+const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe, feedback: secFeedback,
   versammlung: v => bereiche.versammlung(v), wahlkampf: v => bereiche.wahlkampf(v), wissen: v => bereiche.wissen(v), planung: v => bereiche.planung(v), ideen: v => bereiche.ideen(v) };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
@@ -525,6 +526,54 @@ async function route() {
 }
 const sectionHead = (title, extra = '') => `<div class="section-head"><h3 class="title">${title}</h3>${extra ? `<span class="muted small">${extra}</span>` : ''}</div>`;
 
+// ---------- Wünsche & Ideen zur App: Vorauswahl + Text → Sammlung Feedback → der Push-Dienst mailt sie an den Betreuer ----------
+const geraetKurz = () => {
+  const ua = navigator.userAgent;
+  const sys = /Android/i.test(ua) ? 'Android' : /iPhone|iPad|iPod/i.test(ua) ? 'iOS' : /Windows/i.test(ua) ? 'Windows' : /Mac/i.test(ua) ? 'Mac' : /Linux/i.test(ua) ? 'Linux' : 'Gerät';
+  const br = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  const app = matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'als App installiert' : 'im Browser';
+  return `${sys} · ${br} · ${innerWidth}×${innerHeight} · ${app}`;
+};
+async function secFeedback(v) {
+  const eigene = await db.list('Feedback', { eq: { memberId: me.id }, desc: '_createdDate', limit: 20 }).catch(() => []);
+  const chips = (name, list, cur) => list.map(([k, l]) => `<button type="button" class="chip" data-fb="${name}" data-v="${k}" aria-pressed="${k === cur}">${esc(l)}</button>`).join('');
+  const statusText = f => f.status === 'zugestellt' ? 'per E-Mail zugestellt' : 'eingegangen – geht in den nächsten Minuten raus';
+  v.innerHTML = `${sectionHead('Wünsche & Ideen zur App', 'Was fehlt? Was nervt? Was wäre super?')}
+  <p>Diese App und die Website sind für euch gebaut – und werden mit euren Wünschen besser. Was du hier einträgst, geht direkt per E-Mail an <b>${esc(FB.FEEDBACK_NAME)}</b>, der die Website betreut. Kein Anliegen ist zu klein.</p>
+  <form class="form mb-form mb-card fb-form" id="f-fb" novalidate>
+    <div class="field"><label>Wo?</label><div class="mb-tabs">${chips('wo', FB.WO, 'app')}</div></div>
+    <div class="field"><label>Was?</label><div class="mb-tabs">${chips('was', FB.WAS, 'fehlt')}</div></div>
+    <div class="mb-2">
+      <div class="field"><label for="fb-bereich">Bereich (optional)</label><select id="fb-bereich" name="bereich"><option value="">– egal / weiß nicht –</option>${FB.BEREICHE.map(([g, items]) => `<optgroup label="${esc(g)}">${items.map(b => `<option>${esc(b)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+      <div class="field"><label>Wie wichtig?</label><div class="mb-tabs">${chips('prio', FB.PRIO, 'nett')}</div></div>
+    </div>
+    <div class="field"><label for="fb-text">Dein Wunsch</label><p class="small muted fb-hint" id="fb-hint">${esc(FB.HINWEIS.fehlt)}</p><textarea id="fb-text" name="text" rows="5" required maxlength="2000"></textarea></div>
+    <label class="check"><input type="checkbox" name="geraet" checked><span>Gerätedaten mitschicken – hilft bei Fehlern: <span class="muted">${esc(geraetKurz())}</span></span></label>
+    <p class="note" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot" type="submit">Abschicken</button><span class="small muted">Rückfragen kommen per E-Mail an ${esc(me.email || 'deine Adresse')}.</span></div>
+  </form>
+  ${eigene.length ? `<section class="mb-sub">${sectionHead('Deine bisherigen Wünsche')}<div class="fb-list">${eigene.map(f => `<article class="fb-item ${f.status === 'zugestellt' ? 'ok' : ''}"><div class="small muted">${esc(fmtWhen(f._createdDate))} · ${esc(FB.label(FB.WO, f.wo))} · ${esc(FB.label(FB.WAS, f.was))}${f.bereich ? ' · ' + esc(f.bereich) : ''}${f.prio && f.prio !== 'nett' ? ' · ' + esc(FB.label(FB.PRIO, f.prio)) : ''}</div><p>${nl2br(f.text)}</p><span class="fb-status">${esc(statusText(f))}</span></article>`).join('')}</div></section>` : ''}`;
+  const f = $('#f-fb', v); const wahl = { wo: 'app', was: 'fehlt', prio: 'nett' };
+  f.addEventListener('click', e => {
+    const b = e.target.closest('button[data-fb]'); if (!b) return;
+    wahl[b.dataset.fb] = b.dataset.v;
+    $$(`button[data-fb="${b.dataset.fb}"]`, f).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    if (b.dataset.fb === 'was') $('#fb-hint', f).textContent = FB.HINWEIS[b.dataset.v] || '';
+  });
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = $('#fb-text', f).value.trim(); const note = f.querySelector('.note');
+    if (text.length < 5) { msg(note, 'Ein Satz reicht – aber ein bisschen mehr als das.'); $('#fb-text', f).focus(); return; }
+    const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    try {
+      await db.insert('Feedback', { wo: wahl.wo, was: wahl.was, prio: wahl.prio, bereich: $('#fb-bereich', f).value, text, name: me.name, memberId: me.id, email: me.email || '', geraet: f.geraet.checked ? `${geraetKurz()} · ${navigator.userAgent.slice(0, 160)}` : '', seite: location.hash, status: 'neu', title: `${FB.label(FB.WAS, wahl.was)} – ${me.name}` });
+      msg(note, DEMO ? 'In der echten App geht das jetzt per E-Mail an ' + FB.FEEDBACK_NAME + '.' : 'Danke! Dein Wunsch geht in den nächsten Minuten per E-Mail an ' + FB.FEEDBACK_NAME + '.', 'ok');
+      $('#fb-text', f).value = '';
+      setTimeout(route, 1200);
+    } catch (err) { msg(note, 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
+  });
+}
+
 // ---------- Hilfe & Anleitungen: nummerierte Videos je Plattform, dazu die Schritte als Text ----------
 const HELP_DIR = `${BASE}/assets/hilfe/`;
 function secHilfe(v) {
@@ -540,7 +589,7 @@ function secHilfe(v) {
     ${platTabs}
     ${groups.map(g => `<section class="mb-sub help-group"><h4 class="doc-cat">${esc(g)}</h4><div class="help-grid">${HELP_TOPICS.filter(t => t.group === g).map(t => `
       <a class="help-card" href="#hilfe/${t.id}"><img src="${HELP_DIR}${posterName(t)}.jpg" alt="" loading="lazy" width="640" height="360"><span class="help-card-body"><b>${t.n}</b><span>${esc(t.title)}</span><small>${esc(t.intro)}</small></span></a>`).join('')}</div></section>`).join('')}
-    ${!me ? `<p class="mb-actions" style="margin-top:24px"><a class="btn btn-rot" href="#anmelden">Zur Anmeldung</a></p>` : ''}`;
+    ${!me ? `<p class="mb-actions" style="margin-top:24px"><a class="btn btn-rot" href="#anmelden">Zur Anmeldung</a></p>` : `<section class="mb-sub"><a class="fb-teaser" href="#feedback">${ICON.idea}<span><b>Fehlt dir etwas? Nervt etwas?</b><small>Wünsche und Ideen zur App und zur Website – gehen direkt an ${esc(FB.FEEDBACK_NAME)}.</small></span>${ICON.chev}</a></section>`}`;
   } else {
     const i = HELP_TOPICS.indexOf(topic), prev = HELP_TOPICS[i - 1], next = HELP_TOPICS[i + 1];
     v.innerHTML = `

@@ -14,6 +14,7 @@ import webpush from 'web-push';
 import { adminClient, memberClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
 import { evaluateSettings, canSee } from '../src/lib/rights.mjs';
 import { eventType, isPublicType } from '../src/lib/wix.mjs';
+import * as FB from '../src/lib/feedback.mjs';
 import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, encryptJson, verpacken } from '../src/lib/rat.mjs';
 import { stammtischConfig, istStammtisch, stammtischFrage } from '../src/lib/stammtisch.mjs';
 import { mail, mailAn, mailBereit, newsletterHtml, textToHtml } from './mail.mjs';
@@ -752,6 +753,42 @@ async function mitfahren(st, subs, logKeys) {
   } catch (e) { log('Mitfahren:', e.message); }
 }
 
+// ---------- Wünsche & Ideen zur App: per E-Mail an den Betreuer der Website (dazu ein Push an ihn), Status → zugestellt ----------
+const FEEDBACK_AN = (env.FEEDBACK_EMAIL || FB.FEEDBACK_EMAIL).toLowerCase();
+async function feedback(subs, approved, logKeys) {
+  try {
+    const offen = (await queryAll(client, 'Feedback', q => q.descending('_createdDate'))).filter(f => f.status !== 'zugestellt');
+    if (!offen.length) return;
+    const betreuer = approved.find(a => (a.email || '').toLowerCase() === FEEDBACK_AN);
+    for (const f of offen) {
+      const kopf = `${FB.label(FB.WAS, f.was)} · ${FB.label(FB.WO, f.wo)}${f.bereich ? ' · ' + f.bereich : ''}`;
+      const keyPush = 'feedback-push:' + f._id;
+      if (betreuer && !logKeys.has(keyPush)) await send(byMembers(subs, [betreuer.memberId]), { title: `${f.name || 'Mitglied'}: ${FB.label(FB.WAS, f.was)}`, body: (f.text || '').slice(0, 160), tag: keyPush, url: url('/mitglieder/#feedback') }, keyPush, logKeys);
+      if (!mailBereit()) { log(`  Feedback ${f._id}: E-Mail wartet auf den SMTP-Zugang`); continue; }
+      const keyMail = 'feedback-mail:' + f._id; if (logKeys.has(keyMail)) continue;
+      const betreff = `[SPD-App] ${kopf} – von ${f.name || 'Mitglied'}`;
+      const text = `Moin!
+
+Neuer Eintrag unter „Wünsche & Ideen zur App“ – von ${f.name || 'Mitglied'}${f.email ? ` (${f.email})` : ''}, ${fmtDe(f._createdDate || NOW)} Uhr.
+
+Wo:       ${FB.label(FB.WO, f.wo)}
+Was:      ${FB.label(FB.WAS, f.was)}
+Bereich:  ${f.bereich || '–'}
+Wichtig:  ${FB.label(FB.PRIO, f.prio)}
+
+${f.text || ''}
+
+${f.geraet ? 'Gerät: ' + f.geraet + '\n' : ''}${f.seite ? 'Seite in der App: ' + f.seite + '\n' : ''}
+— Automatisch aus dem Mitgliederbereich. Antworten geht direkt an ${f.name || 'das Mitglied'}.`;
+      if (DRY) { log(`  Feedback ${f._id}: „${betreff}“ → ${FEEDBACK_AN} (Trockenlauf)`); continue; }
+      await mail({ to: FEEDBACK_AN, subject: betreff, text, replyTo: f.email || undefined });
+      logKeys.add(keyMail); await logKey(keyMail, { empfaenger: 1, titel: betreff });
+      await client.items.update('Feedback', { ...f, status: 'zugestellt' }).catch(e => log('  Feedback-Status', e.message));
+      log(`  Feedback ${f._id}: E-Mail an ${FEEDBACK_AN}`);
+    }
+  } catch (e) { log('Feedback:', e.message); }
+}
+
 // ---------- Ablauf ----------
 (async () => {
   log('Push-Dienst startet' + (DRY ? ' (Trockenlauf)' : ''));
@@ -805,6 +842,7 @@ const st = await loadSettings(approved);
   await stammtisch(st);
   await weitereErinnerungen(st, subs, logKeys);
   await mitfahren(st, subs, logKeys);
+  await feedback(subs, approved, logKeys);
   await abonnenten();
   await statistik();
   log('fertig', stats);
