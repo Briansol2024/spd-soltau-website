@@ -65,18 +65,22 @@ try {
   if (!dateien.length) throw new Error('Keine Dateien entstanden');
   // Drehplan als Textdatei dazu
   if (manifest.drehplan) await writeFile(path.join(OUT, 'DREHPLAN.txt'), manifest.drehplan, 'utf8');
-  const zipName = `${(a.titel || 'overlays').replace(/[^\wäöüÄÖÜß-]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'overlays'}.zip`;
-  const buf = await zipOhneKompression(OUT, (await readdir(OUT)).filter(f => !f.startsWith('.')));
+  // Eine einzelne Datei (Baustein „einzeln rendern“) geht direkt als Video hoch – kein ZIP, am Handy sofort in CapCut zu öffnen
+  const alle = (await readdir(OUT)).filter(f => !f.startsWith('.'));
+  const einzeln = alle.length === 1 && /\.(mp4|mov)$/i.test(alle[0]);
+  const zipName = einzeln ? alle[0] : `${(a.titel || 'overlays').replace(/[^\wäöüÄÖÜß-]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'overlays'}.zip`;
+  const mime = einzeln ? (/\.mov$/i.test(alle[0]) ? 'video/quicktime' : 'video/mp4') : 'application/zip';
+  const buf = einzeln ? await readFile(path.join(OUT, alle[0])) : await zipOhneKompression(OUT, alle);
   const groesse = buf.length;
-  log(`ZIP: ${zipName} (${Math.round(groesse / 1048576 * 10) / 10} MB) – Upload zu Wix …`);
-  a = await setzen(a, { fortschritt: 93, schritt: `ZIP (${Math.round(groesse / 1048576 * 10) / 10} MB) wird zu Wix hochgeladen.` });
-  const { uploadUrl } = await client.files.generateFileUploadUrl('application/zip', { fileName: zipName, sizeInBytes: String(buf.length), parentFolderId: 'media-root' });
-  const res = await fetch(uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(zipName), { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: buf });
+  log(`${einzeln ? 'Datei' : 'ZIP'}: ${zipName} (${Math.round(groesse / 1048576 * 10) / 10} MB) – Upload zu Wix …`);
+  a = await setzen(a, { fortschritt: 93, schritt: `${einzeln ? 'Clip' : 'ZIP'} (${Math.round(groesse / 1048576 * 10) / 10} MB) wird zu Wix hochgeladen.` });
+  const { uploadUrl } = await client.files.generateFileUploadUrl(mime, { fileName: zipName, sizeInBytes: String(buf.length), parentFolderId: 'media-root' });
+  const res = await fetch(uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(zipName), { method: 'PUT', headers: { 'Content-Type': mime }, body: buf });
   if (!res.ok) throw new Error('Upload fehlgeschlagen (' + res.status + ')');
   const j = await res.json(); const f = j.file || j;
   const url = f.url || '';
   if (!url) throw new Error('Wix hat keine Download-Adresse zurückgegeben');
-  const gemeldet = await melden('Overlays fertig – zum Download bereit', `${a.titel || 'Overlay-Clips'} (${Math.round(groesse / 1048576 * 10) / 10} MB, ${dateien.length + (manifest.drehplan ? 1 : 0)} Dateien). Antippen zum Herunterladen.`, url);
+  const gemeldet = await melden(einzeln ? 'Baustein fertig – zum Download bereit' : 'Overlays fertig – zum Download bereit', `${a.titel || 'Overlay-Clips'} (${Math.round(groesse / 1048576 * 10) / 10} MB, ${dateien.length + (manifest.drehplan ? 1 : 0)} Dateien). Antippen zum Herunterladen.`, url);
   await setzen(a, { status: 'fertig', url, dateiName: zipName, dateien: dateien.length + (manifest.drehplan ? 1 : 0), groesse, fertigAm: new Date().toISOString(), fehler: '', fortschritt: 100, schritt: 'Fertig.', benachrichtigt: gemeldet });
   log(`Auftrag ${id} fertig: ${url}`);
 } catch (e) {

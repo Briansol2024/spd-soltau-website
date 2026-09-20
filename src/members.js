@@ -465,7 +465,7 @@ function navGroups() {
   return [
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
-    ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('filmdreh', 'Filmdreh', ICON.film)]],
+    ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('filmdreh', 'Filmdreh', ICON.film), sec('filmdreh', 'Baustein-Werkstatt', ICON.play, secVisible('filmdreh'), '#filmdreh/werkstatt')]],
     ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), sec('feedback', 'Wünsche zur App', ICON.idea), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }

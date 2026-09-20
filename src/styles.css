@@ -1863,3 +1863,5 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .ow-thumb small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ow-bild-aktionen{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ow-bild-aktionen select{font:inherit;font-size:14px;padding:7px 8px;border:2px solid var(--schwarz);max-width:100%}
+.fp-werkstatt{margin-bottom:14px;border-left-color:var(--schwarz)}
+.fp-werkstatt .fp-status{background:var(--schwarz);color:#fff}

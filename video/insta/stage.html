@@ -160,7 +160,18 @@ body.gruen .handy .screen{background:#00B140}
 .foto-pos.links{left:50px}.foto-pos.rechts{right:50px;--rot:6deg}
 .foto-pos.f-mitte{top:600px}.foto-pos.f-gross{width:620px}
 .foto{margin:0;display:grid;gap:16px;padding:22px 22px 26px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.45);animation:schweben 3.2s ease-in-out .8s infinite alternate}
-.foto img,.foto .platz{display:block;width:100%;aspect-ratio:1/1.05;object-fit:cover;background:#ddd}
+.foto img,.foto .platz{display:block;width:100%;aspect-ratio:var(--ar,1/1.05);object-fit:cover;background:#ddd}
+/* Gestaltung: ohne Rahmen (nur das Bild), Format über --ar, Ecken rund/leicht, gerade statt gedreht */
+.foto.ohne{padding:0;background:transparent;gap:0}
+.foto.ohne figcaption{background:#fff;padding:12px 16px 10px;margin-top:10px}
+.foto.leicht img,.foto.leicht .platz{border-radius:18px}.foto.rund img,.foto.rund .platz{border-radius:44px}
+.foto.leicht:not(.ohne){border-radius:22px}.foto.rund:not(.ohne){border-radius:50px}
+.foto-pos.gerade{--rot:0deg}
+.kreis .kk.ohne{padding:0;background:transparent}
+.kreis .kk.ohne small{background:#fff;padding:8px 12px 6px;margin-top:8px}
+.kreis .kk img,.kreis .kk .platz{aspect-ratio:var(--ar,1/1)}
+.kreis .kk.leicht img,.kreis .kk.leicht .platz{border-radius:14px}.kreis .kk.rund img,.kreis .kk.rund .platz{border-radius:36px}
+.kreis .kk.leicht:not(.ohne){border-radius:18px}.kreis .kk.rund:not(.ohne){border-radius:40px}
 .foto .platz{display:grid;place-items:center;font:800 40px/1 var(--display);color:#999;text-transform:uppercase;letter-spacing:.1em}
 .foto figcaption{font:700 30px/1.2 var(--body);color:#222;text-align:center}
 @keyframes fotoPop{from{opacity:0;transform:translateY(80px) rotate(calc(var(--rot) - 8deg)) scale(.85)}to{opacity:1;transform:rotate(var(--rot))}}
@@ -363,6 +374,9 @@ window.__ticks = [];
 const anim = ['wisch', 'weich', 'fall', 'zoom', 'hoch', 'dreh', 'mitte', 'federn', 'blitz', 'tipp'].includes(q.get('anim')) ? q.get('anim') : 'pop';
 document.body.dataset.anim = anim;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// Bild-Gestaltung: rahmen=ohne · ecken=leicht|rund · format=1-1|4-5|3-4|16-9|9-16
+const gestalt = q => `${q.get('rahmen') === 'ohne' ? 'ohne' : ''} ${{ leicht: 'leicht', rund: 'rund' }[q.get('ecken')] || ''}`;
+const format = q => { const f = { '1-1': '1/1', '4-5': '4/5', '3-4': '3/4', '16-9': '16/9', '9-16': '9/16' }[q.get('format')]; return f ? `--ar:${f}` : ''; };
 const letters = (word, delay0, step, rotIdx = []) => [...word].map((ch, i) => `<i class="${rotIdx.includes(i) ? 'rot' : ''}${i === word.length - 1 && /[!,]/.test(ch) && clip === 'intro' && word.endsWith('!') ? ' bang' : ''}" style="animation-delay:${(delay0 + i * step).toFixed(2)}s${i === word.length - 1 && word.endsWith('!') ? ',1.9s' : ''}">${esc(ch)}</i>`).join('');
 let html = '';
 if (clip === 'intro') {
@@ -406,7 +420,7 @@ if (clip === 'intro') {
 } else if (clip === 'foto') {
   // Foto-Karte: url = Bild (aus dem Material der App), text = Unterschrift, seite links|rechts, pos oben|mitte, gr gross
   const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
-  html = `<div class="foto-pos ${seite} ${q.get('pos') === 'mitte' ? 'f-mitte' : ''} ${q.get('gr') === 'gross' ? 'f-gross' : ''}"><figure class="foto">${q.get('url') ? `<img src="${esc(q.get('url'))}" alt="">` : '<div class="platz">Foto</div>'}${q.get('text') ? `<figcaption>${esc(q.get('text'))}</figcaption>` : ''}</figure></div>`;
+  html = `<div class="foto-pos ${seite} ${q.get('pos') === 'mitte' ? 'f-mitte' : ''} ${q.get('gr') === 'gross' ? 'f-gross' : ''} ${q.get('neigung') === 'gerade' ? 'gerade' : ''}"><figure class="foto ${gestalt(q)}" style="${format(q)}">${q.get('url') ? `<img src="${esc(q.get('url'))}" alt="">` : '<div class="platz">Foto</div>'}${q.get('text') ? `<figcaption>${esc(q.get('text'))}</figcaption>` : ''}</figure></div>`;
 } else if (clip === 'riesen') {
   const zeilen = (q.get('text') || 'Heute').split('|'); const farbe = { schwarz: 'schwarz', rot: 'rot' }[q.get('farbe')] || '';
   html = `<div class="riesen ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="drift"><span class="t ${farbe}">${zeilen.map(esc).join('<br>')}</span></div></div>`;
@@ -458,12 +472,13 @@ if (clip === 'intro') {
   const urls = (q.get('bilder') || '').split('|').map(x => x.trim()).filter(Boolean); const n = Math.max(3, urls.length || +q.get('anzahl') || 4);
   const namen = (q.get('text') || '').split('|'); const takt = Math.max(1, parseFloat(q.get('takt')) || 3) * 1000; const fliessend = q.get('art') === 'fliessend';
   const cy = { oben: 700, unten: 1250 }[q.get('pos')] || 980, rx = 430, ry = 150; const kw = q.get('gr') === 'gross' ? 380 : 300;
-  html = `<div class="kreis" style="--kw:${kw}px">${Array.from({ length: n }, (_, i) => `<figure class="kk" data-i="${i}">${urls[i] ? `<img src="${esc(urls[i])}" alt="">` : `<div class="platz">${i + 1}</div>`}${namen[i] ? `<small>${esc(namen[i])}</small>` : ''}</figure>`).join('')}</div>`;
+  html = `<div class="kreis" style="--kw:${kw}px;${format(q)}">${Array.from({ length: n }, (_, i) => `<figure class="kk ${gestalt(q)}" data-i="${i}">${urls[i] ? `<img src="${esc(urls[i])}" alt="">` : `<div class="platz">${i + 1}</div>`}${namen[i] ? `<small>${esc(namen[i])}</small>` : ''}</figure>`).join('')}</div>`;
   window.__ticks.push(t => {
     const s = Math.max(0, t - 600) / takt; const k = Math.floor(s), f = s - k; const ease = f < .5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
     const phi = fliessend ? (t / takt) * (2 * Math.PI / n) : (k + ease) * (2 * Math.PI / n);
-    document.querySelectorAll('.kreis .kk').forEach(el => { const i = +el.dataset.i; const a = (2 * Math.PI * i) / n - phi; const d = Math.cos(a); const sc = .55 + .45 * (d + 1) / 2;
-      el.style.transform = `translate(${(540 + rx * Math.sin(a) - kw / 2).toFixed(1)}px,${(cy + ry * d - kw / 2 - 20).toFixed(1)}px) scale(${sc.toFixed(3)})`; el.style.zIndex = String(Math.round(100 + 50 * d)); el.style.filter = `brightness(${(.62 + .38 * (d + 1) / 2).toFixed(2)})`; }); // keine Transparenz – sonst grünstichig beim Keying
+    // vorn scharf und groß, seitlich kleiner und leicht unscharf, hinten schrumpft es weg (als verschwände es hinter dem Körper) – keine Transparenz, sonst grünstichig beim Keying
+    document.querySelectorAll('.kreis .kk').forEach(el => { const i = +el.dataset.i; const a = (2 * Math.PI * i) / n - phi; const d = Math.cos(a); const weg = Math.min(1, Math.max(0, (d + .55) / .35)); const sc = (.55 + .45 * (d + 1) / 2) * weg;
+      el.style.display = weg > 0 ? '' : 'none'; el.style.transform = `translate(${(540 + rx * Math.sin(a) - kw / 2).toFixed(1)}px,${(cy + ry * d - kw / 2 - 20).toFixed(1)}px) scale(${sc.toFixed(3)})`; el.style.zIndex = String(Math.round(100 + 50 * d)); el.style.filter = `blur(${(3.5 * (1 - Math.max(0, d))).toFixed(1)}px) brightness(${(.7 + .3 * (d + 1) / 2).toFixed(2)})`; });
   });
 } else if (clip === 'pin') {
   // Karten-Pin: fällt auf x/y (Prozent) – auf ein Kartenbild oder frei (dann in CapCut per Tracking anheften)

@@ -65,6 +65,9 @@ export function makeFilm(ctx) {
   const laeuft = a => ['wartet', 'gestartet', 'laeuft'].includes(a.status);
   const parseJson = (s, d) => { try { return s ? JSON.parse(s) : d; } catch (e) { return d; } };
 
+  const WERKSTATT = 'werkstatt';
+  const werkstattProjekt = () => { let g = {}; try { g = JSON.parse(localStorage.getItem('spd-werkstatt') || '{}'); } catch (e) { /* leer */ } return { _id: WERKSTATT, titel: 'Baustein-Werkstatt', art: 'reel', status: 'skript', skript: '', drehplan: '', notizen: '', overlays: '[]', takesFertig: '[]', ...g }; };
+  const werkstattMerken = p => { try { localStorage.setItem('spd-werkstatt', JSON.stringify({ overlays: p.overlays || '[]' })); } catch (e) { /* kein Speicher */ } };
   async function laden() {
     [st.projekte, st.material] = await Promise.all([db.list('FilmProjekte', { desc: '_updatedDate', limit: 100 }).catch(() => []), db.list('FilmMaterial', { desc: '_createdDate', limit: 300 }).catch(() => [])]);
     st.konto = await (echtesKonto ? echtesKonto() : Promise.resolve({ db, me: me() })).catch(() => null);
@@ -77,6 +80,7 @@ export function makeFilm(ctx) {
     <div class="mb-create"><details class="mb-details" id="fp-neu"><summary>Neues Video</summary><form class="form mb-form" id="f-projekt" novalidate>
       <div class="mb-2"><div class="field"><label for="fp-titel">Worum geht es?</label><input id="fp-titel" name="titel" type="text" required maxlength="100" placeholder="z. B. Ratssitzung Oktober"></div><div class="field"><label for="fp-art">Art</label><select id="fp-art" name="art">${FILM_ARTEN.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div></div>
       <p class="note" hidden></p><div class="mb-actions"><button class="btn btn-rot" type="submit">Anlegen</button></div></form></details></div>
+    <a class="fp-karte fp-werkstatt" href="#filmdreh/werkstatt"><span class="fp-status">Werkstatt</span><b>Baustein-Werkstatt</b><small>Overlays bauen, ansehen, einzeln rendern – ohne Projekt</small></a>
     <div class="fp-liste">${st.projekte.map(p => { const takes = takesAus(p.skript).length, ov = parseJson(p.overlays, []).length, fertig = parseJson(p.takesFertig, []).length; return `<a class="fp-karte st-${esc(p.status || 'idee')}" href="#filmdreh/p-${esc(p._id)}"><span class="fp-status">${esc(label(FILM_STATUS, p.status || 'idee'))}</span><b>${esc(p.titel)}</b><small>${takes ? `${takes} Takes${fertig ? ` · ${fertig} im Kasten` : ''}` : 'noch kein Skript'} · ${ov ? ov + ' Overlays' : 'keine Overlays'}${st.auftraege.some(a => a.projektId === p._id && laeuft(a)) ? ' · <span class="rot">Agent rendert …</span>' : ''}</small></a>`; }).join('') || '<p class="muted">Noch kein Video – leg das erste an.</p>'}</div>
     <section class="mb-sub"><h4 class="doc-cat">Vorlagen <span class="small muted">Grundkit und fertige Overlay-Pakete, für jedes Video</span></h4>
       <div class="fm-liste">${vorlagen.map(materialZeile).join('') || '<p class="small muted">Noch keine Vorlagen abgelegt.</p>'}</div>
@@ -91,23 +95,26 @@ export function makeFilm(ctx) {
   function materialZeile(m) {
     const link = m.url ? `<a class="btn btn-line btn-sm" href="${esc(m.url)}" ${m.art === 'link' ? 'target="_blank" rel="noopener"' : `download="${esc(m.name || '')}"`}>${m.art === 'link' ? 'Öffnen' : 'Laden'}</a>` : '';
     const status = m.status === 'wartet' ? '<span class="small rot">wird abgelegt (bis 5 Min.) …</span>' : m.status === 'fehler' ? `<span class="small rot">Fehler: ${esc(m.fehler || '')}</span>` : '';
-    return `<div class="fm-zeile art-${esc(m.art || 'datei')}" data-id="${esc(m._id)}"><span class="rz-ico">${m.art === 'link' ? ICON.link : m.art === 'overlays' ? ICON.play : ICON.doc}</span><div class="fm-text"><b>${esc(m.titel || m.name || 'Datei')}</b><small>${esc([mb(m.groesse), m.von, m._createdDate ? fmtWhen(m._createdDate) : ''].filter(Boolean).join(' · '))}</small>${status}</div>${link}${m.projektId ? '<button type="button" class="linkbtn" data-del-material aria-label="Entfernen">×</button>' : ''}</div>`;
+    return `<div class="fm-zeile art-${esc(m.art || 'datei')}" data-id="${esc(m._id)}"><span class="rz-ico">${m.art === 'link' ? ICON.link : m.art === 'overlays' || /^video\//.test(m.mime || '') ? ICON.play : ICON.doc}</span><div class="fm-text"><b>${esc(m.titel || m.name || 'Datei')}</b><small>${esc([mb(m.groesse), m.von, m._createdDate ? fmtWhen(m._createdDate) : ''].filter(Boolean).join(' · '))}</small>${status}</div>${link}${m.projektId ? '<button type="button" class="linkbtn" data-del-material aria-label="Entfernen">×</button>' : ''}</div>`;
   }
 
   // ---------- Projekt: drei Schritte ----------
   async function projekt(v, id) {
-    const p = st.projekte.find(x => x._id === id); if (!p) { v.innerHTML = '<p class="muted">Video nicht gefunden.</p>'; return; }
+    const werkstatt = id === WERKSTATT; if (werkstatt) st.tab = 'overlays';
+    const p = werkstatt ? werkstattProjekt() : st.projekte.find(x => x._id === id); if (!p) { v.innerHTML = '<p class="muted">Video nicht gefunden.</p>'; return; }
     const overlays = parseJson(p.overlays, []); const takes = takesAus(p.skript); const jobs = st.auftraege.filter(a => a.projektId === id);
     const schritt = (k, nr, titel, text, ok) => `<button type="button" class="fp-schritt${st.tab === k ? ' aktiv' : ''}${ok ? ' ok' : ''}" data-tab="${k}"><span class="fp-schritt-nr">${nr}</span><b>${titel}</b><small>${text}</small></button>`;
+    const fertige = werkstatt ? st.material.filter(m => m.projektId === WERKSTATT && m.art === 'overlays' && m.url) : [];
     v.innerHTML = `<p class="small rz-zurueck"><a href="#filmdreh">← Filmdreh</a></p>
-    ${sectionHead(esc(p.titel), esc(label(FILM_ARTEN, p.art)))}
-    <div class="fp-schritte">
+    ${sectionHead(esc(p.titel), werkstatt ? 'Bausteine bauen, ansehen, einzeln laden – ohne Projekt' : esc(label(FILM_ARTEN, p.art)))}
+    ${werkstatt ? `<p class="small muted">Die Liste hier liegt nur auf diesem Gerät. Für ein Video mit Skript und Drehmodus lieber ein <a href="#filmdreh">Projekt</a> anlegen – dort gibt es dieselbe Werkstatt unter Schritt 2.</p>${fertige.length ? `<section class="mb-sub"><h4 class="doc-cat">Fertige Bausteine <span class="small muted">vom Agenten gerendert</span></h4><div class="fm-liste">${fertige.slice(0, 12).map(materialZeile).join('')}</div></section>` : ''}` : ''}
+    <div class="fp-schritte" ${werkstatt ? 'hidden' : ''}>
       ${schritt('skript', '1', 'Skript', takes.length ? `${takes.length} Takes` : 'Take für Take schreiben', takes.length > 0)}
       ${schritt('overlays', '2', 'Overlays', overlays.length ? `${overlays.length} in der Liste` : 'Texte fürs Video', overlays.length > 0)}
       <a class="fp-schritt dreh${takes.length ? '' : ' aus'}" href="${takes.length ? `#filmdreh/dreh-${esc(p._id)}` : '#filmdreh/p-' + esc(p._id)}"><span class="fp-schritt-nr">3</span><b>Drehen</b><small>${takes.length ? 'Drehmodus starten' : 'erst ein Skript'}</small></a>
     </div>
     <div class="fp-inhalt">${st.tab === 'overlays' ? tabOverlays(p, overlays, jobs) : st.tab === 'material' ? tabMaterial(p) : tabSkript(p, takes)}</div>
-    <p class="small muted fp-mehr"><button type="button" class="linkbtn" data-tab="material">Material, Links &amp; Notizen</button> · Stand: ${FILM_STATUS.map(([k, l]) => `<button type="button" class="linkbtn${(p.status || 'idee') === k ? ' fett' : ''}" data-status="${k}">${l}</button>`).join(' ')}</p>`;
+    <p class="small muted fp-mehr" ${werkstatt ? 'hidden' : ''}><button type="button" class="linkbtn" data-tab="material">Material, Links &amp; Notizen</button> · Stand: ${FILM_STATUS.map(([k, l]) => `<button type="button" class="linkbtn${(p.status || 'idee') === k ? ' fett' : ''}" data-status="${k}">${l}</button>`).join(' ')}</p>`;
     wireProjekt(v, p, overlays);
   }
   function tabSkript(p, takes) {
@@ -140,14 +147,15 @@ export function makeFilm(ctx) {
       <p class="small muted">Die Text-Einblendungen fürs Video. Aus Claudes Antwort kommen sie von selbst hier rein; du kannst welche ändern, löschen oder eigene bauen. „Rendern lassen“ macht daraus fertige Clips auf Grün für CapCut – die ZIP kommt als Push-Nachricht und landet unter Material.</p>
       <div class="ow-liste" id="ow-liste">${overlays.length ? overlays.map((o, i) => { const t = overlayTyp(o.typ); const c = clipVon(o, i, true); return `<div class="ow-item" data-i="${i}"><span class="ow-nr">${String(i + 1).padStart(2, '0')}</span><div><b>${esc(t?.name || o.typ)}</b><small>${esc(Object.entries(c.q).filter(([k]) => !['clip', 'anim', 'dauer', 'bg'].includes(k) && !/^url|^bilder$/.test(k)).map(([, val]) => String(val).replace(/\|/g, ' / ')).join(' · ').slice(0, 90))} · ${esc(c.dauer)} s · ${esc((ANIMATIONEN.find(([av]) => av === (o.werte?.anim || '')) || ANIMATIONEN[0])[1])}</small></div><div class="mb-actions"><button type="button" class="linkbtn" data-ow="zeigen">ansehen</button><button type="button" class="linkbtn" data-ow="hoch" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="linkbtn" data-ow="runter" ${i === overlays.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="linkbtn" data-ow="weg">×</button></div></div>`; }).join('') : '<p class="small muted">Noch keine Overlays. Unten einen Baustein bauen – oder im Skript-Schritt Claudes Antwort einfügen.</p>'}</div>
       ${overlays.length ? `<div class="mb-actions"><button type="button" class="btn btn-rot" id="ow-rendern">${overlays.length} Overlays rendern lassen</button><label class="check small"><input type="checkbox" id="ow-alpha"><span>auch mit Transparenz (große ZIP)</span></label></div><p class="small muted" id="ow-msg">${st.konto ? 'Meist 3–10 Minuten. Push-Nachricht, wenn die ZIP fertig ist.' : 'Dafür musst du im Hintergrund echt angemeldet sein.'}</p>` : ''}
-      ${jobs.length ? `<div class="rb-auftraege">${jobs.map(a => `<article class="rb-auftrag st-${esc(a.status)}"><div class="rb-auftrag-kopf"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · ${esc(fmtWhen(a._createdDate))}</span></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP laden</a>` : laeuft(a) ? '<span class="rb-spinner"></span>' : ''}</div>${laeuft(a) ? `<div class="rb-balken"><span style="width:${a.status === 'wartet' ? 3 : Math.max(8, +a.fortschritt || 8)}%"></span></div><p class="small muted">${esc(a.status === 'wartet' ? 'Wartet auf den Agenten (bis 5 Minuten).' : a.schritt || 'Der Agent rendert …')}</p>` : `<p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(a.status === 'fertig' ? `Fertig – ${a.dateien || ''} Dateien, ${mb(a.groesse)}.` : a.fehler || a.status)}</p>`}</article>`).join('')}</div>` : ''}
+      ${jobs.length ? `<div class="rb-auftraege">${jobs.map(a => `<article class="rb-auftrag st-${esc(a.status)}"><div class="rb-auftrag-kopf"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · ${esc(fmtWhen(a._createdDate))}</span></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">${/\.mp4$|\.mov$/i.test(a.dateiName || '') ? 'Clip laden' : 'ZIP laden'}</a>` : laeuft(a) ? '<span class="rb-spinner"></span>' : ''}</div>${laeuft(a) ? `<div class="rb-balken"><span style="width:${a.status === 'wartet' ? 3 : Math.max(8, +a.fortschritt || 8)}%"></span></div><p class="small muted">${esc(a.status === 'wartet' ? 'Wartet auf den Agenten (bis 5 Minuten).' : a.schritt || 'Der Agent rendert …')}</p>` : `<p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(a.status === 'fertig' ? `Fertig – ${a.dateien || ''} Dateien, ${mb(a.groesse)}.` : a.fehler || a.status)}</p>`}</article>`).join('')}</div>` : ''}
       <details class="mb-details" id="ow-bauen" ${overlays.length ? '' : 'open'}><summary>Baustein bauen</summary>
         <div class="ow">
           <div class="ow-form">
             <div class="field"><label for="ow-typ">Baustein</label><select id="ow-typ">${OVERLAY_TYPEN.map(t => `<option value="${t.id}" ${t.id === typ.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></div>
             ${typ.felder.map(([k, l, art, ...opts]) => art === 'select' ? `<div class="field"><label for="ow-${k}">${esc(l)}</label><select id="ow-${k}" data-feld="${k}">${opts.map(([ov, ol]) => `<option value="${esc(ov)}" ${String(nO.werte[k] ?? '') === ov ? 'selected' : ''}>${esc(ol)}</option>`).join('')}</select></div>` : art === 'lines' ? `<div class="field"><label for="ow-${k}">${esc(l)}</label><textarea id="ow-${k}" data-feld="${k}" rows="4">${esc(String(nO.werte[k] ?? '').replace(/\|/g, '\n'))}</textarea></div>` : (art === 'bild' || art === 'bilder') ? bildFeld(p, k, l, String(nO.werte[k] ?? ''), art === 'bilder') : `<div class="field"><label for="ow-${k}">${esc(l)}</label><input id="ow-${k}" data-feld="${k}" type="text" value="${esc(nO.werte[k] ?? '')}"></div>`).join('')}
             <div class="mb-2 tight"><div class="field"><label for="ow-dauer">Sekunden</label><input id="ow-dauer" type="number" min="1" max="20" step="0.5" value="${esc(nO.dauer || typ.dauer)}"></div><div class="field"><label>&nbsp;</label><button type="button" class="btn btn-schwarz btn-sm" id="ow-vorschau">▶ Vorschau</button></div></div>
-            <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="ow-add">In die Liste</button></div>
+            <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="ow-add">In die Liste</button><button type="button" class="btn btn-schwarz btn-sm" id="ow-einzeln">Einzeln rendern &amp; laden</button><label class="check small"><input type="checkbox" id="ow-alpha1"><span>mit Transparenz</span></label></div>
+            <p class="small muted" id="ow-einzeln-msg">„Einzeln“ schickt nur diesen Baustein zum Agenten – nach ein paar Minuten kommt die Datei per Push, sie steht dann oben bei den Aufträgen.</p>
           </div>
           <div class="ow-preview"><div class="ow-frame"><iframe id="ow-iframe" title="Vorschau" src="${esc(stageUrl(clipVon(nO, 0, true).q))}" width="1080" height="1920"></iframe></div>
             <div class="ow-anim"><span class="small muted">Animation – antippen zum Vergleichen:</span><div class="ow-anim-chips">${ANIMATIONEN.map(([av, al, ab]) => `<button type="button" class="chip" data-anim="${esc(av)}" title="${esc(ab)}" aria-pressed="${String(nO.werte.anim || '') === av}">${esc(al)}</button>`).join('')}</div></div></div>
@@ -171,7 +179,8 @@ export function makeFilm(ctx) {
   }
 
   function wireProjekt(v, p, overlays) {
-    const speichern = async (patch, hinweis) => { try { const neu = await db.update('FilmProjekte', { ...p, ...patch }); Object.assign(p, neu); const m = $('#fp-skript-msg', v); if (m && hinweis) m.textContent = hinweis; } catch (err) { const m = $('#fp-skript-msg', v) || $('#ki-msg', v); if (m) m.textContent = 'Nicht gespeichert: ' + errText(err); } };
+    const werkstatt = p._id === WERKSTATT;
+    const speichern = async (patch, hinweis) => { if (werkstatt) { Object.assign(p, patch); werkstattMerken(p); return; } try { const neu = await db.update('FilmProjekte', { ...p, ...patch }); Object.assign(p, neu); const m = $('#fp-skript-msg', v); if (m && hinweis) m.textContent = hinweis; } catch (err) { const m = $('#fp-skript-msg', v) || $('#ki-msg', v); if (m) m.textContent = 'Nicht gespeichert: ' + errText(err); } };
     const auto = (sel, feld) => { const el = $(sel, v); if (!el) return; let t = null; el.addEventListener('input', e => { clearTimeout(t); const m = $('#fp-skript-msg', v); if (m) m.textContent = 'wird gespeichert …'; t = setTimeout(() => speichern({ [feld]: e.target.value }, feld === 'skript' ? `gespeichert · ${takesAus(e.target.value).length} Takes erkannt` : 'gespeichert'), 1200); }); };
     auto('#fp-skript', 'skript'); auto('#fp-drehplan', 'drehplan'); auto('#fp-notizen', 'notizen');
     $$('[data-tab]', v).forEach(b => b.addEventListener('click', () => { st.tab = b.dataset.tab; projekt(v, p._id); }));
@@ -233,16 +242,23 @@ export function makeFilm(ctx) {
       if (b.dataset.ow === 'runter' && i < overlays.length - 1) [overlays[i + 1], overlays[i]] = [overlays[i], overlays[i + 1]];
       await speichern({ overlays: JSON.stringify(overlays) }); projekt(v, p._id);
     });
+    const bestellen = async (liste, titel, nurGruen, mitDrehplan, msgEl) => {
+      if (!st.konto) throw new Error('nicht echt angemeldet');
+      const offen = liste.filter(nochNichtAbgelegt); if (offen.length) throw new Error(`${offen.length === 1 ? 'ein Foto wird' : offen.length + ' Fotos werden'} noch bei Wix abgelegt (bis 5 Minuten) – gleich noch mal versuchen`);
+      const manifest = { titel, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie in der Liste.', nurGruen, drehplan: mitDrehplan ? [p.skript, p.drehplan].filter(Boolean).join('\n\n— DREHPLAN —\n') : '', clips: liste.map((o, i) => clipVon(o, i, false)) };
+      await st.konto.db.insert('Auftraege', { typ: 'overlays', status: 'wartet', title: manifest.titel, titel: manifest.titel, projektId: p._id, sitzungId: '', memberId: st.konto.me.id, von: st.konto.me.name, manifest: JSON.stringify(manifest), benachrichtigt: false, fortschritt: 0, schritt: '' });
+      st.auftraege = await st.konto.db.list('Auftraege', { desc: '_createdDate', limit: 50 }).catch(() => st.auftraege);
+      projekt(v, p._id); pollen(v, p._id);
+    };
     $('#ow-rendern', v)?.addEventListener('click', async e => {
       const b = e.currentTarget; busy(b, true);
-      try {
-        if (!st.konto) throw new Error('nicht echt angemeldet');
-        const offen = overlays.filter(nochNichtAbgelegt); if (offen.length) throw new Error(`${offen.length === 1 ? 'ein Foto wird' : offen.length + ' Fotos werden'} noch bei Wix abgelegt (bis 5 Minuten) – gleich noch mal versuchen`);
-        const manifest = { titel: `Overlays ${p.titel}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie in der Liste.', nurGruen: !$('#ow-alpha', v).checked, drehplan: [p.skript, p.drehplan].filter(Boolean).join('\n\n— DREHPLAN —\n'), clips: overlays.map((o, i) => clipVon(o, i, false)) };
-        await st.konto.db.insert('Auftraege', { typ: 'overlays', status: 'wartet', title: manifest.titel, titel: manifest.titel, projektId: p._id, sitzungId: '', memberId: st.konto.me.id, von: st.konto.me.name, manifest: JSON.stringify(manifest), benachrichtigt: false, fortschritt: 0, schritt: '' });
-        st.auftraege = await st.konto.db.list('Auftraege', { desc: '_createdDate', limit: 50 }).catch(() => st.auftraege);
-        projekt(v, p._id); pollen(v, p._id);
-      } catch (err) { $('#ow-msg', v).textContent = 'Nicht bestellt: ' + errText(err); busy(b, false); }
+      try { await bestellen(overlays, `Overlays ${p.titel}`, !$('#ow-alpha', v).checked, !werkstatt); } catch (err) { $('#ow-msg', v).textContent = 'Nicht bestellt: ' + errText(err); busy(b, false); }
+    });
+    $('#ow-einzeln', v)?.addEventListener('click', async e => {
+      const b = e.currentTarget; busy(b, true); const o = lesen(); st.neuOverlay = o; const t = overlayTyp(o.typ);
+      const kurz = String(o.werte.text || o.werte.name || o.werte.titel || o.werte.label || o.werte.bis || '').replace(/[|*#_\n]/g, ' ').trim().slice(0, 30);
+      try { await bestellen([o], `Baustein ${t?.name.replace(/\s*\(.*\)\s*$/, '') || o.typ}${kurz ? ' – ' + kurz : ''}`, !$('#ow-alpha1', v).checked, false); $('#ow-bauen', v)?.scrollIntoView({ behavior: 'smooth' }); }
+      catch (err) { $('#ow-einzeln-msg', v).textContent = 'Nicht bestellt: ' + errText(err); busy(b, false); }
     });
     if (st.auftraege.some(a => a.projektId === p._id && laeuft(a))) pollen(v, p._id);
     // ---- Material ----
@@ -341,6 +357,7 @@ export function makeFilm(ctx) {
     await laden();
     const sub = location.hash.split('/')[1] || '';
     if (sub.startsWith('dreh-')) { const p = st.projekte.find(x => x._id === sub.slice(5)); if (p) return dreh(v, p); }
+    if (sub === 'werkstatt') { st.letztes = sub; return projekt(v, WERKSTATT); }
     if (sub.startsWith('p-')) { if (st.letztes !== sub) { st.tab = 'skript'; st.take = 0; } st.letztes = sub; return projekt(v, sub.slice(2)); }
     uebersicht(v);
   }

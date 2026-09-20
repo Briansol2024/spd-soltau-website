@@ -849,7 +849,7 @@ async function filmUploads(subs, logKeys) {
     for (const a of await queryAll(client, 'Auftraege', q => q.eq('status', 'fertig'))) {
       if (!a.projektId || a.materialAngelegt || !a.url) continue;
       if (DRY) continue;
-      await client.items.insert('FilmMaterial', { title: a.titel || 'Overlays', projektId: a.projektId, art: 'overlays', titel: a.titel || 'Overlays', url: a.url, name: a.dateiName || 'overlays.zip', mime: 'application/zip', groesse: a.groesse || 0, status: 'fertig', von: a.von || '', memberId: a.memberId || '', auftragId: a._id }).catch(e => log('  Film-Material:', e.message));
+      await client.items.insert('FilmMaterial', { title: a.titel || 'Overlays', projektId: a.projektId, art: 'overlays', titel: a.titel || 'Overlays', url: a.url, name: a.dateiName || 'overlays.zip', mime: /\.mp4$/i.test(a.dateiName || '') ? 'video/mp4' : /\.mov$/i.test(a.dateiName || '') ? 'video/quicktime' : 'application/zip', groesse: a.groesse || 0, status: 'fertig', von: a.von || '', memberId: a.memberId || '', auftragId: a._id }).catch(e => log('  Film-Material:', e.message));
       await client.items.update('Auftraege', { ...a, materialAngelegt: true }).catch(() => {});
     }
   } catch (e) { log('Filmdreh:', e.message); }
