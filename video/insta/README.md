@@ -16,6 +16,21 @@ Liegen in `video/insta/out/`, jeweils in zwei Fassungen:
 - **binde-‹name›** (6 s) – Bauchbinde unten links: Name (rot) + Rolle (schwarz); fährt rein, bleibt 4 s, fährt raus – für Vorstand und alle Gewählten
 - **wort-‹text›-links / -rechts** (3 s) – große Wörter neben der Person („Neue Website“, „Ab Dienstag 18 Uhr“, „Mitglieder-App“, „Jetzt mitreden“ …). *links* = Text links, du stehst rechts; *rechts* = umgekehrt (lässt rechts Platz für die Instagram-Symbole)
 
+## Neue Bausteine (Werkstatt in der App)
+
+- **foto** – Polaroid-Karte neben der Person, leicht gedreht, schwebt: Foto aus dem Material des Projekts, Bildunterschrift, links/rechts, oben/mitte
+- **riesen** – Riesentitel, ein Wort bildschirmfüllend: in CapCut **hinter die Person** legen (Video → Kopie als Überlagerung → Hintergrund entfernen → Titel-Overlay dazwischen). Auf Grün deckend gerendert – die Durchsicht stellst du in CapCut über „Deckkraft“ (70–80 %) ein
+- **schild** – Datenschild mit Linie und Punkt, zum **Anheften an ein Gebäude**: siehe unten „Anheften (Tracking)“
+- **liste** mit Art **Fokus** – alle Punkte stehen unscharf da, einer nach dem anderen wird scharf und bekommt den Rahmen; die Zeit verteilt sich auf die Clip-Länge (Sekunden in der Werkstatt hochsetzen bei vielen Punkten)
+
+## Anheften (Tracking): Schrift klebt am Gebäude, obwohl die Kamera sich bewegt
+
+1. Drehen: langsam und gleichmäßig (Gimbal, oder mit gebeugten Knien gehen), das Gebäude bleibt im Bild, eine markante Stelle (Fensterecke, Schild) muss die ganze Zeit sichtbar sein.
+2. CapCut: Video in die Hauptspur → **Überlagerung hinzufügen** → `schild-…-gruen.mp4` → **Chroma-Key** wie gewohnt.
+3. Überlagerung antippen → **Tracking** (bei manchen Versionen „Verfolgen“ / „Bewegungsverfolgung“) → den Rahmen auf die markante Stelle am Gebäude ziehen → **Start**. CapCut rechnet den Weg aus, das ganze Overlay wandert mit.
+4. Im ersten Bild die Überlagerung so verschieben und skalieren, dass der **rote Punkt** auf der Stelle sitzt – die Karte hängt dann daran und bleibt beim Schwenk am Gebäude.
+5. Falls die Tracking-Funktion nur für Text und Sticker angeboten wird: Karte als Text-Sticker nachbauen oder die Windows-Version nehmen – dort heißt es „Bewegungsverfolgung“ und geht mit jeder Überlagerung.
+
 ## Animationsarten
 
 Jeder Baustein kann auf fünf Arten ins Bild kommen – in der App unter „Baustein bauen“ per Chip vergleichen, Claude wählt sie im Skript mit (`anim`):

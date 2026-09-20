@@ -155,6 +155,56 @@ body.rot .outro .strich{background:#fff}
 @keyframes handyRein{from{opacity:0;transform:translateX(-120px) rotate(-6deg)}to{opacity:1;transform:none}}
 body.gruen .handy .screen{background:#00B140}
 
+/* ---------- Foto-Karte: Polaroid neben der Person, schwebt leicht ---------- */
+.foto-pos{position:absolute;top:230px;width:470px;--rot:-6deg;animation:fotoPop .8s var(--spring) both}
+.foto-pos.links{left:50px}.foto-pos.rechts{right:50px;--rot:6deg}
+.foto-pos.f-mitte{top:600px}.foto-pos.f-gross{width:620px}
+.foto{margin:0;display:grid;gap:16px;padding:22px 22px 26px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.45);animation:schweben 3.2s ease-in-out .8s infinite alternate}
+.foto img,.foto .platz{display:block;width:100%;aspect-ratio:1/1.05;object-fit:cover;background:#ddd}
+.foto .platz{display:grid;place-items:center;font:800 40px/1 var(--display);color:#999;text-transform:uppercase;letter-spacing:.1em}
+.foto figcaption{font:700 30px/1.2 var(--body);color:#222;text-align:center}
+@keyframes fotoPop{from{opacity:0;transform:translateY(80px) rotate(calc(var(--rot) - 8deg)) scale(.85)}to{opacity:1;transform:rotate(var(--rot))}}
+@keyframes fotoWisch{from{opacity:0;transform:translateX(-160px) rotate(calc(var(--rot) - 10deg))}to{opacity:1;transform:rotate(var(--rot))}}
+[data-anim=wisch] .foto-pos.rechts{animation-name:fotoWischR}
+@keyframes fotoWischR{from{opacity:0;transform:translateX(160px) rotate(calc(var(--rot) + 10deg))}to{opacity:1;transform:rotate(var(--rot))}}
+@keyframes fotoWeich{from{opacity:0;filter:blur(16px);transform:rotate(var(--rot)) scale(1.06)}to{opacity:1;filter:blur(0);transform:rotate(var(--rot))}}
+@keyframes fotoFall{0%{opacity:0;transform:translateY(-300px) rotate(calc(var(--rot) - 6deg))}60%{opacity:1;transform:translateY(16px) rotate(var(--rot))}82%{transform:translateY(-6px) rotate(var(--rot))}100%{opacity:1;transform:rotate(var(--rot))}}
+@keyframes schweben{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+[data-anim=wisch] .foto-pos{animation-name:fotoWisch;animation-timing-function:var(--ease)}
+[data-anim=weich] .foto-pos{animation-name:fotoWeich;animation-timing-function:var(--ease);animation-duration:.9s}
+[data-anim=fall] .foto-pos{animation-name:fotoFall;animation-timing-function:ease-out;animation-duration:.8s}
+
+/* ---------- Riesentitel: ein Wort, bildschirmfüllend – in CapCut hinter die Person legen ---------- */
+.riesen{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;text-align:center;padding:0 30px}
+.riesen.oben{align-content:start;padding-top:150px}.riesen.unten{align-content:end;padding-bottom:320px}
+.riesen .drift{animation:drift 8s linear both}
+.riesen .t{display:block;white-space:nowrap;font:800 340px/.86 var(--display);text-transform:uppercase;letter-spacing:-.02em;color:#fff;animation:weichIn .9s var(--ease) both}
+.riesen .t.schwarz{color:var(--schwarz)}.riesen .t.rot{color:var(--rot)}
+@keyframes drift{from{transform:scale(1.1)}to{transform:scale(1)}}
+
+/* ---------- Datenschild: Karte mit Linie und Punkt – den Punkt in CapCut per Tracking ans Objekt heften ---------- */
+.schild{position:absolute;inset:0}
+.schild svg{position:absolute;inset:0;width:1080px;height:1920px;overflow:visible}
+.schild line{stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-dasharray:var(--l,600);stroke-dashoffset:var(--l,600);animation:zeichnen .4s var(--ease) both .2s}
+.schild .karte{position:absolute;left:330px;top:760px;width:520px;background:#fff;color:var(--schwarz);padding:24px 30px 22px;box-shadow:0 26px 60px rgba(0,0,0,.4);display:grid;gap:8px;border-left:14px solid var(--rot);animation:wischIn .5s var(--ease) both .5s}
+.schild.rechts .karte{left:230px}
+.schild .karte b{font:800 44px/1 var(--display);text-transform:uppercase;margin-bottom:6px}
+.schild .karte span{font:700 30px/1.25 var(--body);animation:fadeDown .4s var(--ease) both}
+.schild .punkt{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--rot);border:6px solid #fff;box-shadow:0 0 0 8px rgba(227,0,15,.35);animation:popIn .3s var(--spring) both}
+@keyframes zeichnen{to{stroke-dashoffset:0}}
+
+/* ---------- Liste „Fokus“: aktueller Punkt im Rahmen, die nächsten unscharf, erledigte blass ---------- */
+.liste.fokus{gap:26px;padding:0 90px}
+.liste.fokus .p{position:relative;display:block;background:none;color:#fff;font:700 56px/1.15 var(--body);text-transform:none;text-shadow:0 4px 22px rgba(0,0,0,.6);padding:22px 30px;filter:blur(9px);opacity:.4;animation:fokusRein .35s var(--ease) both,fokusRaus .35s var(--ease) both}
+.liste.fokus .p i{display:inline;width:auto;height:auto;background:none;color:#fff;font:inherit;margin-right:.3em}
+.liste.fokus .p .rahmen{position:absolute;inset:0;border:6px solid #fff;border-radius:18px;opacity:0;animation:rahmenRein .3s var(--ease) both,rahmenRaus .25s var(--ease) both}
+.liste.fokus .p.letzte{animation-name:fokusRein}
+.liste.fokus .p.letzte .rahmen{animation-name:rahmenRein}
+@keyframes fokusRein{to{filter:blur(0);opacity:1}}
+@keyframes fokusRaus{to{opacity:.55}}
+@keyframes rahmenRein{to{opacity:1}}
+@keyframes rahmenRaus{to{opacity:0}}
+
 /* ---------- Animationsarten (?anim=pop|wisch|weich|fall|tipp): gleiche Zeiten, anderer Weg ins Bild ----------
    pop = Standard (springt rein) · wisch = wischt von der Seite rein · weich = blendet weich ein · fall = fällt von oben mit Nachwippen · tipp = Buchstabe für Buchstabe */
 @keyframes wischIn{from{clip-path:inset(0 100% 0 0);transform:translateX(-40px)}to{clip-path:inset(0 0 0 0);transform:none}}
@@ -167,9 +217,9 @@ body.gruen .handy .screen{background:#00B140}
 @keyframes tippIn{from{opacity:0}to{opacity:1}}
 @keyframes tpc{0%{opacity:1}100%{opacity:0}}
 /* Elemente mit einer Einblend-Animation */
-[data-anim=wisch] :is(.ey,.gross,.liste .titel,.liste .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z){animation-name:wischIn;animation-timing-function:var(--ease)}
-[data-anim=weich] :is(.ey,.gross,.liste .titel,.liste .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i){animation-name:weichIn;animation-timing-function:var(--ease);animation-duration:.8s}
-[data-anim=fall] :is(.ey,.gross,.liste .titel,.liste .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i){animation-name:fallIn;animation-timing-function:ease-out;animation-duration:.7s}
+[data-anim=wisch] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.riesen .t,.schild .karte){animation-name:wischIn;animation-timing-function:var(--ease)}
+[data-anim=weich] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i,.riesen .t,.schild .karte){animation-name:weichIn;animation-timing-function:var(--ease);animation-duration:.8s}
+[data-anim=fall] :is(.ey,.gross,.liste .titel,.liste:not(.fokus) .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i,.riesen .t,.schild .karte){animation-name:fallIn;animation-timing-function:ease-out;animation-duration:.7s}
 /* Elemente mit Ein- und Ausblendung */
 [data-anim=wisch] .wort .z{animation-name:wischIn,wortOut;animation-timing-function:var(--ease),var(--ease)}
 [data-anim=wisch] .wort.rechts .z{animation-name:wischInR,wortOut}
@@ -185,7 +235,7 @@ body.gruen .handy .screen{background:#00B140}
 /* Tippen: Buchstaben einzeln (JS wickelt sie ein), Cursor blinkt solange getippt wird */
 .tp{opacity:0;animation:tippIn 1ms steps(1,end) both}
 .tp-c{display:inline-block;width:.08em;height:.85em;background:currentColor;margin-left:.06em;vertical-align:-.06em;opacity:0;animation:tpc .5s steps(2,start) forwards}
-[data-anim=tipp] .gross,[data-anim=tipp] .zitat p,[data-anim=tipp] .aufruf .name,[data-anim=tipp] .ey,[data-anim=tipp] .liste .titel,[data-anim=tipp] .szene-text,[data-anim=tipp] .vs .karte,[data-anim=tipp] .outro .claim,[data-anim=tipp] .outro .cta,[data-anim=tipp] .intro .tag,[data-anim=tipp] .aufruf .sub,[data-anim=tipp] .zitat .wer,[data-anim=tipp] .gegen .z{animation-name:none}
+[data-anim=tipp] .gross,[data-anim=tipp] .zitat p,[data-anim=tipp] .riesen .t,[data-anim=tipp] .aufruf .name,[data-anim=tipp] .ey,[data-anim=tipp] .liste .titel,[data-anim=tipp] .szene-text,[data-anim=tipp] .vs .karte,[data-anim=tipp] .outro .claim,[data-anim=tipp] .outro .cta,[data-anim=tipp] .intro .tag,[data-anim=tipp] .aufruf .sub,[data-anim=tipp] .zitat .wer,[data-anim=tipp] .gegen .z{animation-name:none}
 [data-anim=tipp] .wort .z{animation-name:none,wortOut}
 [data-anim=tipp] .binde .name,[data-anim=tipp] .binde .rolle{animation-name:bindeIn,bindeOut}
 
@@ -211,7 +261,7 @@ if (clip === 'intro') {
   </div></div>`;
 } else if (clip === 'outro') {
   html = `<div class="outro"><div class="box">
-    <img src="../../dist/assets/images/logo-spd-soltau-weiss.png" alt="SPD Soltau">
+    <img src="../../src/images/logo-spd-soltau-weiss.png" alt="SPD Soltau">
     <p class="claim">Aus Liebe<br>zu <b>Soltau</b></p>
     <span class="strich"></span>
     <span class="url">spd-soltau.de</span>
@@ -235,7 +285,22 @@ if (clip === 'intro') {
 } else if (clip === 'liste') {
   const items = (q.get('text') || 'Plakate aufhängen|Anträge schreiben|Diskutieren|Verantwortung übernehmen').split('|');
   const frage = q.get('art') === 'fragen';
+  if (q.get('art') === 'fokus') {
+    // Fokus: alle Punkte stehen unscharf da, einer nach dem anderen wird scharf und bekommt den Rahmen; Zeit verteilt sich auf die Clip-Länge
+    const dauer = parseFloat(q.get('dauer')) || 5; const schritt = Math.max(.8, (dauer - 1.2) / items.length);
+    html = `<div class="liste fokus">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => { const an = .4 + i * schritt, aus = an + schritt; const letzte = i === items.length - 1; return `<div class="p ${letzte ? 'letzte' : ''}" style="animation-delay:${an.toFixed(2)}s,${aus.toFixed(2)}s"><span class="rahmen" style="animation-delay:${an.toFixed(2)}s,${aus.toFixed(2)}s"></span><i>${i + 1}.</i>${esc(t)}</div>`; }).join('')}</div>`;
+  } else
   html = `<div class="liste">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => `<div class="p ${frage ? 'frage' : ''}" style="animation-delay:${(.5 + i * .75).toFixed(2)}s"><i>${frage ? '?' : i + 1}</i><span>${esc(t)}</span></div>`).join('')}</div>`;
+} else if (clip === 'foto') {
+  // Foto-Karte: url = Bild (aus dem Material der App), text = Unterschrift, seite links|rechts, pos oben|mitte, gr gross
+  const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
+  html = `<div class="foto-pos ${seite} ${q.get('pos') === 'mitte' ? 'f-mitte' : ''} ${q.get('gr') === 'gross' ? 'f-gross' : ''}"><figure class="foto">${q.get('url') ? `<img src="${esc(q.get('url'))}" alt="">` : '<div class="platz">Foto</div>'}${q.get('text') ? `<figcaption>${esc(q.get('text'))}</figcaption>` : ''}</figure></div>`;
+} else if (clip === 'riesen') {
+  const zeilen = (q.get('text') || 'Heute').split('|'); const farbe = { schwarz: 'schwarz', rot: 'rot' }[q.get('farbe')] || '';
+  html = `<div class="riesen ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="drift"><span class="t ${farbe}">${zeilen.map(esc).join('<br>')}</span></div></div>`;
+} else if (clip === 'schild') {
+  const zeilen = (q.get('text') || '40 Wohnungen|Baubeginn 2027').split('|').filter(Boolean); const seite = ['rechts', 'oben'].includes(q.get('seite')) ? q.get('seite') : 'links';
+  html = `<div class="schild ${seite}"><svg viewBox="0 0 1080 1920"><line x1="0" y1="0" x2="0" y2="0"/></svg><div class="karte">${q.get('titel') ? `<b>${esc(q.get('titel'))}</b>` : ''}${zeilen.map((z, i) => `<span style="animation-delay:${(.9 + i * .18).toFixed(2)}s">${esc(z)}</span>`).join('')}</div><span class="punkt"></span></div>`;
 } else if (clip === 'stempel') {
   html = `<div class="stempel"><span class="${q.get('art') === 'schwarz' ? 'schwarz' : ''} ${(q.get('text') || '').length > 14 ? 'klein' : ''}">${esc(q.get('text') || 'Absurd')}</span></div>`;
 } else if (clip === 'gegen') {
@@ -258,16 +323,29 @@ if (clip === 'intro') {
   html = `<div class="mitte ${pos}">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<p class="gross ${q.get('gr') === 'xl' ? 'xl' : q.get('gr') === 'm' ? 'm' : ''}">${zeilen.map(z => z.replace(/\*(.+?)\*/g, '<b>$1</b>')).join('<br>')}</p></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
+// Riesentitel: Schrift so groß, wie es in die Breite passt
+const rs = document.querySelector('.riesen .t');
+if (rs) { let fs = 340; rs.style.fontSize = fs + 'px'; while (fs > 90 && (rs.scrollWidth > 1020 || rs.scrollHeight > 1500)) { fs -= 10; rs.style.fontSize = fs + 'px'; } }
+// Datenschild: Linie von der Karte zum Punkt (der Punkt wird in CapCut ans Objekt geheftet)
+const sch = document.querySelector('.schild');
+if (sch) {
+  const k = sch.querySelector('.karte').getBoundingClientRect(); const seite = sch.classList.contains('rechts') ? 'rechts' : sch.classList.contains('oben') ? 'oben' : 'links';
+  const ecke = seite === 'links' ? [k.left, k.bottom] : seite === 'rechts' ? [k.right, k.bottom] : [k.left + k.width / 2, k.top];
+  const punkt = seite === 'links' ? [150, k.bottom + 150] : seite === 'rechts' ? [930, k.bottom + 150] : [k.left + k.width / 2, k.top - 170];
+  const l = sch.querySelector('line'); l.setAttribute('x1', ecke[0]); l.setAttribute('y1', ecke[1]); l.setAttribute('x2', punkt[0]); l.setAttribute('y2', punkt[1]);
+  l.style.setProperty('--l', Math.hypot(punkt[0] - ecke[0], punkt[1] - ecke[1]).toFixed(0));
+  const p = sch.querySelector('.punkt'); p.style.left = punkt[0] + 'px'; p.style.top = punkt[1] + 'px';
+}
 // Tippen: Text in einzelne Buchstaben zerlegen, jeder erscheint nach dem vorigen; Start = bisherige Verzögerung des Elements
 if (anim === 'tipp') {
-  const ziele = document.querySelectorAll('.gross, .wort .z, .zitat p, .liste .p span, .binde .name, .aufruf .name, .aufruf .sub, .ey, .liste .titel, .szene-text, .vs .karte, .outro .claim, .outro .cta, .intro .tag, .zitat .wer, .gegen .z');
+  const ziele = document.querySelectorAll('.gross, .wort .z, .zitat p, .liste:not(.fokus) .p span, .binde .name, .aufruf .name, .aufruf .sub, .ey, .liste .titel, .szene-text, .vs .karte, .outro .claim, .outro .cta, .intro .tag, .zitat .wer, .gegen .z, .riesen .t, .schild .karte b, .schild .karte span');
   ziele.forEach(el => {
     const wirt = el.closest('.liste .p') || el; // Verzögerung steht am Listenpunkt, getippt wird der Text darin
     const cs = getComputedStyle(wirt); const start = (parseFloat(cs.animationDelay) || 0) + (cs.animationName.split(',')[0].trim() !== 'none' ? .35 : 0); // erst reinkommen, dann tippen
     const zeichen = []; const sammeln = n => { if (n.nodeType === 3) zeichen.push(n); else if (!n.classList?.contains('kante')) [...n.childNodes].forEach(sammeln); }; sammeln(el);
     const n = zeichen.reduce((a, t) => a + t.data.replace(/\s/g, '').length, 0); const schritt = Math.min(.055, 1.2 / Math.max(n, 1)); let i = 0;
-    zeichen.forEach(t => { const f = document.createDocumentFragment(); for (const ch of t.data) { if (/\s/.test(ch)) { f.append(ch); continue; } const s = document.createElement('span'); s.className = 'tp'; s.textContent = ch; s.style.animationDelay = (start + i * schritt).toFixed(3) + 's'; i++; f.append(s); } t.replaceWith(f); });
-    const c = document.createElement('span'); c.className = 'tp-c'; c.style.animationDelay = start.toFixed(2) + 's'; c.style.animationIterationCount = String(Math.max(1, Math.ceil(i * schritt / .5))); el.append(c);
+    zeichen.forEach(t => { const f = document.createDocumentFragment(); for (const ch of t.data) { if (/\s/.test(ch)) { f.append(ch); continue; } const s = document.createElement('data'); s.className = 'tp'; s.textContent = ch; s.style.animationDelay = (start + i * schritt).toFixed(3) + 's'; i++; f.append(s); } t.replaceWith(f); });
+    const c = document.createElement('data'); c.className = 'tp-c'; c.style.animationDelay = start.toFixed(2) + 's'; c.style.animationIterationCount = String(Math.max(1, Math.ceil(i * schritt / .5))); el.append(c);
   });
 }
 if (clip === 'gegen') document.querySelectorAll('.gegen .z:not(.bleibt)').forEach((z, i) => { z.style.setProperty('--d', (1.0 + i * .9).toFixed(2) + 's'); });

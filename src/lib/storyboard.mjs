@@ -120,6 +120,6 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // Overlay-Typ aus der Overlay-Zeile eines Takes („Großer Text …“ → Großer Text)
 export function overlayKurz(text) {
   const t = String(text || ''); if (!t || /^\s*keins?\b/i.test(t)) return '';
-  const m = t.match(/großer text|wort-?popper|liste|stempel|bauchbinde|zitat|aufruf|intro|schlusskarte|outro/i);
+  const m = t.match(/großer text|wort-?popper|foto-?karte|polaroid|riesentitel|datenschild|schild|liste|stempel|bauchbinde|zitat|aufruf|intro|schlusskarte|outro/i);
   return m ? m[0].replace(/^./, c => c.toUpperCase()) : 'Overlay';
 }

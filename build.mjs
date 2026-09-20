@@ -346,7 +346,7 @@ async function main() {
   try {
     const stDir = path.join(OUT, 'assets', 'insta'); await mkdir(path.join(stDir, 'fonts'), { recursive: true });
     let stage = await readFile(path.join(__dirname, 'video', 'insta', 'stage.html'), 'utf8');
-    stage = stage.replace(/\.\.\/fonts\//g, 'fonts/').replace(/\.\.\/\.\.\/dist\/assets\/images\//g, '../images/');
+    stage = stage.replace(/\.\.\/fonts\//g, 'fonts/').replace(/\.\.\/\.\.\/(?:dist\/assets|src)\/images\//g, '../images/');
     await writeFile(path.join(stDir, 'stage.html'), stage, 'utf8');
     for (const f of await readdir(path.join(__dirname, 'video', 'fonts'))) if (f.endsWith('.ttf')) await copyFile(path.join(__dirname, 'video', 'fonts', f), path.join(stDir, 'fonts', f));
   } catch (e) { console.log('[build] Overlay-Bühne:', e.message); }
