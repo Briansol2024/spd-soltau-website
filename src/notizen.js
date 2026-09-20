@@ -1,6 +1,23 @@
 // Notizen im Sitzungsmodus: je Sitzung und Mitglied eine private Notiz – als Text und als Stift-Skizze (Tablet + Stift,
 // Finger oder Maus). Liegt in der Sammlung `SitzungNotizen` (nur der Verfasser liest sie), zusätzlich lokal als Sicherung.
 // Teilen: in den verschlüsselten Sitzungs-Chat (Text + Bild), über das Teilen-Menü des Geräts oder als PNG.
+// Striche (JSON) → PNG mit weißem Hintergrund – auch für den Sitzungsrückblick (Skizzen anderer)
+const BLATT = { breite: 1000, hoehe: 1400 };
+export function strokesToPng(json) {
+  let strokes = []; try { strokes = typeof json === 'string' ? JSON.parse(json || '[]') : (json || []); } catch (e) { return ''; }
+  if (!strokes.length) return '';
+  const maxY = Math.min(BLATT.hoehe, Math.max(...strokes.flatMap(s => s.punkte.map(p => p[1]))) + 40);
+  const off = document.createElement('canvas'); const k = 1.2; off.width = Math.round(BLATT.breite * k); off.height = Math.round(maxY * k);
+  const c = off.getContext('2d'); c.setTransform(k, 0, 0, k, 0, 0); c.lineCap = 'round'; c.lineJoin = 'round';
+  c.fillStyle = '#fff'; c.fillRect(0, 0, BLATT.breite, maxY);
+  for (const s of strokes) for (let i = 0; i < s.punkte.length - 1; i++) {
+    const a = s.punkte[i], b = s.punkte[i + 1];
+    c.globalCompositeOperation = s.radierer ? 'destination-out' : 'source-over'; c.strokeStyle = s.farbe; c.lineWidth = s.radierer ? 24 : s.breite * (0.6 + (b[2] || 0.5));
+    c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke();
+  }
+  c.globalCompositeOperation = 'source-over';
+  return off.toDataURL('image/png');
+}
 export function makeNotizen(ctx) {
   const { db, store, esc, $, $$, msg, busy, errText, shareText, me } = ctx;
   const BREITE = 1000; // Striche werden auf 1000 Einheiten Breite normiert – so passen sie auf jede Bildschirmgröße
@@ -15,17 +32,17 @@ export function makeNotizen(ctx) {
     try { row = (await db.list('SitzungNotizen', { eq: { sitzungId: r._id, memberId: me().id }, limit: 1 }))[0] || null; } catch (e) { row = null; }
     const lokal = store.get(lokalKey());
     // Lokale Sicherung gewinnt, wenn sie jünger ist (z. B. Speichern ohne Netz)
-    if (lokal && (!row || (lokal.zeit || 0) > new Date(row._updatedDate || 0).getTime())) notiz = { ...(row || {}), text: lokal.text || '', skizze: lokal.skizze || '' };
+    if (lokal && (!row || (lokal.zeit || 0) > new Date(row._updatedDate || 0).getTime())) notiz = { ...(row || {}), text: lokal.text || '', skizze: lokal.skizze || '', freigabe: lokal.freigabe !== false };
     else notiz = row ? { ...row } : { text: '', skizze: '' };
     try { strokes = notiz.skizze ? JSON.parse(notiz.skizze) : []; } catch (e) { strokes = []; }
   }
   function merken() {
-    dirty = true; store.set(lokalKey(), { text: notiz.text, skizze: JSON.stringify(strokes), zeit: Date.now() });
+    dirty = true; store.set(lokalKey(), { text: notiz.text, skizze: JSON.stringify(strokes), freigabe: notiz.freigabe !== false, zeit: Date.now() });
     clearTimeout(saveTimer); saveTimer = setTimeout(speichern, 1500); status('wird gespeichert …');
   }
   async function speichern() {
     if (!dirty || !sitzung) return;
-    const data = { ...notiz, sitzungId: sitzung._id, memberId: me().id, name: me().name, title: `${me().name} – Notizen ${sitzung.gremium || ''}`, text: notiz.text, skizze: JSON.stringify(strokes) };
+    const data = { ...notiz, sitzungId: sitzung._id, memberId: me().id, name: me().name, title: `${me().name} – Notizen ${sitzung.gremium || ''}`, text: notiz.text, skizze: JSON.stringify(strokes), freigabe: notiz.freigabe !== false };
     try {
       notiz = notiz._id ? await db.update('SitzungNotizen', data) : await db.insert('SitzungNotizen', data);
       dirty = false; store.del(lokalKey()); status('gespeichert');
@@ -38,12 +55,14 @@ export function makeNotizen(ctx) {
     if (!notiz || sitzung?._id !== r._id) await laden(r);
     schliessen(false);
     panel = document.createElement('div'); panel.className = 'notiz-panel'; panel.id = 'notiz-panel';
-    panel.innerHTML = `<div class="notiz-kopf"><div class="notiz-kopf-text"><b>Meine Notizen</b><span class="small">${esc(r.gremium || 'Sitzung')} · privat, bis du teilst · <span class="notiz-status" id="nz-status"></span></span></div><button type="button" class="mb-sheet-close" id="nz-zu" aria-label="Schließen">✕</button></div>
+    panel.innerHTML = `<div class="notiz-kopf"><div class="notiz-kopf-text"><b>Meine Notizen</b><span class="small">${esc(r.gremium || 'Sitzung')} · <span class="notiz-status" id="nz-status"></span></span></div><button type="button" class="mb-sheet-close" id="nz-zu" aria-label="Schließen">✕</button></div>
+      <label class="check notiz-frei"><input type="checkbox" id="nz-frei" ${notiz.freigabe === false ? '' : 'checked'}><span>Für den Sitzungsrückblick freigeben <span class="muted">– Brian nutzt die Notizen fürs Instagram-Video nach der Sitzung. Ohne Häkchen bleibt sie ganz privat.</span></span></label>
       <div class="notiz-tabs" role="tablist"><button type="button" class="chip" data-tab="text" aria-pressed="${tab === 'text'}">Text</button><button type="button" class="chip" data-tab="stift" aria-pressed="${tab === 'stift'}">Stift</button></div>
       <div class="notiz-body" id="nz-body"></div>
       <div class="notiz-fuss"><button type="button" class="btn btn-rot btn-sm" id="nz-chat">In den Chat teilen</button><button type="button" class="btn btn-line btn-sm" id="nz-teilen">Teilen …</button><a class="btn btn-line btn-sm" id="nz-png" hidden download="Notizen.png">Skizze als Bild</a></div>`;
     document.body.appendChild(panel); document.body.classList.add('sheet-open');
     $('#nz-zu', panel).addEventListener('click', () => schliessen(true));
+    $('#nz-frei', panel).addEventListener('change', e => { notiz.freigabe = e.target.checked; merken(); });
     $$('[data-tab]', panel).forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; $$('[data-tab]', panel).forEach(x => x.setAttribute('aria-pressed', String(x === b))); body(top); }));
     $('#nz-chat', panel).addEventListener('click', () => teilenChat());
     $('#nz-teilen', panel).addEventListener('click', () => teilenSystem());
@@ -126,15 +145,7 @@ export function makeNotizen(ctx) {
     c.globalCompositeOperation = 'source-over';
   }
   // Skizze als PNG (nur der beschriebene Teil, weißer Hintergrund)
-  function skizzePng() {
-    if (!strokes.length) return '';
-    const maxY = Math.min(HOEHE, Math.max(...strokes.flatMap(s => s.punkte.map(p => p[1]))) + 40);
-    const off = document.createElement('canvas'); const k = 1.2; off.width = Math.round(BREITE * k); off.height = Math.round(maxY * k);
-    const c = off.getContext('2d'); c.setTransform(k, 0, 0, k, 0, 0); c.lineCap = 'round'; c.lineJoin = 'round';
-    c.fillStyle = '#fff'; c.fillRect(0, 0, BREITE, maxY);
-    for (const s of strokes) for (let i = 0; i < s.punkte.length - 1; i++) segment(s, i, c);
-    return off.toDataURL('image/png');
-  }
+  const skizzePng = () => strokesToPng(strokes);
   const kopfzeile = () => `📝 Notizen von ${me().name} – ${sitzung.gremium || 'Sitzung'} ${sitzung.sitzung || ''}`;
 
   // ---- Teilen ----

@@ -13,7 +13,8 @@ import { HELP_TOPICS, PLATFORMS, stepsFor, topicById, videoName, posterName, gue
 import * as FB from './lib/feedback.mjs';
 import { BEREICHE as RAT_BEREICHE, bereichVon, gremiumVon } from './lib/rat.mjs';
 import { makeDemoClient } from './demo.js';
-import { makeNotizen } from './notizen.js';
+import { makeNotizen, strokesToPng } from './notizen.js';
+import { makeRueckblick } from './rueckblick.js';
 import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
@@ -1167,6 +1168,7 @@ async function secRat(v, editId = null, vorlage = null) {
   const today = todayIso();
   const sub = location.hash.split('/')[1] || '';
   if (sub.startsWith('fokus-')) { const r = all.find(x => x._id === sub.slice(6)); if (r) return fokusSitzung(v, r); }
+  if (sub.startsWith('rueckblick-') && istBrian()) { const r = all.find(x => x._id === sub.slice(11)); if (r) return rueckblick.sec(v, r); }
   const next = all.filter(r => (r.sitzung || '') >= today).sort((a, b) => a.sitzung.localeCompare(b.sitzung)), past = all.filter(r => (r.sitzung || '') < today);
   const editing = editId ? all.find(r => r._id === editId) : null;
   // Sitzungen der Stadt aus dem Bürgerinformationssystem (beim Bau geholt) – noch nicht angelegt
@@ -1185,7 +1187,7 @@ function ratCard(r) {
   const tops = r.tops || [], entschieden = tops.filter(hatErgebnis).length;
   return `<article class="mb-card rat" data-id="${esc(r._id)}">
     <div class="hl-head"><div><span class="tag ${sitzungTyp(r) === 'Vorstand' ? 'tag-schwarz' : ''}">${esc(sitzungTyp(r))}</span>${r.b && r.b !== 'rat' ? ` <span class="tag tag-weiss">${esc(bereichVon(r.b).name)}</span>` : ''} <span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><h4>${esc(r.gremium || 'Sitzung')}${r.titel ? ' – ' + esc(r.titel) : ''}</h4></div>
-      <div class="mb-actions"><a class="btn btn-rot btn-sm" href="#rat/fokus-${esc(r._id)}">Sitzungsmodus</a>${r.link ? `<a class="btn btn-line btn-sm" href="${esc(r.link)}" target="_blank" rel="noopener">Bürgerinfosystem</a>` : ''}${me.can('rat') ? '<button type="button" class="btn btn-line btn-sm" data-edit-rat>Bearbeiten</button>' : ''}</div></div>
+      <div class="mb-actions"><a class="btn btn-rot btn-sm" href="#rat/fokus-${esc(r._id)}">Sitzungsmodus</a>${r.link ? `<a class="btn btn-line btn-sm" href="${esc(r.link)}" target="_blank" rel="noopener">Bürgerinfosystem</a>` : ''}${me.can('rat') ? '<button type="button" class="btn btn-line btn-sm" data-edit-rat>Bearbeiten</button>' : ''}${istBrian() ? `<a class="btn btn-line btn-sm" href="#rat/rueckblick-${esc(r._id)}" title="Nur für dich: Abstimmungen, Notizen, Instagram-Skript, Kacheln">🎬 Rückblick</a>` : ''}</div></div>
     ${tops.length ? `<div class="tops">${tops.map(t => `<div class="top"><div class="top-nr">TOP ${esc(t.nr || '')}</div><div><b>${esc(t.titel)}</b> ${posBadge(t.position)}${hatErgebnis(t) ? `<p class="small top-ergebnis"><b>Ergebnis:</b> ${beschlussBadge(t)} ${esc([t.abstimmung, t.ergebnis].filter(Boolean).join(' · '))}</p>` : ''}${t.einordnung ? `<p class="small">${nl2br(t.einordnung)}</p>` : ''}${t.redner ? `<p class="small muted">Spricht: ${esc(t.redner)}</p>` : ''}</div></div>`).join('')}</div><p class="small muted">${tops.length} Punkte · ${tops.filter(t => t.position && t.position !== 'offen').length} mit Haltung · ${entschieden} mit Ergebnis</p>` : '<p class="small muted">Noch keine Tagesordnungspunkte eingetragen.</p>'}
     ${r.hinweis ? `<p class="small"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
     <p class="small muted">${r.protokoll ? `Ergebnisse trägt ein: <b>${esc(people.find(p => p.memberId === r.protokoll)?.name || '?')}</b> · ` : ''}Stand: ${esc(fmtWhen(r._updatedDate || r._createdDate))} · ${esc(r.von || '–')}</p>
@@ -1406,6 +1408,7 @@ function fokusSitzung(v, r, vomPoll = false) {
       <div id="fo-rz" hidden><h4 class="doc-cat">Aus der Ratsarbeit${bereichName ? ` <span class="small muted">${esc(bereichName)}</span>` : ''}</h4><div class="fokus-doks" id="fo-rz-doks"></div></div>
     </section>
     ${r.hinweis ? `<p class="small fokus-hinweis"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
+    ${istBrian() ? `<p class="small"><a href="#rat/rueckblick-${esc(r._id)}">🎬 Rückblick &amp; Video – Abstimmungen, Notizen, Skript, Kacheln (nur für dich)</a></p>` : ''}
     ${chatHtml()}
   </div>`;
   chatWire(v);
@@ -1824,6 +1827,9 @@ const chatSenden = async ({ text, bild }) => {
   await livePoll(true);
 };
 const notizen = makeNotizen({ db, store, esc, $, $$, msg, busy, errText, shareText, chatSenden, me: () => me });
+// Sitzungsrückblick (Video, Kacheln) – nur für Brian; im Demo für alle Rollen sichtbar
+const istBrian = () => DEMO || TESTER.includes(String(me?.email || '').toLowerCase());
+const rueckblick = makeRueckblick({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me: () => me });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====

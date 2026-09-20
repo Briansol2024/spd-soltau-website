@@ -1650,7 +1650,7 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .fb-status{font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .fb-item.ok .fb-status{color:#1E7B3A}
 /* Notizen im Sitzungsmodus: Vollbild-Panel mit Text oder Zeichenfläche */
-.notiz-panel{position:fixed;inset:0;z-index:90;background:#fff;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;padding-top:env(safe-area-inset-top,0px)}
+.notiz-panel{position:fixed;inset:0;z-index:90;background:#fff;display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;padding-top:env(safe-area-inset-top,0px)}
 .notiz-kopf{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:2px solid var(--schwarz)}
 .notiz-kopf-text{flex:1;min-width:0;display:grid;gap:2px}
 .notiz-kopf b{font:800 20px/1 var(--display);text-transform:uppercase}
@@ -1672,3 +1672,31 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .notiz-fuss{display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--linie);background:#fff}
 .fokus-msg-bild{display:block;max-width:100%;margin-top:6px;border:1px solid var(--linie);background:#fff}
 .fokus-wer{margin:0}
+/* Sitzungsrückblick (nur Brian) */
+.rb{display:grid;gap:8px}
+.rb-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:15px}
+.rb-stats span{padding:10px 14px;background:var(--grau)}
+.rb-stats b{font:800 22px/1 var(--display);margin-right:6px}
+.rb-liste{display:grid;gap:12px}
+.rb-top{background:#fff;border-left:4px solid var(--linie);padding:12px 14px;display:grid;gap:10px}
+.rb-top.ok{border-left-color:#177A38}
+.rb-top-kopf{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.rb-top-kopf b{font:700 18px/1.2 var(--display);text-transform:uppercase}
+.rb-badges{display:inline-flex;gap:4px;flex-wrap:wrap}
+.rb-beschluss{display:flex;gap:6px;flex-wrap:wrap}
+.rb-beschluss .chip{font-size:12px;padding:7px 10px}
+.rb-beschluss .chip[aria-pressed="true"]{background:var(--schwarz);color:#fff}
+.rb-zahlen{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.rb-zahlen label{display:grid;gap:4px;font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rb-zahlen input[type=number]{width:72px;font:inherit;font-size:18px;padding:8px 10px;border:2px solid var(--schwarz)}
+.rb-zahlen .rb-anm{flex:1;min-width:200px;font:inherit;font-size:15px;padding:9px 10px;border:2px solid var(--schwarz)}
+.pos.besch-ok{background:#177A38;border-color:#177A38;color:#fff}
+.rb-notizen{display:grid;gap:10px}
+.rb-notiz{background:#fff;border-left:4px solid var(--rot);padding:12px 14px;display:grid;gap:6px}
+.rb-notiz p{margin:0;white-space:pre-line}
+.rb-skizze{max-width:100%;max-height:220px;border:1px solid var(--linie);background:#fff}
+#rb-skript{width:100%;font:inherit;font-size:15px;line-height:1.5;padding:12px;border:2px solid var(--schwarz);box-sizing:border-box;margin-top:10px}
+.rb-bilder{display:grid;gap:14px;margin-top:12px}
+.rb-bild{margin:0;display:grid;gap:8px;max-width:520px}
+.rb-bild img{width:100%;border:1px solid var(--linie)}
+.notiz-frei{padding:8px 16px 0;font-size:14px}
