@@ -1274,7 +1274,7 @@ async function wachBleiben(an) {
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && document.body.classList.contains('fokus-modus')) wachBleiben(true); });
 // Live: alle Geräte holen alle 6 s den Stand der Sitzung (Ergebnisse, aktueller Punkt der Sitzungsleitung) und den Chat
-const live = { timer: null, id: null, r: null, msgs: [], folgen: true, leiten: false, chatOffen: false, ungelesen: 0, gruppe: 'fraktion', chatStatus: null, v: null };
+const live = { timer: null, id: null, r: null, msgs: [], folgen: true, leiten: false, chatOffen: false, ungelesen: 0, gruppe: 'fraktion', chatStatus: null, v: null, erklaertOffen: false };
 function liveStop() { clearInterval(live.timer); live.timer = null; live.id = null; live.v = null; }
 function fokusEnde() { document.body.classList.remove('fokus-modus'); wachBleiben(false); liveStop(); notizen.beenden(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
 const chatZeit = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
@@ -1342,7 +1342,7 @@ function fokusSitzung(v, r, vomPoll = false) {
   const kann = me.can('rat') || (!!r.protokoll && r.protokoll === me.id);
   if (live.id !== r._id) {
     liveStop();
-    Object.assign(live, { id: r._id, r, v, msgs: [], folgen: !kann, leiten: false, chatOffen: false, ungelesen: 0, chatStatus: null, gruppe: ['Vorstand', 'Versammlung'].includes(sitzungTyp(r)) ? 'vorstand' : 'fraktion' });
+    Object.assign(live, { id: r._id, r, v, msgs: [], folgen: !kann, leiten: false, chatOffen: false, ungelesen: 0, chatStatus: null, erklaertOffen: false, gruppe: ['Vorstand', 'Versammlung'].includes(sitzungTyp(r)) ? 'vorstand' : 'fraktion' });
     if (live.folgen && Number.isInteger(r.aktuell)) fokus.i = r.aktuell;
     live.timer = setInterval(() => livePoll(), 6000);
     setTimeout(() => livePoll(true), 50);
@@ -1351,7 +1351,6 @@ function fokusSitzung(v, r, vomPoll = false) {
   fokus.i = Math.min(Math.max(fokus.i, 0), Math.max(tops.length - 1, 0));
   const t = tops[fokus.i] || {};
   const protokollName = r.protokoll ? (people.find(p => p.memberId === r.protokoll)?.name || '') : '';
-  const erklaert = !!store.get('spd-fokus-erklaert');
   document.body.classList.add('fokus-modus');
   const dokLink = d => { const extern = /^https?:/i.test(d.url || ''); return `<a class="fokus-dok" href="${esc(d.url || '#')}" ${extern ? 'target="_blank" rel="noopener"' : ''}>${extern ? ICON.link : ICON.doc}<span>${esc(d.titel || d.url)}</span>${d.top ? `<small>TOP ${esc(d.top)}</small>` : ''}${d.kat ? `<small>${esc(d.kat)}</small>` : ''}</a>`; };
   const nrVon = (x, i) => String(x.nr || i + 1);
@@ -1359,7 +1358,7 @@ function fokusSitzung(v, r, vomPoll = false) {
   const bereichName = r.b ? bereichVon(r.b).name : '';
   v.innerHTML = `<div class="fokus">
     <div class="fokus-bar"><span class="fokus-bar-tag">Sitzungsmodus</span><b class="fokus-bar-titel">${esc(r.gremium || 'Sitzung')}</b><button type="button" class="fokus-hilfe" id="fo-hilfe" aria-label="So funktioniert der Sitzungsmodus" title="So funktioniert der Sitzungsmodus">?</button><a class="btn btn-line btn-sm fokus-ende" href="#rat">${ICON.close}Beenden</a><span class="small fokus-bar-meta">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}${r.titel ? ' · ' + esc(r.titel) : ''}</span></div>
-    <details class="fokus-erklaert" id="fo-erklaert" ${erklaert ? '' : 'open'}><summary>So funktioniert der Sitzungsmodus</summary>
+    <details class="fokus-erklaert" id="fo-erklaert" ${live.erklaertOffen ? 'open' : ''}><summary>So funktioniert der Sitzungsmodus</summary>
       <ul>
         <li><b>Ein Tagesordnungspunkt pro Bildschirm.</b> Weiter mit „Nächster“, Wischen nach links/rechts oder den Pfeiltasten. Unten stehen alle Punkte – antippen springt hin.</li>
         <li><b>Haltung</b> = so will die Fraktion abstimmen: <span class="pos pos-dafr">dafür</span> <span class="pos pos-dagegen">dagegen</span> <span class="pos pos-enthaltung">Enthaltung</span> <span class="pos pos-nderungsantrag">Änderungsantrag</span> <span class="pos">offen</span></li>
@@ -1410,7 +1409,9 @@ function fokusSitzung(v, r, vomPoll = false) {
   $('#fo-prev', v)?.addEventListener('click', () => go(fokus.i - 1));
   $('#fo-next', v)?.addEventListener('click', () => go(fokus.i + 1));
   $$('.fokus-tabelle tbody tr', v).forEach(tr => tr.addEventListener('click', () => go(+tr.dataset.i)));
-  $('#fo-verstanden', v).addEventListener('click', () => { store.set('spd-fokus-erklaert', 1); $('#fo-erklaert', v).open = false; });
+  // Erklärung: immer zugeklappt, öffnet nur auf Wunsch (Kopfzeile oder „?“) – und bleibt beim Blättern so, wie man sie gelassen hat
+  $('#fo-erklaert', v).addEventListener('toggle', e => { live.erklaertOffen = e.target.open; });
+  $('#fo-verstanden', v).addEventListener('click', () => { $('#fo-erklaert', v).open = false; });
   $('#fo-hilfe', v).addEventListener('click', () => { const d = $('#fo-erklaert', v); d.open = !d.open; if (d.open) d.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#fo-save', v)?.addEventListener('click', async () => {
     const btn = $('#fo-save', v); busy(btn, true);
