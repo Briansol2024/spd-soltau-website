@@ -797,6 +797,21 @@ async function workflowStarten(datei, inputs = {}) {
   if (res.status !== 204) throw new Error(`${datei}: ${res.status} ${(await res.text()).slice(0, 120)}`);
 }
 // ---------- Overlay-Agent: wartende Aufträge starten, fertige melden ----------
+// Verweise material:<id> im Manifest durch die Wix-Adresse ersetzen; gibt einen Wartetext zurück, solange Fotos fehlen
+async function fotosNachtragen(a) {
+  let m; try { m = JSON.parse(a.manifest || '{}'); } catch (e) { return ''; }
+  const refs = new Set(); const feld = /^url|^bilder$/;
+  for (const c of m.clips || []) for (const [k, v] of Object.entries(c.q || {})) if (feld.test(k)) for (const x of String(v).split('|')) if (/^material:/.test(x.trim())) refs.add(x.trim().slice(9));
+  if (!refs.size) return '';
+  const material = await queryAll(client, 'FilmMaterial', q => q.in('_id', [...refs]));
+  const url = id => (material.find(x => x._id === id) || {}).url || '';
+  const fehlen = [...refs].filter(id => !url(id));
+  if (fehlen.length) return `Wartet auf ${fehlen.length === 1 ? 'ein Foto' : fehlen.length + ' Fotos'} – Wix legt ${fehlen.length === 1 ? 'es' : 'sie'} ab (meist unter 5 Minuten), danach startet der Agent von selbst.`;
+  for (const c of m.clips || []) for (const [k, v] of Object.entries(c.q || {})) if (feld.test(k)) c.q[k] = String(v).split('|').map(x => /^material:/.test(x.trim()) ? url(x.trim().slice(9)) : x).filter(Boolean).join('|');
+  delete m.wartetAuf; a.manifest = JSON.stringify(m);
+  if (!DRY) await client.items.update('Auftraege', { ...a, manifest: a.manifest, schritt: 'Fotos da – Agent startet.' }).catch(() => {});
+  return '';
+}
 async function auftraege(subs, approved, emails, logKeys) {
   try {
     const liste = await queryAll(client, 'Auftraege', q => q.ne('status', 'erledigt'));
@@ -804,6 +819,8 @@ async function auftraege(subs, approved, emails, logKeys) {
       const wer = approved.find(m => m.memberId === a.memberId);
       if (a.status === 'wartet') {
         if (!wer || !TESTER_MAILS.includes((emails.get(a.memberId) || '').toLowerCase())) { log(`  Auftrag ${a._id}: nicht freigegeben (${emails.get(a.memberId) || 'unbekannt'})`); if (!DRY) await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
+        // Fotos, die beim Bestellen noch nicht bei Wix lagen (material:<id>): Adresse nachtragen, sonst weiter warten
+        const warten = await fotosNachtragen(a); if (warten) { if (!DRY) await client.items.update('Auftraege', { ...a, schritt: warten }).catch(() => {}); log(`  Auftrag ${a._id}: ${warten}`); continue; }
         if (DRY) { log(`  Auftrag ${a._id}: würde Overlay-Agent starten (Trockenlauf)`); continue; }
         try { await workflowStarten('overlays.yml', { auftrag: a._id }); await client.items.update('Auftraege', { ...a, status: 'gestartet', gestartetAm: new Date().toISOString(), fortschritt: 3, schritt: 'Agent gestartet – der Rechner in der Cloud fährt hoch (etwa 1 Minute).' }); log(`  Auftrag ${a._id}: Overlay-Agent gestartet`); }
         catch (e) { log('  Auftrag starten:', e.message); await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Agent konnte nicht gestartet werden: ' + e.message.slice(0, 160) }).catch(() => {}); }
@@ -929,8 +946,8 @@ const st = await loadSettings(approved);
   await weitereErinnerungen(st, subs, logKeys);
   await mitfahren(st, subs, logKeys);
   await feedback(subs, approved, emails, logKeys);
+  await filmUploads(subs, logKeys); // erst Fotos ablegen – dann können Aufträge, die darauf warten, sofort starten
   await auftraege(subs, approved, emails, logKeys);
-  await filmUploads(subs, logKeys);
   await ratsberichte();
   await abonnenten();
   await statistik();

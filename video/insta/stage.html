@@ -9,7 +9,7 @@
 @font-face{font-family:'TheSans SPD';font-weight:400;src:url('../fonts/thesans-regular.ttf')}
 @font-face{font-family:'TheSans SPD';font-weight:700;src:url('../fonts/thesans-bold.ttf')}
 @font-face{font-family:'TheSans SPD Versal';font-weight:800;src:url('../fonts/thesans-versal-extrabold.ttf')}
-:root{--rot:#E3000F;--schwarz:#0F0F0F;--weiss:#fff;--display:'TheSans SPD Versal','TheSans SPD',Arial,sans-serif;--body:'TheSans SPD',Arial,sans-serif;--spring:cubic-bezier(.2,.9,.25,1.25);--ease:cubic-bezier(.2,.7,.2,1)}
+:root{--rot:#E3000F;--akzent2:#FFD200;--schwarz:#0F0F0F;--weiss:#fff;--display:'TheSans SPD Versal','TheSans SPD',Arial,sans-serif;--body:'TheSans SPD',Arial,sans-serif;--spring:cubic-bezier(.2,.9,.25,1.25);--ease:cubic-bezier(.2,.7,.2,1)}
 *{box-sizing:border-box}
 html,body{margin:0;width:1080px;height:1920px;overflow:hidden}
 body{background:transparent;font-family:var(--body);color:#fff;position:relative}
@@ -287,6 +287,9 @@ body.gruen .handy .screen{background:#00B140}
 @keyframes nadel{from{opacity:0;transform:translateY(-320px)}60%{opacity:1;transform:translateY(0)}78%{transform:translateY(-22px)}100%{opacity:1;transform:none}}
 @keyframes ring{0%{opacity:.8;transform:scale(.4)}100%{opacity:0;transform:scale(2.6)}}
 body.schwarz{background:#000}
+/* Zweitfarbe: ~Wort~ im Text, ~Zeile im Wort-Popper */
+u.a2{color:var(--akzent2);text-decoration:none;font-style:normal}
+.wort .z.a2{color:var(--akzent2);text-shadow:none}
 
 /* ---------- Animationsarten (?anim=…): gleiche Zeiten, anderer Weg ins Bild – Block wird aus patch_kit2.py erzeugt ----------
    pop = Standard · wisch = von der Seite · weich = weich einblenden · fall = von oben mit Nachwippen · zoom = aus der Ferne · hoch = von unten hochschieben
@@ -371,6 +374,9 @@ const clip = q.get('clip') || 'intro';
 const bg = q.get('bg') || 'gruen';
 if (bg !== 'keins') document.body.classList.add(bg);
 window.__ticks = [];
+// Farben je Clip: akzent = Farbe der *hervorgehobenen* Wörter, Kästen und Balken (Standard SPD-Rot); akzent2 = Zweitfarbe für ~Wörter~
+for (const [k, v] of [['akzent', '--rot'], ['akzent2', '--akzent2']]) if (/^#[0-9a-f]{6}$/i.test(q.get(k) || '')) document.documentElement.style.setProperty(v, q.get(k));
+const hervor = t => String(t).replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/~(.+?)~/g, '<u class="a2">$1</u>');
 const anim = ['wisch', 'weich', 'fall', 'zoom', 'hoch', 'dreh', 'mitte', 'federn', 'blitz', 'tipp'].includes(q.get('anim')) ? q.get('anim') : 'pop';
 document.body.dataset.anim = anim;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -399,13 +405,13 @@ if (clip === 'intro') {
 } else if (clip === 'wort') {
   const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
   const zeilen = (q.get('text') || 'Neue|Website').split('|');
-  html = `<div class="wort ${seite}">${zeilen.map((z, i) => { const m = z.match(/^([*#_-])?(.*)$/); const cls = { '*': 'rot', '#': 'box', '_': 'klein', '-': 'mittel' }[m[1]] || ''; return `<span class="z ${cls}" style="animation-delay:${(.1 + i * .16).toFixed(2)}s,2.55s">${esc(m[2])}</span>`; }).join('')}<span class="unter"></span></div>`;
+  html = `<div class="wort ${seite}">${zeilen.map((z, i) => { const m = z.match(/^([*#_~-])?(.*)$/); const cls = { '*': 'rot', '#': 'box', '_': 'klein', '-': 'mittel', '~': 'a2' }[m[1]] || ''; return `<span class="z ${cls}" style="animation-delay:${(.1 + i * .16).toFixed(2)}s,2.55s">${esc(m[2])}</span>`; }).join('')}<span class="unter"></span></div>`;
 } else if (clip === 'frage') {
   const [t1, t2] = (q.get('text') || 'Kein Parteibuch?|Der eigenen Partei widersprechen?').split('|');
   html = `<div class="mitte oben"><span class="ey">${esc(q.get('titel') || 'Was ist unabhängiger?')}</span>
     <div class="vs"><div class="karte" style="animation-delay:.6s"><small>A</small>${esc(t1)}</div><span class="oder" style="animation-delay:1.2s">oder</span><div class="karte" style="animation-delay:1.6s"><small>B</small>${esc(t2)}</div></div></div>`;
 } else if (clip === 'zitat') {
-  const text = (q.get('text') || 'Wir brauchen jemanden, der unabhängig ist.').replace(/\*(.+?)\*/g, '<b>$1</b>');
+  const text = hervor(q.get('text') || 'Wir brauchen jemanden, der unabhängig ist.');
   const zs = q.get('gr') || (text.length > 90 ? '64px' : text.length > 50 ? '76px' : '90px');
   html = `<div class="zitat" style="--zs:${zs}"><span class="anf">„</span><p>${text}</p>${q.get('wer') ? `<span class="wer">${esc(q.get('wer'))}</span>` : ''}</div>`;
 } else if (clip === 'liste') {
@@ -489,7 +495,7 @@ if (clip === 'intro') {
 } else if (clip === 'gross') {
   const zeilen = (q.get('text') || 'So funktionieren|Parteien nicht.').split('|');
   const pos = { oben: 'oben', unten: 'unten' }[q.get('pos')] || '';
-  html = `<div class="mitte ${pos}">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<p class="gross ${q.get('gr') === 'xl' ? 'xl' : q.get('gr') === 'm' ? 'm' : ''}">${zeilen.map(z => z.replace(/\*(.+?)\*/g, '<b>$1</b>')).join('<br>')}</p></div>`;
+  html = `<div class="mitte ${pos}">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<p class="gross ${q.get('gr') === 'xl' ? 'xl' : q.get('gr') === 'm' ? 'm' : ''}">${zeilen.map(hervor).join('<br>')}</p></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
 // Riesentitel: Schrift so groß, wie es in die Breite passt

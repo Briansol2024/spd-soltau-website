@@ -1865,3 +1865,8 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .ow-bild-aktionen select{font:inherit;font-size:14px;padding:7px 8px;border:2px solid var(--schwarz);max-width:100%}
 .fp-werkstatt{margin-bottom:14px;border-left-color:var(--schwarz)}
 .fp-werkstatt .fp-status{background:var(--schwarz);color:#fff}
+.ow-farbe-zeile{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ow-farbe input[type=color]{width:46px;height:34px;padding:2px;border:2px solid var(--schwarz);background:#fff}
+.ow-farben{display:flex;gap:6px;flex-wrap:wrap}
+.ow-swatch{width:26px;height:26px;border:2px solid var(--linie);background:var(--f);cursor:pointer;padding:0}
+.ow-swatch.aktiv{border-color:var(--schwarz);box-shadow:0 0 0 2px #fff inset}
