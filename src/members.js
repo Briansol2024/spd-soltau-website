@@ -44,7 +44,7 @@ const DEMO_ROLLE = !DEMO ? '' : VIDEO || /[?&]mitglied\b/.test(location.search) 
 const demoName = r => (DEMO_ROLLEN.find(([k]) => k === r) || [])[1] || '';
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
 const BASE = SPD.base || '.';
-const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Dokumente, Nachrichten)' };
+const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Mitfahrgesuche, Dokumente, Nachrichten)' };
 const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrichseck', 'Harber', 'Hötzingen', 'Leitzingen', 'Marbostel', 'Meinern', 'Mittelstendorf', 'Moide', 'Oeningen', 'Tetendorf', 'Wolterdingen', 'Woltem'];
 const SECTIONS = [
   ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],

@@ -140,6 +140,7 @@ export const HELP_TOPICS = [
       'Wähle „biete Plätze an“ oder „suche eine Mitfahrt“, trage deinen Ortsteil und die Abfahrtszeit ein.',
       '{tippe} auf „Eintragen“. Alle Mitglieder sehen jetzt deinen Eintrag mit deinem Namen.',
       'Bietet jemand Plätze an, {tippe} dort auf „Ich fahre mit“ – die Sitze zeigen, wie viele Plätze noch frei sind. Nochmal tippen heißt aussteigen.',
+      'Wer Push-Benachrichtigungen mit „Mitglieder-Infos“ an hat, erfährt sofort, wenn jemand eine Mitfahrt sucht. Suchende bekommen Bescheid, sobald jemand Plätze anbietet – und du als Fahrer, wer bei dir einsteigt.',
       'Mit „In Gruppe posten“ schickst du dein Angebot auch in eure WhatsApp-Gruppe. Löschen geht jederzeit über „Angebot löschen“.',
     ] },
   },

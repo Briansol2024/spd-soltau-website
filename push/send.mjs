@@ -712,6 +712,46 @@ async function weitereErinnerungen(st, subs, logKeys) {
   } catch (e) { log('Helfer-Erinnerung:', e.message); }
 }
 
+// ---------- Mitfahren: Gesuch an alle (die den Termin sehen), Angebot an die Suchenden, Einsteigen an den Fahrer ----------
+async function mitfahren(st, subs, logKeys) {
+  const recent = it => NOW - new Date(it._createdDate || 0).getTime() <= 48 * H;
+  const vorname = n => String(n || 'Jemand').split(' ')[0];
+  const plaetzeText = n => `${n} ${n === 1 ? 'Platz' : 'Plätze'}`;
+  try {
+    const fahrten = await queryAll(client, 'Fahrgemeinschaften');
+    const neu = fahrten.filter(recent);
+    const mitf = (await queryAll(client, 'Mitfahrten')).filter(m => m.fahrtId);
+    if (!neu.length && !mitf.some(recent)) return;
+    // Termine (Typ für „Wer sieht was?“, Uhrzeit) – Einträge tragen nur Titel und Datum
+    const events = new Map();
+    try { for (const e of (await client.wixEventsV2.queryEvents().limit(100).find()).items || []) events.set(e._id, { typ: eventType(e.title, e.shortDescription), start: e.dateAndTimeSettings?.startDate }); } catch (e) { log('Mitfahren – Termine:', e.message); }
+    const wann = f => { const ev = events.get(f.eventId); const d = ev?.start ? new Date(ev.start) : f.eventDatum ? new Date(f.eventDatum + 'T12:00:00') : null; if (!d) return ''; const s = d.toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', ...(ev?.start ? { hour: '2-digit', minute: '2-digit' } : {}) }); return ev?.start ? s + ' Uhr' : s; };
+    const ziel = f => url('/mitglieder/#termine/ev-' + f.eventId);
+    for (const f of neu) {
+      const key = `mitfahrt-${f.typ === 'biete' ? 'angebot' : 'gesuch'}:${f._id}`; if (logKeys.has(key)) continue;
+      const typ = events.get(f.eventId)?.typ || 'Öffentlich';
+      if (f.typ === 'suche') {
+        // alle Mitglieder mit Thema „Mitglieder-Infos“, die diesen Termintyp sehen – außer dem Suchenden selbst
+        const to = byTopic(whoSees(st, subs, 'termine:' + typ), 'mitglieder').filter(s => s.memberId !== f.memberId);
+        await send(to, { title: `🙋 ${vorname(f.name)} sucht eine Mitfahrt ab ${f.ab || '?'}`, body: `${f.eventTitel || 'Termin'} · ${wann(f)}. Du fährst auch? Trag ein Angebot ein – dann kann ${vorname(f.name)} einsteigen.`, tag: key, url: ziel(f) }, key, logKeys);
+      } else {
+        // Angebot: an alle, die zu diesem Termin eine Mitfahrt suchen (ohne den Fahrer)
+        const suchende = [...new Set(fahrten.filter(x => x.eventId === f.eventId && x.typ === 'suche' && x.memberId && x.memberId !== f.memberId).map(x => x.memberId))];
+        if (!suchende.length) { logKeys.add(key); await logKey(key, { empfaenger: 0, titel: 'Angebot ohne Suchende' }); continue; }
+        await send(byMembers(subs, suchende), { title: `🚗 ${f.name} fährt ab ${f.ab || '?'} – ${plaetzeText(Math.max(1, +f.plaetze || 1))} frei`, body: `${f.eventTitel || 'Termin'} · ${wann(f)}${f.zeit ? ' · Abfahrt ' + f.zeit + ' Uhr' : ''}. Jetzt einsteigen: „Ich fahre mit“.`, tag: key, url: ziel(f) }, key, logKeys);
+      }
+    }
+    // Einsteigen: der Fahrer erfährt, wer mitfährt und wie viele Plätze noch frei sind
+    for (const m of mitf.filter(recent)) {
+      const key = 'mitfahrt-dabei:' + m._id; if (logKeys.has(key)) continue;
+      const f = fahrten.find(x => x._id === m.fahrtId);
+      if (!f || !f.memberId || f.memberId === m.memberId) { logKeys.add(key); await logKey(key, { empfaenger: 0, titel: 'Mitfahrt ohne Angebot' }); continue; }
+      const frei = Math.max(0, Math.max(1, +f.plaetze || 1) - mitf.filter(x => x.fahrtId === f._id).length);
+      await send(byMembers(subs, [f.memberId]), { title: `${m.name || 'Jemand'} fährt bei dir mit`, body: `${f.eventTitel || 'Termin'} · ${wann(f)} · ${frei ? 'noch ' + plaetzeText(frei) + ' frei' : 'alle Plätze belegt'}`, tag: key, url: ziel(f) }, key, logKeys);
+    }
+  } catch (e) { log('Mitfahren:', e.message); }
+}
+
 // ---------- Ablauf ----------
 (async () => {
   log('Push-Dienst startet' + (DRY ? ' (Trockenlauf)' : ''));
@@ -764,6 +804,7 @@ const st = await loadSettings(approved);
   await vorgangErinnerungen(st, subs, logKeys);
   await stammtisch(st);
   await weitereErinnerungen(st, subs, logKeys);
+  await mitfahren(st, subs, logKeys);
   await abonnenten();
   await statistik();
   log('fertig', stats);
