@@ -1800,3 +1800,38 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
   .ow{grid-template-columns:minmax(0,1fr)}
   .ow-preview{justify-items:center}
 }
+/* Filmdreh: drei Schritte, Drehmodus */
+.fp-schritte{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 16px}
+.fp-schritt{display:grid;gap:2px;padding:12px 12px;background:#fff;border:2px solid var(--schwarz);color:var(--ink);text-decoration:none;text-align:left;cursor:pointer;font:inherit;min-width:0}
+.fp-schritt b{font:800 17px/1.1 var(--display);text-transform:uppercase}
+.fp-schritt small{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fp-schritt-nr{font:800 12px/1 var(--display);letter-spacing:.14em;color:var(--rot)}
+.fp-schritt.aktiv{background:var(--schwarz);color:#fff}
+.fp-schritt.aktiv small{color:#d8d8d8}
+.fp-schritt.aktiv .fp-schritt-nr{color:#fff}
+.fp-schritt.ok .fp-schritt-nr::after{content:" ✓";color:#177A38}
+.fp-schritt.aktiv.ok .fp-schritt-nr::after{color:#7ee0a0}
+.fp-schritt.dreh{border-color:var(--rot);background:var(--rot);color:#fff}
+.fp-schritt.dreh small,.fp-schritt.dreh .fp-schritt-nr{color:#fff}
+.fp-schritt.dreh.aus{opacity:.45;pointer-events:none}
+.fp-block{display:grid;gap:12px}
+.fp-mehr{margin-top:18px}
+.fp-mehr .linkbtn.fett{font-weight:800;color:var(--ink)}
+.ki-wege{display:grid;gap:12px}
+.ki-weg{display:grid;gap:8px;padding:12px 14px;background:var(--grau)}
+.ki-weg ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.ki-api summary{cursor:pointer;font-weight:700}
+#ki-antwort{width:100%;font:inherit;font-size:14px;padding:10px 12px;border:2px solid var(--schwarz);box-sizing:border-box}
+.dreh-take{gap:18px}
+.dreh-satz{font:500 clamp(24px,3.2cqw,34px)/1.35 var(--body);margin:0}
+.dreh-bild p,.dreh-overlay p{margin:0;font-size:17px;line-height:1.45}
+.dreh-overlay{border-left:4px solid var(--rot);padding-left:12px}
+.dreh-take.ok{border-left-color:#177A38}
+.dreh-liste{margin:0;padding-left:22px;display:grid;gap:6px;font-size:15px}
+.dreh-liste li{cursor:pointer;padding:4px 6px}
+.dreh-liste li.aktiv{background:var(--grau);font-weight:700}
+.dreh-liste li.ok{color:#177A38}
+@container site (max-width:600px){
+  .fp-schritte{grid-template-columns:1fr 1fr}
+  .fp-schritt.dreh{grid-column:1/-1}
+}

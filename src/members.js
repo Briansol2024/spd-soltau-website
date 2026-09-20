@@ -538,7 +538,7 @@ async function route() {
   if (key === 'demo') { const zurueck = route.lastKey || 'start'; history.replaceState(null, '', location.pathname + location.search + '#' + zurueck); if (istTester()) demoBlatt(); if (route.lastKey) return; key = zurueck; }
   if (!RENDER[key] || !secVisible(key)) key = 'start';
   if (key !== 'ratsarbeit') ratsarbeit.blattZu(false);
-  if (document.body.classList.contains('fokus-modus') && !(key === 'rat' && /^#rat\/fokus-/.test(location.hash))) fokusEnde();
+  if (document.body.classList.contains('fokus-modus') && !(key === 'rat' && /^#rat\/fokus-/.test(location.hash)) && !(key === 'filmdreh' && /^#filmdreh\/dreh-/.test(location.hash))) fokusEnde();
   const navKey = HUB_OF[key] || key;
   document.querySelectorAll('.mb-side a[data-sec],.mb-sheet a[data-sec]').forEach(a => { if (a.dataset.sec === navKey) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   document.querySelectorAll('.mb-tabbar [data-tab]').forEach(a => { if (a.dataset.tab === navKey) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -1855,7 +1855,9 @@ const notizen = makeNotizen({ db, store, esc, $, $$, msg, busy, errText, shareTe
 const istBrian = () => DEMO || TESTER.includes(String(me?.email || '').toLowerCase());
 // Filmdreh (Regie-Modus) – nur für das Filmteam (Brian, Birhat); im Demo für alle Rollen sichtbar
 const istFilmTeam = () => DEMO || FILM_TEAM.includes(String(me?.email || '').toLowerCase());
-const film = makeFilm({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtWhen, ICON, DEMO, BASE, me: () => me, echtesKonto, route });
+const film = makeFilm({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtWhen, ICON, DEMO, BASE, me: () => me, echtesKonto, drehStart: () => { document.body.classList.add('fokus-modus'); wachBleiben(true).then(ok => { const el = document.getElementById('fo-wach'); if (el) el.hidden = !ok; }); } });
+// Drehmodus (Filmdreh) am Handy im Vollbild
+document.addEventListener('click', e => { const a = e.target.closest('a[href^="#filmdreh/dreh-"]'); if (a && matchMedia('(pointer: coarse)').matches && !matchMedia('(display-mode: standalone)').matches && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); });
 const rueckblick = makeRueckblick({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me: () => me, echtesKonto, DEMO });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
