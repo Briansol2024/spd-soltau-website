@@ -312,6 +312,33 @@ export function rathausKachel(d) {
         <a class="quick-live-more" href="${url('/rat-und-rathaus/')}">Alle Meldungen →</a>
       </div>`;
 }
+// ---- Ratsberichte: „So hat der Rat entschieden“ – Entscheidungen der Sitzungen mit Haltung der SPD (Quelle: Sitzungsrückblick der App) ----
+const BESCHLUSS_TEXT = { angenommen: 'Angenommen', abgelehnt: 'Abgelehnt', geaendert: 'Geändert angenommen', vertagt: 'Vertagt', zurueckgezogen: 'Zurückgezogen', kenntnis: 'Zur Kenntnis genommen' };
+const HALTUNG_TEXT = { 'dafür': 'SPD: dafür', dagegen: 'SPD: dagegen', Enthaltung: 'SPD: Enthaltung', 'Änderungsantrag': 'SPD: Änderungsantrag' };
+const rbDatum = iso => iso ? `${['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(iso + 'T12:00:00').getDay()]}, ${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '';
+const rbSlug = b => `${b.datum}-${String(b.gremium).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+function ratsberichtKarte(b, kompakt = false) {
+  const tops = (b.tops || []).filter(t => t.beschluss || t.ergebnis);
+  const zahl = t => (t.ja !== '' && t.ja !== null && t.ja !== undefined) ? `${t.ja} : ${t.nein}${+t.enth ? ' : ' + t.enth : ''}` : (t.abstimmung || '');
+  const zeile = t => `<li class="rb-entscheidung besch-${esc(t.beschluss || 'sonst')}"><div class="rb-e-kopf"><span class="rb-e-top">TOP ${esc(t.nr)}</span><b>${esc(t.titel)}</b></div><div class="rb-e-erg"><span class="rb-e-badge">${esc(BESCHLUSS_TEXT[t.beschluss] || t.ergebnis || 'Ergebnis')}</span>${zahl(t) ? `<span class="rb-e-zahl" title="Ja : Nein : Enthaltung">${esc(zahl(t))}</span>` : ''}${HALTUNG_TEXT[t.position] ? `<span class="rb-e-haltung">${esc(HALTUNG_TEXT[t.position])}</span>` : ''}</div>${!kompakt && t.einordnung ? `<p class="rb-e-text">${esc(t.einordnung)}</p>` : ''}${!kompakt && t.ergebnis && t.beschluss ? `<p class="rb-e-text muted">${esc(t.ergebnis)}</p>` : ''}</li>`;
+  return `<article class="rb-karte" id="${esc(rbSlug(b))}">
+    <div class="rb-karte-kopf"><span class="tag">${esc(b.gremium)}</span><h3>${esc(rbDatum(b.datum))}${b.titel ? ` – ${esc(b.titel)}` : ''}</h3><p class="small muted">${b.zeit ? esc(b.zeit) + ' Uhr' : ''}${b.ort ? ' · ' + esc(b.ort) : ''} · ${tops.length} ${tops.length === 1 ? 'Entscheidung' : 'Entscheidungen'}</p></div>
+    ${b.text && !kompakt ? `<p class="rb-intro">${esc(b.text)}</p>` : ''}
+    <ul class="rb-entscheidungen">${(kompakt ? tops.slice(0, 4) : tops).map(zeile).join('') || '<li class="muted small">Noch keine Entscheidungen eingetragen.</li>'}</ul>
+    ${kompakt && tops.length > 4 ? `<a class="rb-mehr" href="${url('/ratsbericht/')}#${esc(rbSlug(b))}">Alle ${tops.length} Entscheidungen →</a>` : ''}
+  </article>`;
+}
+export function ratsberichtPage(d) {
+  const list = d.ratsberichte || [];
+  return `
+<section>
+  ${pageHead('Ratsbericht', 'So hat der Rat<br>entschieden', 'Nach jeder Sitzung fassen wir zusammen, was der Rat und seine Ausschüsse beschlossen haben – mit dem Abstimmungsergebnis und unserer Haltung dazu. Kurz, ehrlich, ohne Amtsdeutsch.', 'rathaus')}
+  <div class="wrap section rb-page">
+    ${list.length ? list.map(b => ratsberichtKarte(b)).join('') : '<p class="muted">Der erste Ratsbericht erscheint nach der nächsten Sitzung.</p>'}
+    <div class="rb-hinweis"><b>Wie das hier entsteht:</b> Unsere Ratsmitglieder tragen die Ergebnisse direkt in der Sitzung in die SPD-App ein. Die Haltung und Argumente sind die der SPD-Fraktion; die offiziellen Protokolle veröffentlicht die Stadt im <a href="https://ris.stadt-soltau.de/bi/infobi.asp" target="_blank" rel="noopener">Bürgerinformationssystem</a>. <a href="${url('/kontakt/')}">Fragen zu einer Entscheidung? Schreiben Sie uns.</a></div>
+  </div>
+</section>`;
+}
 export function ratRathausPage(d) {
   const s = d.stadt || { sitzungen: [], rathaus: [], amtsblatt: [], mitreden: [], baustellen: [], quellen: {}, stand: new Date().toISOString() };
   const tag = iso => iso ? `${['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(iso + 'T12:00:00').getDay()]} ${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '';
@@ -341,6 +368,7 @@ export function ratRathausPage(d) {
         <p class="rr-quelle">Quelle: <a href="https://www.soltau.de/home/aktuelles/bekanntmachungen_der_stadt_soltau.aspx" target="_blank" rel="noopener">Amtsblatt der Stadt Soltau</a> (amtliche Bekanntmachungen)</p>
       </div>
     </div>
+    ${(d.ratsberichte || []).length ? `<div class="rb-block"><div class="section-head"><h2 class="title">So hat der Rat entschieden</h2><a class="linkbtn" href="${url('/ratsbericht/')}">Alle Ratsberichte →</a></div><div class="rb-grid">${(d.ratsberichte || []).slice(0, 2).map(b => ratsberichtKarte(b, true)).join('')}</div></div>` : ''}
     <div class="rr-meinung"><b>Unsere Meinung dazu?</b><span>Zu den Themen aus Rat und Rathaus schreibt die Fraktion unter „Aktuelles“.</span><a class="btn btn-rot" href="${url('/aktuelles/')}">Aktuelles lesen</a></div>
     <p class="small muted">Stand ${esc(standText(s.stand))}. Diese Seite füllt sich automatisch aus den öffentlichen Seiten der Stadt Soltau; wir zeigen Überschriften, Termine und Links – die Inhalte selbst liegen bei der Stadt.</p>
   </div>

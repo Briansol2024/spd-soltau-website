@@ -1700,3 +1700,47 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .rb-bild{margin:0;display:grid;gap:8px;max-width:520px}
 .rb-bild img{width:100%;border:1px solid var(--linie)}
 .notiz-frei{padding:8px 16px 0;font-size:14px}
+/* Ratsbericht (Website): Entscheidungen je Sitzung */
+.rb-page{display:grid;gap:28px}
+.rb-karte{background:#fff;border-left:8px solid var(--rot);padding:24px 26px;display:grid;gap:14px}
+.rb-karte-kopf .tag{margin-bottom:8px}
+.rb-karte h3{font:800 30px/1.05 var(--display);text-transform:uppercase;margin:0}
+.rb-karte-kopf p{margin:6px 0 0}
+.rb-intro{margin:0;font-size:18px;line-height:1.55}
+.rb-entscheidungen{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rb-entscheidung{padding:14px 16px;background:var(--grau);border-left:4px solid var(--muted);display:grid;gap:8px}
+.rb-entscheidung.besch-angenommen,.rb-entscheidung.besch-geaendert{border-left-color:#177A38}
+.rb-entscheidung.besch-abgelehnt{border-left-color:var(--rot)}
+.rb-e-kopf{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.rb-e-top{font:800 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--rot)}
+.rb-e-kopf b{font:700 19px/1.2 var(--display);text-transform:uppercase}
+.rb-e-erg{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rb-e-badge{font:800 12px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;padding:7px 9px 6px;background:var(--muted);color:#fff}
+.besch-angenommen .rb-e-badge,.besch-geaendert .rb-e-badge{background:#177A38}
+.besch-abgelehnt .rb-e-badge{background:var(--rot)}
+.rb-e-zahl{font:800 15px/1 var(--display);letter-spacing:.06em;color:var(--ink);padding:6px 8px;background:#fff;border:2px solid var(--schwarz)}
+.rb-e-haltung{font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rb-e-text{margin:0;font-size:16px;line-height:1.5}
+.rb-mehr{font:700 14px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--rot);text-decoration:none;border-bottom:2px solid var(--rot);justify-self:start}
+.rb-hinweis{font-size:15px;line-height:1.55;padding:18px 20px;background:var(--grau);color:var(--text)}
+.rb-block{margin:28px 0 20px}
+.rb-block .section-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.rb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.rb-grid .rb-karte{padding:18px 20px}
+.rb-grid .rb-karte h3{font-size:24px}
+@container site (max-width:600px){
+  .rb-karte{padding:18px 16px;border-left-width:6px}
+  .rb-karte h3{font-size:24px}
+}
+.rb-serie-bilder{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.rb-serie-bilder img{width:100%;border:1px solid var(--linie)}
+.rb-serie{max-width:none}
+.rb-auftraege{display:grid;gap:8px;margin-top:10px}
+.rb-auftrag{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;background:#fff;border-left:4px solid var(--muted)}
+.rb-auftrag.st-fertig{border-left-color:#177A38}
+.rb-auftrag.st-fehler{border-left-color:var(--rot)}
+.rb-auftrag p{margin:4px 0 0}
+.rb-auftrag .rot{color:var(--rot)}
+.rb-spinner{width:22px;height:22px;border:3px solid var(--linie);border-top-color:var(--rot);border-radius:50%;animation:rbDreh 1s linear infinite;flex:0 0 auto}
+@keyframes rbDreh{to{transform:rotate(360deg)}}
+#rb-bericht{width:100%;font:inherit;font-size:15px;line-height:1.5;padding:10px 12px;border:2px solid var(--schwarz);box-sizing:border-box;margin:6px 0 10px}

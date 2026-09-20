@@ -1,0 +1,39 @@
+# Overlay-Agent: rendert auf Bestellung aus der App (Rückblick → „Overlays erzeugen lassen“) die Text-Overlays
+# für ein Instagram-Video, packt sie als ZIP und legt sie im Wix-Medienmanager ab. Gestartet vom Push-Dienst,
+# sobald in der Wix-Sammlung `Auftraege` ein Auftrag wartet (video/insta/auftrag.mjs).
+name: Overlay-Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      auftrag:
+        description: "ID des Auftrags (Wix-Sammlung Auftraege)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: overlays
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Browser für das Rendern
+        run: npx playwright install --with-deps chromium
+      - name: Auftrag rendern, packen, hochladen
+        run: node video/insta/auftrag.mjs "${{ github.event.inputs.auftrag }}"
+        env:
+          CI: "1"
+          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
+          WIX_SITE_ID: ${{ vars.WIX_SITE_ID }}
+          WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}

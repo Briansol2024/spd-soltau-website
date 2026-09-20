@@ -14,3 +14,4 @@ video/hilfe/proben/
 video/insta/tmp/
 video/insta/out/
 video/insta/*.log
+video/insta/skripte/auftrag-*.json

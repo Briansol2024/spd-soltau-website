@@ -109,6 +109,11 @@ function mapCategory(labels) {
 }
 
 // Blog-Kategorien (für das Beitragsformular im Mitgliederbereich)
+// Ratsberichte: vom Push-Dienst freigegebene Sitzungen (nur öffentlich sagbare Felder) – Sammlung `Ratsberichte`, für alle lesbar
+export async function fetchRatsberichte(client) {
+  const res = await client.items.query('Ratsberichte').descending('datum').limit(50).find();
+  return (res.items || []).map(b => { let tops = []; try { tops = JSON.parse(b.tops || '[]'); } catch (e) { tops = []; } return { id: b._id, sitzungId: b.sitzungId, gremium: b.gremium || 'Sitzung', datum: b.datum || '', zeit: b.zeit || '', ort: b.ort || '', titel: b.titel || '', bereich: b.bereich || '', text: b.text || '', tops, seit: b.veroeffentlichtAm || b._updatedDate || '' }; }).filter(b => b.datum);
+}
 export async function fetchCategories(client) {
   const res = await client.categories.queryCategories().find().catch(() => ({ items: [] }));
   return (res.items || []).map(c => ({ id: c._id, label: c.label }));

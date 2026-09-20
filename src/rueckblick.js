@@ -108,6 +108,63 @@ export function makeRueckblick(ctx) {
     if (t.einordnung) { c.fillStyle = GRAU; c.font = `400 34px ${F.sans}`; const frei = Math.floor((H - 140 - (y + 60)) / 44); zeilen(c, satz1(t.einordnung), W - 120).slice(0, Math.max(0, Math.min(3, frei))).forEach((zz, i) => c.fillText(zz, 60, y + 80 + i * 44)); }
     fuss(c, W, H); return cv.toDataURL('image/png');
   }
+  // Story-Kachel (9:16), nummeriert – eine je Entscheidung
+  async function kachelStory(r, t, i, n) {
+    await schriften();
+    const W = 1080, H = 1920, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d');
+    c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.fillStyle = ROT; c.fillRect(0, 0, W, 26);
+    c.fillStyle = SCHWARZ; c.font = `800 38px ${F.sans}`; c.fillText('SPD SOLTAU', 70, 150);
+    c.fillStyle = GRAU; c.font = `400 38px ${F.sans}`; c.fillText(`${r.gremium || 'Sitzung'} · ${fmtDate(r.sitzung)}`, 70, 210);
+    c.fillStyle = ROT; c.font = `800 60px ${F.versal}`; c.fillText(`ENTSCHEIDUNG ${i}/${n}`, 70, 330);
+    c.fillStyle = SCHWARZ; c.font = `800 92px ${F.versal}`;
+    const zl = zeilen(c, String(t.titel || '').toUpperCase(), W - 140).slice(0, 4); zl.forEach((z, k) => c.fillText(z, 70, 470 + k * 100));
+    let y = 470 + zl.length * 100 + 30;
+    badge(c, 70, y, beschlussLabel(t.beschluss) || 'Ergebnis', farbeVon(t.beschluss), 90); y += 150;
+    const z = zahlen(t);
+    if (z.da) { [[z.ja, 'JA', GRUEN], [z.nein, 'NEIN', ROT], [z.enth, 'ENTHALTUNG', GRAU]].forEach(([nr, l, f], k) => { const x = 70 + k * 320; c.fillStyle = f; c.font = `800 150px ${F.versal}`; c.fillText(String(nr), x, y + 140); c.fillStyle = GRAU; c.font = `700 32px ${F.sans}`; c.fillText(l, x + 6, y + 195); }); y += 260; }
+    const haltung = { 'dafür': 'Die SPD hat dafür gestimmt.', dagegen: 'Die SPD hat dagegen gestimmt.', Enthaltung: 'Die SPD hat sich enthalten.', 'Änderungsantrag': 'Mit Änderungsantrag der SPD.' }[t.position] || '';
+    if (haltung) { c.fillStyle = SCHWARZ; c.font = `700 44px ${F.sans}`; c.fillText(haltung, 70, y + 30); y += 70; }
+    if (t.einordnung) { c.fillStyle = GRAU; c.font = `400 40px ${F.sans}`; const frei = Math.floor((H - 260 - (y + 40)) / 54); zeilen(c, satz1(t.einordnung), W - 140).slice(0, Math.max(0, Math.min(5, frei))).forEach((zz, k) => c.fillText(zz, 70, y + 90 + k * 54)); }
+    // Fuß mit Luft für die Instagram-Bedienelemente
+    c.fillStyle = SCHWARZ; c.fillRect(0, H - 230, W, 230); c.fillStyle = '#fff'; c.font = `800 40px ${F.sans}`; c.fillText('spd-soltau.de/ratsbericht', 70, H - 130); c.fillStyle = ROT; c.font = `800 34px ${F.sans}`; c.fillText('AUS LIEBE ZU SOLTAU', 70, H - 70);
+    return cv.toDataURL('image/png');
+  }
+  // ZIP ohne Kompression (PNG ist schon komprimiert) – direkt im Browser
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zipStore(files) {
+    const enc = new TextEncoder(); const teile = [], zentral = []; let offset = 0;
+    for (const f of files) {
+      const name = enc.encode(f.name), crc = crc32(f.data);
+      const lok = new Uint8Array(30 + name.length), lv = new DataView(lok.buffer);
+      lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0x0800, true); lv.setUint32(14, crc, true); lv.setUint32(18, f.data.length, true); lv.setUint32(22, f.data.length, true); lv.setUint16(26, name.length, true); lok.set(name, 30);
+      const cd = new Uint8Array(46 + name.length), cv = new DataView(cd.buffer);
+      cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint32(16, crc, true); cv.setUint32(20, f.data.length, true); cv.setUint32(24, f.data.length, true); cv.setUint16(28, name.length, true); cv.setUint32(42, offset, true); cd.set(name, 46);
+      teile.push(lok, f.data); zentral.push(cd); offset += lok.length + f.data.length;
+    }
+    const cdSize = zentral.reduce((s, c) => s + c.length, 0); const ende = new Uint8Array(22), ev = new DataView(ende.buffer);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true); ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+    return new Blob([...teile, ...zentral, ende], { type: 'application/zip' });
+  }
+  const dataUrlBytes = u => Uint8Array.from(atob(u.split(',')[1]), ch => ch.charCodeAt(0));
+  // Overlay-Manifest für den Agenten (video/insta/render.mjs): Intro, je Entscheidung Text + Stempel, Rest als Liste, Abspann
+  const slugify = s => String(s || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'x';
+  function overlayManifest(r, tops, alpha, drehplan) {
+    const ent = tops.filter(hatErgebnis); const istRat = /^Rat\b/.test(r.gremium || '');
+    const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
+    const stempelText = { angenommen: 'Angenommen', geaendert: 'Angenommen', abgelehnt: 'Abgelehnt', vertagt: 'Vertagt', zurueckgezogen: 'Zurückgezogen', kenntnis: 'Kenntnis' };
+    const clips = [{ id: 'intro', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*' } }];
+    ent.slice(0, 8).forEach((t, i) => {
+      const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
+      clips.push({ id: `top${slugify(nr)}-${slugify(kurzTitel(t.titel)).slice(0, 24)}`, dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}` } });
+      if (stempelText[t.beschluss]) clips.push({ id: `top${slugify(nr)}-stempel`, dauer: 3, q: { clip: 'stempel', text: stempelText[t.beschluss], ...(t.beschluss === 'abgelehnt' ? { art: 'schwarz' } : {}) } });
+    });
+    if (ent.length > 8) clips.push({ id: 'weitere', dauer: 5, q: { clip: 'liste', titel: 'Außerdem entschieden', text: ent.slice(8, 13).map(t => kurzTitel(t.titel)).join('|') } });
+    clips.push({ id: 'abspann', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht' } });
+    return { titel: `Overlays ${r.gremium || 'Sitzung'} ${r.sitzung || ''}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie im Drehplan.', nurGruen: !alpha, drehplan, clips };
+  }
+  const AUFTRAG_TEXT = { wartet: 'Wartet auf den Agenten – er startet innerhalb von 5 Minuten.', gestartet: 'Der Agent rendert – meist 5 bis 10 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', laeuft: 'Der Agent rendert – meist 5 bis 10 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', fertig: 'Fertig – zum Download bereit.', fehler: 'Das hat nicht geklappt.' };
+  const mb = n => n ? `${Math.round(n / 1048576 * 10) / 10} MB` : '';
   async function bildTeilen(dataUrl, name, text) {
     try {
       const blob = await (await fetch(dataUrl)).blob(); const file = new File([blob], name, { type: 'image/png' });
@@ -123,7 +180,10 @@ export function makeRueckblick(ctx) {
     const frei = notizen.filter(n => n.freigabe !== false && ((n.text || '').trim() || (n.skizze && n.skizze !== '[]')));
     const privat = notizen.length - frei.length;
     let variante = 'kurz';
+    let auftraege = await db.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => []);
+    let pollTimer = null;
     const ent = () => tops.filter(hatErgebnis);
+    const berichtVorschlag = () => { const e = ent(); const themen = e.slice(0, 3).map(t => kurzTitel(t.titel)); return `In der Sitzung am ${fmtDate(r.sitzung)} ging es um ${themen.length ? themen.join(', ').replace(/, ([^,]*)$/, ' und $1') : 'mehrere Punkte'}. ${e.length} ${e.length === 1 ? 'Entscheidung' : 'Entscheidungen'} – hier die Ergebnisse und wie wir abgestimmt haben.`; };
     const render = () => {
       const erfolge = tops.filter(imSinne).length;
       v.innerHTML = `<div class="rb">
@@ -153,8 +213,23 @@ export function makeRueckblick(ctx) {
       </section>
 
       <section class="mb-sub"><h4 class="doc-cat">Kacheln für Post &amp; Story</h4>
-        <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-kachel">Übersichtskachel (4:5) erzeugen</button><span class="small muted">Alle Entscheidungen auf einem Bild – als Post oder als Abschluss im Reel. Kachel je Punkt: oben beim Punkt.</span></div>
+        <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-kachel">Übersichtskachel (4:5)</button><button type="button" class="btn btn-schwarz btn-sm" id="rb-story" ${ent().length ? '' : 'disabled'}>Story-Serie (9:16, ${ent().length} Bilder)</button><span class="small muted">Übersicht als Post oder Abschluss im Reel; die Story-Serie ist nummeriert – ein Bild je Entscheidung. Kachel je Punkt: oben beim Punkt.</span></div>
         <div id="rb-bilder" class="rb-bilder"></div>
+      </section>
+
+      <section class="mb-sub"><h4 class="doc-cat">Overlay-Clips für CapCut <span class="small muted">der Overlay-Agent rendert sie für dich</span></h4>
+        <p class="small muted">Bestellt die Text-Overlays zu diesem Rückblick (Intro, je Entscheidung Text + Stempel, Abspann) auf Greenscreen-Grün. Ein Helfer in der Cloud rendert sie, packt sie als ZIP und legt sie bei Wix ab – du bekommst eine Push-Nachricht und den Download hier. Der Drehplan (dein Skript) liegt als Textdatei mit dabei.</p>
+        <label class="check"><input type="checkbox" id="rb-alpha"><span>Zusätzlich mit echter Transparenz (ProRes .mov, für Resolve/Premiere – macht die ZIP deutlich größer)</span></label>
+        <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-overlays" ${ent().length ? '' : 'disabled'}>Overlays erzeugen lassen</button><span class="small muted" id="rb-overlays-msg">${ent().length ? `${Math.min(8, ent().length) * 2 + 2} Clips` : 'Erst Ergebnisse eintragen.'}</span></div>
+        <div class="rb-auftraege">${auftraege.map(a => `<article class="rb-auftrag st-${esc(a.status || 'wartet')}"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · bestellt ${esc(new Date(a._createdDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))} Uhr</span><p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(AUFTRAG_TEXT[a.status] || a.status)}${a.status === 'fehler' && a.fehler ? ' ' + esc(a.fehler) : ''}${a.status === 'fertig' ? ` ${esc(a.dateien || '')} Dateien${a.groesse ? ', ' + mb(a.groesse) : ''}.` : ''}</p></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP herunterladen</a>` : ['wartet', 'gestartet', 'laeuft'].includes(a.status) ? '<span class="rb-spinner" aria-hidden="true"></span>' : ''}</article>`).join('')}</div>
+      </section>
+
+      <section class="mb-sub"><h4 class="doc-cat">Ratsbericht auf der Website <span class="small muted">spd-soltau.de/ratsbericht</span></h4>
+        <p class="small muted">Veröffentlicht werden nur: Gremium, Datum, die Titel der Punkte, unsere Haltung, „Haltung &amp; Argumente“, Beschluss, Abstimmung, Anmerkung und die Einleitung unten. Nichts aus „Intern besprochen“, aus Notizen oder dem Chat.</p>
+        <label for="rb-bericht" class="small"><b>Einleitung</b> (optional, steht über den Entscheidungen)</label>
+        <textarea id="rb-bericht" rows="3">${esc(r.berichtText || berichtVorschlag())}</textarea>
+        <div class="mb-actions">${r.veroeffentlicht ? `<span class="badge badge-mit">Online</span><button type="button" class="btn btn-schwarz btn-sm" id="rb-bericht-update">Text aktualisieren</button><button type="button" class="linkbtn" id="rb-bericht-zurueck">Von der Website nehmen</button>` : `<button type="button" class="btn btn-rot btn-sm" id="rb-bericht-los">Auf der Website veröffentlichen</button>`}<span class="small muted" id="rb-bericht-msg"></span></div>
+        <p class="small muted">${r.veroeffentlicht ? `Online seit ${esc(new Date(r.veroeffentlichtAm || r._updatedDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }))} Uhr. Änderungen an Ergebnissen oder Text übernimmt der Website-Dienst innerhalb von 5 Minuten, die Website baut sich danach neu (etwa 10 Minuten).` : 'Nach dem Klick übernimmt der Website-Dienst den Bericht innerhalb von 5 Minuten und baut die Website neu – nach etwa 10 Minuten ist er online. Später eingetragene Ergebnisse folgen automatisch nach.'}</p>
       </section>
       </div>`;
       wire();
@@ -183,6 +258,44 @@ export function makeRueckblick(ctx) {
       $('#rb-teilen', v).addEventListener('click', () => shareText($('#rb-skript', v).value));
       $('#rb-speichern', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { r = await db.update('Ratsvorbereitung', { ...r, skript: $('#rb-skript', v).value }); $('#rb-skript-msg', v).textContent = 'gespeichert'; } catch (err) { $('#rb-skript-msg', v).textContent = 'Nicht gespeichert: ' + errText(err); } busy(b, false); });
       $('#rb-kachel', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); const url = await kachelUebersicht(r, tops); bildZeigen(url, `Ratssitzung-${r.sitzung || ''}.png`, `So hat der Rat entschieden – ${r.gremium} ${fmtDate(r.sitzung)}`); busy(b, false); });
+      // Story-Serie: alle Entscheidungen als 9:16-Bilder, dazu ZIP
+      $('#rb-story', v)?.addEventListener('click', async e => {
+        const b = e.currentTarget; busy(b, true);
+        const e2 = ent(); const bilder = [];
+        for (let i = 0; i < e2.length; i++) bilder.push({ name: `Story-${String(i + 1).padStart(2, '0')}-TOP${slugify(e2[i].nr || i + 1)}.png`, url: await kachelStory(r, e2[i], i + 1, e2.length) });
+        const zip = zipStore(bilder.map(x => ({ name: x.name, data: dataUrlBytes(x.url) })));
+        const zipUrl = URL.createObjectURL(zip);
+        const box = $('#rb-bilder', v);
+        box.insertAdjacentHTML('afterbegin', `<figure class="rb-bild rb-serie"><div class="rb-serie-bilder">${bilder.map(x => `<a href="${x.url}" download="${esc(x.name)}"><img src="${x.url}" alt=""></a>`).join('')}</div><figcaption class="mb-actions"><a class="btn btn-schwarz btn-sm" href="${zipUrl}" download="Story-Serie-${esc(r.sitzung || '')}.zip">Alle ${bilder.length} als ZIP</a><span class="small muted">Einzelbild antippen = herunterladen. Reihenfolge = Nummer.</span><button type="button" class="linkbtn" data-weg>entfernen</button></figcaption></figure>`);
+        const fig = $('.rb-serie', box); $('[data-weg]', fig).addEventListener('click', () => fig.remove()); fig.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        busy(b, false);
+      });
+      // Overlay-Agent
+      $('#rb-overlays', v)?.addEventListener('click', async e => {
+        const b = e.currentTarget; busy(b, true);
+        try {
+          const manifest = overlayManifest(r, tops, $('#rb-alpha', v).checked, $('#rb-skript', v).value);
+          await db.insert('Auftraege', { typ: 'overlays', status: 'wartet', title: manifest.titel, titel: manifest.titel, sitzungId: r._id, memberId: me().id, von: me().name, manifest: JSON.stringify(manifest), benachrichtigt: false });
+          auftraege = await db.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => auftraege);
+          render(); $('#rb-overlays-msg', v).textContent = 'Bestellt.'; $('.rb-auftraege', v)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (err) { $('#rb-overlays-msg', v).textContent = 'Nicht bestellt: ' + errText(err); busy(b, false); }
+      });
+      // Ratsbericht
+      const bericht = async (patch, btnId) => {
+        const b = $(btnId, v); if (b) busy(b, true);
+        try { r = await db.update('Ratsvorbereitung', { ...r, berichtText: $('#rb-bericht', v).value.trim(), ...patch }); tops = r.tops || []; render(); $('#rb-bericht-msg', v).textContent = patch.veroeffentlicht === false ? 'Wird von der Website genommen.' : 'Gespeichert – geht innerhalb von 5 Minuten an die Website.'; }
+        catch (err) { $('#rb-bericht-msg', v).textContent = 'Nicht gespeichert: ' + errText(err); if (b) busy(b, false); }
+      };
+      $('#rb-bericht-los', v)?.addEventListener('click', () => bericht({ veroeffentlicht: true, veroeffentlichtAm: new Date().toISOString() }, '#rb-bericht-los'));
+      $('#rb-bericht-update', v)?.addEventListener('click', () => bericht({}, '#rb-bericht-update'));
+      $('#rb-bericht-zurueck', v)?.addEventListener('click', () => { if (confirm('Den Ratsbericht von der Website nehmen?')) bericht({ veroeffentlicht: false }, '#rb-bericht-zurueck'); });
+      // Laufende Aufträge alle 20 s nachsehen, solange die Seite offen ist
+      clearInterval(pollTimer);
+      if (auftraege.some(a => ['wartet', 'gestartet', 'laeuft'].includes(a.status))) pollTimer = setInterval(async () => {
+        if (!v.isConnected || !location.hash.startsWith('#rat/rueckblick-')) { clearInterval(pollTimer); return; }
+        const neu = await db.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => null); if (!neu) return;
+        if (JSON.stringify(neu.map(a => [a._id, a.status])) !== JSON.stringify(auftraege.map(a => [a._id, a.status]))) { auftraege = neu; render(); }
+      }, 20000);
     }
     function bildZeigen(url, name, text) {
       const box = $('#rb-bilder', v); const id = 'rb-b' + Date.now();

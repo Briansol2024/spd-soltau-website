@@ -789,6 +789,62 @@ ${f.geraet ? 'Gerät: ' + f.geraet + '\n' : ''}${f.seite ? 'Seite in der App: ' 
   } catch (e) { log('Feedback:', e.message); }
 }
 
+// ---------- GitHub: Workflows auf Bestellung starten (Overlay-Agent, Website-Bau) ----------
+async function workflowStarten(datei, inputs = {}) {
+  const token = env.GITHUB_TOKEN, repo = env.GITHUB_REPOSITORY || 'Briansol2024/spd-soltau-website';
+  if (!token) throw new Error('kein GITHUB_TOKEN (läuft nur auf GitHub Actions)');
+  const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${datei}/dispatches`, { method: 'POST', headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, body: JSON.stringify({ ref: 'main', inputs }) });
+  if (res.status !== 204) throw new Error(`${datei}: ${res.status} ${(await res.text()).slice(0, 120)}`);
+}
+// ---------- Overlay-Agent: wartende Aufträge starten, fertige melden ----------
+async function auftraege(subs, approved, logKeys) {
+  try {
+    const liste = await queryAll(client, 'Auftraege', q => q.ne('status', 'erledigt'));
+    for (const a of liste) {
+      const wer = approved.find(m => m.memberId === a.memberId);
+      if (a.status === 'wartet') {
+        if (!wer || !TESTER_MAILS.includes((wer.email || '').toLowerCase())) { await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
+        if (DRY) { log(`  Auftrag ${a._id}: würde Overlay-Agent starten (Trockenlauf)`); continue; }
+        try { await workflowStarten('overlays.yml', { auftrag: a._id }); await client.items.update('Auftraege', { ...a, status: 'gestartet', gestartetAm: new Date().toISOString() }); log(`  Auftrag ${a._id}: Overlay-Agent gestartet`); }
+        catch (e) { log('  Auftrag starten:', e.message); await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Agent konnte nicht gestartet werden: ' + e.message.slice(0, 160) }).catch(() => {}); }
+        continue;
+      }
+      // hängen geblieben (Agent nach 45 Minuten nicht fertig)
+      if (['gestartet', 'laeuft'].includes(a.status) && a.gestartetAm && NOW - new Date(a.gestartetAm).getTime() > 45 * 60 * 1000) {
+        await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Der Agent hat nicht geantwortet – bitte noch einmal bestellen.' }).catch(() => {}); continue;
+      }
+      if (['fertig', 'fehler'].includes(a.status) && !a.benachrichtigt && wer) {
+        const key = 'auftrag:' + a._id + ':' + a.status;
+        const mb = a.groesse ? ` (${Math.round(a.groesse / 1048576 * 10) / 10} MB)` : '';
+        await send(byMembers(subs, [wer.memberId]), a.status === 'fertig'
+          ? { title: 'Overlays fertig – zum Download bereit', body: `${a.titel || 'Overlay-Clips'}${mb} – ${a.dateien || ''} Dateien. Antippen zum Herunterladen.`, tag: key, url: a.url || url('/mitglieder/#rat') }
+          : { title: 'Overlays: das hat nicht geklappt', body: (a.fehler || 'Unbekannter Fehler').slice(0, 160), tag: key, url: url('/mitglieder/#rat') }, key, logKeys);
+        if (!DRY) await client.items.update('Auftraege', { ...a, benachrichtigt: true }).catch(() => {});
+      }
+    }
+  } catch (e) { log('Aufträge:', e.message); }
+}
+// ---------- Ratsberichte: freigegebene Sitzungen als öffentliche Kopie (nur öffentlich sagbare Felder) – danach Website neu bauen ----------
+const TESTER_MAILS = ['weber.soltau@gmail.com'];
+async function ratsberichte() {
+  try {
+    const sitzungen = await queryAll(client, 'Ratsvorbereitung');
+    const berichte = await queryAll(client, 'Ratsberichte');
+    let geaendert = false;
+    for (const r of sitzungen) {
+      const alt = berichte.find(b => b.sitzungId === r._id);
+      if (!r.veroeffentlicht) { if (alt) { if (!DRY) await client.items.remove('Ratsberichte', alt._id); geaendert = true; log(`  Ratsbericht entfernt: ${r.gremium} ${r.sitzung}`); } continue; }
+      const tops = (r.tops || []).map((t, i) => ({ nr: t.nr || String(i + 1), titel: t.titel || '', position: t.position || 'offen', einordnung: t.einordnung || '', beschluss: t.beschluss || '', abstimmung: t.abstimmung || '', ja: t.ja ?? '', nein: t.nein ?? '', enth: t.enth ?? '', ergebnis: t.ergebnis || '' }));
+      const neu = { title: `${r.gremium || 'Sitzung'} ${r.sitzung || ''}`, sitzungId: r._id, gremium: r.gremium || '', datum: r.sitzung || '', zeit: r.zeit || '', ort: r.ort || '', titel: r.titel || '', bereich: r.b || '', text: r.berichtText || '', tops: JSON.stringify(tops), veroeffentlichtAm: r.veroeffentlichtAm || r._updatedDate || '' };
+      const gleich = alt && ['gremium', 'datum', 'zeit', 'ort', 'titel', 'bereich', 'text', 'tops'].every(k => String(alt[k] ?? '') === String(neu[k] ?? ''));
+      if (gleich) continue;
+      if (!DRY) { if (alt) await client.items.update('Ratsberichte', { ...alt, ...neu }); else await client.items.insert('Ratsberichte', neu); }
+      geaendert = true; log(`  Ratsbericht ${alt ? 'aktualisiert' : 'angelegt'}: ${neu.title}`);
+    }
+    if (geaendert && !DRY) { try { await workflowStarten('deploy.yml'); log('  Website-Bau gestartet (Ratsbericht)'); } catch (e) { log('  Website-Bau:', e.message); } }
+  } catch (e) { log('Ratsberichte:', e.message); }
+}
+
 // ---------- Ablauf ----------
 (async () => {
   log('Push-Dienst startet' + (DRY ? ' (Trockenlauf)' : ''));
@@ -843,6 +899,8 @@ const st = await loadSettings(approved);
   await weitereErinnerungen(st, subs, logKeys);
   await mitfahren(st, subs, logKeys);
   await feedback(subs, approved, logKeys);
+  await auftraege(subs, approved, logKeys);
+  await ratsberichte();
   await abonnenten();
   await statistik();
   log('fertig', stats);

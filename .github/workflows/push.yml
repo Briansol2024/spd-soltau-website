@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: write   # startet Overlay-Agent und Website-Bau auf Bestellung aus der App
 
 concurrency:
   group: push
@@ -38,6 +39,7 @@ jobs:
           PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}
           WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
           VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SITE_URL: ${{ vars.SITE_URL }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}

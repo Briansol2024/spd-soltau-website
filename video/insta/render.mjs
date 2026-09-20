@@ -70,6 +70,7 @@ function encode(c, dir) {
     return [`${c.id}.mp4`];
   }
   run(['-framerate', String(FPS), '-i', frames, '-f', 'lavfi', '-i', `color=c=${GRUEN}:s=${W}x${H}:r=${FPS}`, '-filter_complex', '[1:v][0:v]overlay=shortest=1:format=auto,format=yuv420p', '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-movflags', '+faststart', path.join(OUT, `${c.id}-gruen.mp4`)]);
+  if (c.nurGruen) return [`${c.id}-gruen.mp4`];
   run(['-framerate', String(FPS), '-i', frames, '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-vendor', 'apl0', path.join(OUT, `${c.id}-alpha.mov`)]);
   return [`${c.id}-gruen.mp4`, `${c.id}-alpha.mov`];
 }
@@ -80,14 +81,14 @@ let list = clips();
 if (args[0] === 'skript' && args[1]) {
   const { readFileSync } = await import('node:fs');
   const m = JSON.parse(readFileSync(path.join(__dirname, 'skripte', args[1] + '.json'), 'utf8'));
-  list = m.clips.map((c, i) => ({ id: `${args[1]}-${String(i + 1).padStart(2, '0')}-${c.id}`, dauer: c.dauer || 4, q: c.q, opak: !!c.opak, png: !!c.png }));
+  list = m.clips.map((c, i) => ({ id: `${args[1]}-${String(i + 1).padStart(2, '0')}-${c.id}`, dauer: c.dauer || 4, q: c.q, opak: !!c.opak, png: !!c.png, nurGruen: !!(c.nurGruen ?? m.nurGruen) }));
 }
 if (args[0] === 'skript') { /* oben */ } else if (args[0] === 'binde' && args[1]) list = [{ id: 'binde-' + slug(args[1]), dauer: 6.0, q: { clip: 'binde', name: args[1], rolle: args[2] || 'SPD Soltau' } }];
 else if (args[0] === 'wort' && args[1]) list = [{ id: `wort-${slug(args[1].replace(/[|*#_-]/g, ' '))}-${args[2] === 'rechts' ? 'rechts' : 'links'}`, dauer: 3.0, q: { clip: 'wort', text: args[1], seite: args[2] || 'links' } }];
 else if (args.length) list = list.filter(c => args.some(a => c.id.startsWith(a)));
 
 await mkdir(OUT, { recursive: true }); await mkdir(TMP, { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome' });
+const browser = await chromium.launch(process.env.CI ? {} : { channel: 'chrome' }); // auf GitHub Actions der Playwright-Chromium
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const t0 = Date.now();
 for (const c of list) {
