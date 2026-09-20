@@ -2,7 +2,7 @@
 // die freigegebenen Notizen aller Teilnehmenden, ein fertiges Instagram-Skript (nur aus öffentlich Sagbarem: Titel,
 // Haltung, Argumente, Ergebnis – nie aus „intern besprochen“) und Ergebnis-Kacheln als PNG für Post oder Story.
 export function makeRueckblick(ctx) {
-  const { db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me } = ctx;
+  const { db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me, echtesKonto, DEMO } = ctx;
   const zahlen = t => {
     if (Number.isFinite(+t.ja) && t.ja !== '' && t.ja !== null && t.ja !== undefined) return { ja: +t.ja || 0, nein: +t.nein || 0, enth: +t.enth || 0, da: true };
     const m = String(t.abstimmung || '').match(/(\d+)\s*[:\/]\s*(\d+)(?:\s*[:\/]\s*(\d+))?/);
@@ -180,8 +180,16 @@ export function makeRueckblick(ctx) {
     const frei = notizen.filter(n => n.freigabe !== false && ((n.text || '').trim() || (n.skizze && n.skizze !== '[]')));
     const privat = notizen.length - frei.length;
     let variante = 'kurz';
-    let auftraege = await db.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => []);
+    // Bestellungen an den Overlay-Agenten laufen immer echt – auch im Demo (dann über Brians echte Anmeldung im Hintergrund)
+    const konto = await (echtesKonto ? echtesKonto() : Promise.resolve({ db, me: me() })).catch(() => null);
+    const jobDb = konto?.db || db, jobMe = konto?.me || me();
+    const jobsLaden = () => jobDb.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => []);
+    let auftraege = konto ? await jobsLaden() : [];
     let pollTimer = null;
+    const laeuft = a => ['wartet', 'gestartet', 'laeuft'].includes(a.status);
+    const seit = a => { const m = Math.round((Date.now() - new Date(a._createdDate || 0).getTime()) / 60000); return m < 1 ? 'gerade eben' : `seit ${m} Min.`; };
+    const prozent = a => a.status === 'fertig' ? 100 : a.status === 'wartet' ? 3 : Math.max(8, Math.min(99, +a.fortschritt || 8));
+    const schritt = a => a.status === 'wartet' ? 'Wartet auf den Agenten – der Push-Dienst holt die Bestellung innerhalb von 5 Minuten ab.' : a.status === 'gestartet' ? (a.schritt || 'Agent startet – Rechner wird vorbereitet (etwa 1 Minute).') : a.status === 'laeuft' ? (a.schritt || 'Der Agent rendert …') : '';
     const ent = () => tops.filter(hatErgebnis);
     const berichtVorschlag = () => { const e = ent(); const themen = e.slice(0, 3).map(t => kurzTitel(t.titel)); return `In der Sitzung am ${fmtDate(r.sitzung)} ging es um ${themen.length ? themen.join(', ').replace(/, ([^,]*)$/, ' und $1') : 'mehrere Punkte'}. ${e.length} ${e.length === 1 ? 'Entscheidung' : 'Entscheidungen'} – hier die Ergebnisse und wie wir abgestimmt haben.`; };
     const render = () => {
@@ -221,7 +229,10 @@ export function makeRueckblick(ctx) {
         <p class="small muted">Bestellt die Text-Overlays zu diesem Rückblick (Intro, je Entscheidung Text + Stempel, Abspann) auf Greenscreen-Grün. Ein Helfer in der Cloud rendert sie, packt sie als ZIP und legt sie bei Wix ab – du bekommst eine Push-Nachricht und den Download hier. Der Drehplan (dein Skript) liegt als Textdatei mit dabei.</p>
         <label class="check"><input type="checkbox" id="rb-alpha"><span>Zusätzlich mit echter Transparenz (ProRes .mov, für Resolve/Premiere – macht die ZIP deutlich größer)</span></label>
         <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-overlays" ${ent().length ? '' : 'disabled'}>Overlays erzeugen lassen</button><span class="small muted" id="rb-overlays-msg">${ent().length ? `${Math.min(8, ent().length) * 2 + 2} Clips` : 'Erst Ergebnisse eintragen.'}</span></div>
-        <div class="rb-auftraege">${auftraege.map(a => `<article class="rb-auftrag st-${esc(a.status || 'wartet')}"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · bestellt ${esc(new Date(a._createdDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))} Uhr</span><p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(AUFTRAG_TEXT[a.status] || a.status)}${a.status === 'fehler' && a.fehler ? ' ' + esc(a.fehler) : ''}${a.status === 'fertig' ? ` ${esc(a.dateien || '')} Dateien${a.groesse ? ', ' + mb(a.groesse) : ''}.` : ''}</p></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP herunterladen</a>` : ['wartet', 'gestartet', 'laeuft'].includes(a.status) ? '<span class="rb-spinner" aria-hidden="true"></span>' : ''}</article>`).join('')}</div>
+        ${!konto ? '<p class="note note-info">Im Demo läuft der Agent nur, wenn du im Hintergrund echt angemeldet bist – einmal „Demo beenden“, anmelden, dann wieder in den Demo.</p>' : DEMO ? '<p class="small muted">Demo: Die Bestellung läuft trotzdem echt – über dein echtes Konto, der fertige Download landet hier und als Push auf deinem Handy.</p>' : ''}
+        <div class="rb-auftraege">${auftraege.map(a => `<article class="rb-auftrag st-${esc(a.status || 'wartet')}"><div class="rb-auftrag-kopf"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · bestellt ${esc(new Date(a._createdDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))} Uhr${laeuft(a) ? ' · ' + esc(seit(a)) : ''}</span></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP herunterladen</a>` : laeuft(a) ? '<span class="rb-spinner" aria-hidden="true"></span>' : ''}</div>
+          ${laeuft(a) ? `<div class="rb-balken" role="progressbar" aria-valuenow="${prozent(a)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${prozent(a)}%"></span></div><p class="small muted">${esc(schritt(a))}</p>` : `<p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(AUFTRAG_TEXT[a.status] || a.status)}${a.status === 'fehler' && a.fehler ? ' ' + esc(a.fehler) : ''}${a.status === 'fertig' ? ` ${esc(a.dateien || '')} Dateien${a.groesse ? ', ' + mb(a.groesse) : ''}${a.fertigAm && a._createdDate ? ' – Dauer ' + Math.max(1, Math.round((new Date(a.fertigAm) - new Date(a._createdDate)) / 60000)) + ' Min.' : ''}.` : ''}</p>`}
+        </article>`).join('')}</div>
       </section>
 
       <section class="mb-sub"><h4 class="doc-cat">Ratsbericht auf der Website <span class="small muted">spd-soltau.de/ratsbericht</span></h4>
@@ -275,8 +286,9 @@ export function makeRueckblick(ctx) {
         const b = e.currentTarget; busy(b, true);
         try {
           const manifest = overlayManifest(r, tops, $('#rb-alpha', v).checked, $('#rb-skript', v).value);
-          await db.insert('Auftraege', { typ: 'overlays', status: 'wartet', title: manifest.titel, titel: manifest.titel, sitzungId: r._id, memberId: me().id, von: me().name, manifest: JSON.stringify(manifest), benachrichtigt: false });
-          auftraege = await db.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => auftraege);
+          if (!konto) throw new Error('nicht echt angemeldet');
+          await jobDb.insert('Auftraege', { typ: 'overlays', status: 'wartet', title: manifest.titel, titel: manifest.titel, sitzungId: r._id, memberId: jobMe.id, von: jobMe.name, manifest: JSON.stringify(manifest), benachrichtigt: false, fortschritt: 0, schritt: '' });
+          auftraege = await jobsLaden();
           render(); $('#rb-overlays-msg', v).textContent = 'Bestellt.'; $('.rb-auftraege', v)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } catch (err) { $('#rb-overlays-msg', v).textContent = 'Nicht bestellt: ' + errText(err); busy(b, false); }
       });
@@ -291,11 +303,12 @@ export function makeRueckblick(ctx) {
       $('#rb-bericht-zurueck', v)?.addEventListener('click', () => { if (confirm('Den Ratsbericht von der Website nehmen?')) bericht({ veroeffentlicht: false }, '#rb-bericht-zurueck'); });
       // Laufende Aufträge alle 20 s nachsehen, solange die Seite offen ist
       clearInterval(pollTimer);
-      if (auftraege.some(a => ['wartet', 'gestartet', 'laeuft'].includes(a.status))) pollTimer = setInterval(async () => {
+      if (konto && auftraege.some(laeuft)) pollTimer = setInterval(async () => {
         if (!v.isConnected || !location.hash.startsWith('#rat/rueckblick-')) { clearInterval(pollTimer); return; }
-        const neu = await db.list('Auftraege', { eq: { sitzungId: r._id }, desc: '_createdDate', limit: 20 }).catch(() => null); if (!neu) return;
-        if (JSON.stringify(neu.map(a => [a._id, a.status])) !== JSON.stringify(auftraege.map(a => [a._id, a.status]))) { auftraege = neu; render(); }
-      }, 20000);
+        const neu = await jobsLaden(); if (!neu.length) return;
+        const stand = l => JSON.stringify(l.map(a => [a._id, a.status, a.fortschritt, a.schritt]));
+        if (stand(neu) !== stand(auftraege) || neu.some(laeuft)) { auftraege = neu; render(); }
+      }, 10000);
     }
     function bildZeigen(url, name, text) {
       const box = $('#rb-bilder', v); const id = 'rb-b' + Date.now();

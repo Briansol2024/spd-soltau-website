@@ -89,6 +89,26 @@ const client = DEMO ? makeDemoClient(SPD, { rolle: DEMO_ROLLE }) : createClient(
 });
 if (DEMO) demoInbox = client.inbox;
 const saveTokens = () => { if (!DEMO) store.set('spd-tokens', client.auth.getTokens()); };
+// Im Demo-Modus sollen Bestellungen an den Overlay-Agenten trotzdem echt laufen: Brians echte Anmeldung liegt im Hintergrund
+// (Tokens im Speicher). Liefert { db, me } mit echtem Wix-Client – oder null, wenn niemand echt angemeldet ist.
+let echtCache = null;
+async function echtesKonto() {
+  if (!DEMO) return { db, me };
+  if (echtCache) return echtCache;
+  const tokens = store.get('spd-tokens'); if (!tokens) return null;
+  try {
+    const c = createClient({ modules: { items, members }, auth: OAuthStrategy({ clientId: CFG.clientId, tokens }) });
+    const { member } = await c.members.getCurrentMember({ fieldsets: ['FULL'] });
+    if (!member?._id) return null;
+    const edb = {
+      async list(col, { eq = {}, desc = null, limit = 100 } = {}) { let q = c.items.query(col); for (const [k, v] of Object.entries(eq)) q = q.eq(k, v); if (desc) q = q.descending(desc); return (await q.limit(limit).find()).items; },
+      insert: (col, data) => c.items.insert(col, data), update: (col, item) => c.items.update(col, item),
+    };
+    const name = [member.contact?.firstName, member.contact?.lastName].filter(Boolean).join(' ') || member.profile?.nickname || member.loginEmail;
+    echtCache = { db: edb, me: { id: member._id, name, email: member.loginEmail || '' } };
+    return echtCache;
+  } catch (e) { return null; }
+}
 const errText = e => e?.details?.applicationError?.description || e?.message || String(e);
 const db = {
   async list(col, { eq = {}, desc = null, asc = null, limit = 500 } = {}) {
@@ -1829,7 +1849,7 @@ const chatSenden = async ({ text, bild }) => {
 const notizen = makeNotizen({ db, store, esc, $, $$, msg, busy, errText, shareText, chatSenden, me: () => me });
 // Sitzungsrückblick (Video, Kacheln) – nur für Brian; im Demo für alle Rollen sichtbar
 const istBrian = () => DEMO || TESTER.includes(String(me?.email || '').toLowerCase());
-const rueckblick = makeRueckblick({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me: () => me });
+const rueckblick = makeRueckblick({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me: () => me, echtesKonto, DEMO });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====

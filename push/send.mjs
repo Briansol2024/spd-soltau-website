@@ -805,7 +805,7 @@ async function auftraege(subs, approved, logKeys) {
       if (a.status === 'wartet') {
         if (!wer || !TESTER_MAILS.includes((wer.email || '').toLowerCase())) { await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
         if (DRY) { log(`  Auftrag ${a._id}: würde Overlay-Agent starten (Trockenlauf)`); continue; }
-        try { await workflowStarten('overlays.yml', { auftrag: a._id }); await client.items.update('Auftraege', { ...a, status: 'gestartet', gestartetAm: new Date().toISOString() }); log(`  Auftrag ${a._id}: Overlay-Agent gestartet`); }
+        try { await workflowStarten('overlays.yml', { auftrag: a._id }); await client.items.update('Auftraege', { ...a, status: 'gestartet', gestartetAm: new Date().toISOString(), fortschritt: 3, schritt: 'Agent gestartet – der Rechner in der Cloud fährt hoch (etwa 1 Minute).' }); log(`  Auftrag ${a._id}: Overlay-Agent gestartet`); }
         catch (e) { log('  Auftrag starten:', e.message); await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Agent konnte nicht gestartet werden: ' + e.message.slice(0, 160) }).catch(() => {}); }
         continue;
       }

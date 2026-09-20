@@ -1744,3 +1744,7 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .rb-spinner{width:22px;height:22px;border:3px solid var(--linie);border-top-color:var(--rot);border-radius:50%;animation:rbDreh 1s linear infinite;flex:0 0 auto}
 @keyframes rbDreh{to{transform:rotate(360deg)}}
 #rb-bericht{width:100%;font:inherit;font-size:15px;line-height:1.5;padding:10px 12px;border:2px solid var(--schwarz);box-sizing:border-box;margin:6px 0 10px}
+.rb-auftrag{display:grid;gap:8px}
+.rb-auftrag-kopf{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.rb-balken{height:12px;background:var(--grau);overflow:hidden}
+.rb-balken span{display:block;height:100%;background:var(--rot);transition:width .6s var(--ease)}

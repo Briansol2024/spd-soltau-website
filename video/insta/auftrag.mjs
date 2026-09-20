@@ -2,7 +2,8 @@
 // lädt die ZIP in den Wix-Medienmanager und trägt Download-Link und Status in den Auftrag ein.
 // Läuft auf GitHub Actions (.github/workflows/overlays.yml), gestartet vom Push-Dienst, sobald ein Auftrag wartet.
 //   node video/insta/auftrag.mjs <auftragId>
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import webpush from 'web-push';
 import { mkdir, rm, readdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +32,18 @@ async function zipOhneKompression(dir, namen) {
 const setzen = async (a, patch) => { try { return await client.items.update('Auftraege', { ...a, ...patch }); } catch (e) { log('Auftrag speichern:', e.message); return a; } };
 let [a] = await queryAll(client, 'Auftraege', q => q.eq('_id', id)).catch(() => []);
 if (!a) { console.error('Auftrag nicht gefunden:', id); process.exit(1); }
-a = await setzen(a, { status: 'laeuft', gestartetAm: new Date().toISOString(), fehler: '' });
+a = await setzen(a, { status: 'laeuft', gestartetAm: a.gestartetAm || new Date().toISOString(), fehler: '', fortschritt: 5, schritt: 'Rechner läuft – Browser wird vorbereitet.' });
+// Push direkt vom Agenten (sofort statt beim nächsten Lauf des Push-Dienstes)
+async function melden(titel, text, link) {
+  try {
+    if (!process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_PUBLIC_KEY || !a.memberId) return false;
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:weber.soltau@gmail.com', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+    const subs = (await queryAll(client, 'PushSubscriptions', q => q.eq('memberId', a.memberId))).filter(s => s.aktiv !== false && s.endpoint && s.keys);
+    let ok = 0;
+    for (const s of subs) { try { await webpush.sendNotification({ endpoint: s.endpoint, keys: typeof s.keys === 'string' ? JSON.parse(s.keys) : s.keys }, JSON.stringify({ title: titel, body: text, tag: 'auftrag:' + id, url: link }), { TTL: 24 * 3600 }); ok++; } catch (e) { /* Gerät weg */ } }
+    log(`Push an ${ok} Gerät(e)`); return ok > 0;
+  } catch (e) { log('Push:', e.message); return false; }
+}
 try {
   const manifest = JSON.parse(a.manifest || '{}');
   if (!Array.isArray(manifest.clips) || !manifest.clips.length) throw new Error('Auftrag ohne Clips');
@@ -39,9 +51,16 @@ try {
   await mkdir(path.join(__dirname, 'skripte'), { recursive: true });
   await writeFile(path.join(__dirname, 'skripte', name + '.json'), JSON.stringify(manifest), 'utf8');
   await rm(OUT, { recursive: true, force: true }); await mkdir(OUT, { recursive: true });
-  log(`Auftrag ${id}: ${manifest.clips.length} Clips rendern …`);
-  const r = spawnSync(process.execPath, [path.join(__dirname, 'render.mjs'), 'skript', name], { stdio: 'inherit', env: process.env });
-  if (r.status !== 0) throw new Error('Rendern fehlgeschlagen');
+  const n = manifest.clips.length; let fertigClips = 0;
+  log(`Auftrag ${id}: ${n} Clips rendern …`);
+  await new Promise((resolve, reject) => {
+    const p = spawn(process.execPath, [path.join(__dirname, 'render.mjs'), 'skript', name], { env: process.env });
+    let rest = '';
+    p.stdout.on('data', d => { rest += d.toString(); const zeilen = rest.split('\n'); rest = zeilen.pop(); for (const z of zeilen) { process.stdout.write(z + '\n'); const m = z.match(/^\[insta\] \S+-(\d\d)-(\S+) →/); if (m) { fertigClips = +m[1]; const clip = manifest.clips[fertigClips - 1]; const label = clip?.q?.label || clip?.q?.text || clip?.id || ''; setzen(a, { fortschritt: 5 + Math.round(80 * fertigClips / n), schritt: `Clip ${fertigClips} von ${n} fertig: ${String(label).replace(/[|*#_]/g, ' ').slice(0, 60)}` }).then(x => { a = x; }); } } });
+    p.stderr.on('data', d => process.stderr.write(d));
+    p.on('close', code => code === 0 ? resolve() : reject(new Error('Rendern fehlgeschlagen')));
+  });
+  a = await setzen(a, { fortschritt: 88, schritt: 'Alle Clips fertig – ZIP wird gepackt.' });
   const dateien = (await readdir(OUT)).filter(f => !f.startsWith('.'));
   if (!dateien.length) throw new Error('Keine Dateien entstanden');
   // Drehplan als Textdatei dazu
@@ -50,16 +69,19 @@ try {
   const buf = await zipOhneKompression(OUT, (await readdir(OUT)).filter(f => !f.startsWith('.')));
   const groesse = buf.length;
   log(`ZIP: ${zipName} (${Math.round(groesse / 1048576 * 10) / 10} MB) – Upload zu Wix …`);
+  a = await setzen(a, { fortschritt: 93, schritt: `ZIP (${Math.round(groesse / 1048576 * 10) / 10} MB) wird zu Wix hochgeladen.` });
   const { uploadUrl } = await client.files.generateFileUploadUrl('application/zip', { fileName: zipName, sizeInBytes: String(buf.length), parentFolderId: 'media-root' });
   const res = await fetch(uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(zipName), { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: buf });
   if (!res.ok) throw new Error('Upload fehlgeschlagen (' + res.status + ')');
   const j = await res.json(); const f = j.file || j;
   const url = f.url || '';
   if (!url) throw new Error('Wix hat keine Download-Adresse zurückgegeben');
-  await setzen(a, { status: 'fertig', url, dateiName: zipName, dateien: dateien.length + (manifest.drehplan ? 1 : 0), groesse, fertigAm: new Date().toISOString(), fehler: '' });
+  const gemeldet = await melden('Overlays fertig – zum Download bereit', `${a.titel || 'Overlay-Clips'} (${Math.round(groesse / 1048576 * 10) / 10} MB, ${dateien.length + (manifest.drehplan ? 1 : 0)} Dateien). Antippen zum Herunterladen.`, url);
+  await setzen(a, { status: 'fertig', url, dateiName: zipName, dateien: dateien.length + (manifest.drehplan ? 1 : 0), groesse, fertigAm: new Date().toISOString(), fehler: '', fortschritt: 100, schritt: 'Fertig.', benachrichtigt: gemeldet });
   log(`Auftrag ${id} fertig: ${url}`);
 } catch (e) {
   log('Auftrag fehlgeschlagen:', e.message);
-  await setzen(a, { status: 'fehler', fehler: String(e.message || e).slice(0, 300), fertigAm: new Date().toISOString() });
+  const gemeldet = await melden('Overlays: das hat nicht geklappt', String(e.message || e).slice(0, 140), (process.env.SITE_URL || 'https://spd-soltau.de') + '/mitglieder/#rat');
+  await setzen(a, { status: 'fehler', fehler: String(e.message || e).slice(0, 300), fertigAm: new Date().toISOString(), benachrichtigt: gemeldet });
   process.exit(1);
 }

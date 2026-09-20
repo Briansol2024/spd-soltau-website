@@ -37,3 +37,7 @@ jobs:
           WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
           WIX_SITE_ID: ${{ vars.WIX_SITE_ID }}
           WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+          SITE_URL: ${{ vars.SITE_URL }}
