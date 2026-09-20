@@ -19,25 +19,28 @@ export function makeRueckblick(ctx) {
     const wahl = variante === 'kurz' ? ent.slice(0, 3) : ent;
     const datum = fmtDate(r.sitzung);
     const istRat = /^Rat\b/.test(r.gremium || '');
-    const L = [];
-    L.push(`🎬 ${r.gremium || 'Sitzung'} vom ${datum} – ${variante === 'kurz' ? 'Reel, ca. 45 Sekunden' : 'ausführlich, ca. 90 Sekunden'}`);
+    const L = []; let nr = 0;
+    const take = (bild, text, overlay) => { nr++; L.push(`TAKE ${nr} · ${bild}`); L.push(`Du sagst: „${text}“`); L.push(`Overlay: ${overlay || 'keins'}`); L.push(''); };
+    L.push(`🎬 ${r.gremium || 'Sitzung'} vom ${datum} – ${variante === 'kurz' ? 'Reel, ca. 45 Sekunden' : 'ausführlich, ca. 90 Sekunden'} – Take für Take`);
     L.push('');
-    L.push(`[INTRO – du in die Kamera · Overlay: „${istRat ? 'Ratssitzung' : r.gremium} ${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.“]`);
-    L.push(`Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`);
-    L.push('');
-    for (const t of wahl) {
+    const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
+    take('du in die Kamera, Blick direkt rein', `Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`, `Großer Text „${istRat ? 'Ratssitzung' : r.gremium} ${dat}“ / „So hat der Rat|*entschieden*“ (4 s)`);
+    wahl.forEach((t, i) => {
       const z = zahlen(t);
-      const stand = z.da ? `${z.ja}:${z.nein}${z.enth ? ':' + z.enth : ''}` : '';
-      L.push(`[TOP ${t.nr || ''} – ${t.titel} · Overlay: „${kurzTitel(t.titel)}: ${beschlussLabel(t.beschluss) || 'Ergebnis'}${stand ? ' ' + stand : ''}“]`);
+      const stand = z.da ? `${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : '';
+      const lab = beschlussLabel(t.beschluss) || 'Ergebnis';
+      const ordnung = ['Erstens', 'Zweitens', 'Drittens', 'Viertens', 'Fünftens', 'Sechstens', 'Siebtens', 'Achtens'][i] || 'Dann';
+      take('du in die Kamera', `${ordnung}: ${kurzTitel(t.titel)}.`, `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „*${lab}*${stand ? '|' + stand : ''}“ (4 s)`);
       const haltung = { 'dafür': 'Wir haben dafür gestimmt.', dagegen: 'Wir haben dagegen gestimmt.', Enthaltung: 'Wir haben uns enthalten.', 'Änderungsantrag': 'Wir hatten einen Änderungsantrag gestellt.' }[t.position] || '';
+      const arg = satz1(t.einordnung);
+      if (arg || haltung) take('du, etwas näher (oder Vorlage/Foto im Bild)', [arg, haltung].filter(Boolean).join(' '), 'keins – der Satz trägt allein');
       const zahlSatz = z.da ? ` mit ${z.ja} zu ${z.nein}${z.enth ? ` bei ${z.enth} ${z.enth === 1 ? 'Enthaltung' : 'Enthaltungen'}` : ''}` : '';
       const erg = { angenommen: `Ergebnis: angenommen${zahlSatz}.`, abgelehnt: `Ergebnis: abgelehnt${zahlSatz}.`, geaendert: `Ergebnis: in geänderter Fassung angenommen${zahlSatz}.`, vertagt: 'Ergebnis: vertagt – das kommt noch mal auf den Tisch.', zurueckgezogen: 'Ergebnis: zurückgezogen.', kenntnis: 'Der Rat hat das zur Kenntnis genommen.' }[t.beschluss] || (t.ergebnis ? `Ergebnis: ${t.ergebnis}` : '');
-      L.push([`${t.titel}.`, satz1(t.einordnung), haltung, erg, t.ergebnis && t.beschluss ? `(${t.ergebnis})` : ''].filter(Boolean).join(' '));
-      L.push('');
-    }
-    if (ent.length > wahl.length) { L.push(`[Schnell hintereinander, nur Overlay – ${ent.length - wahl.length} weitere Punkte]`); for (const t of ent.slice(wahl.length)) L.push(`• ${kurzTitel(t.titel)}: ${beschlussLabel(t.beschluss) || t.ergebnis || ''}`); L.push(''); }
-    L.push('[OUTRO – Overlay: „spd-soltau.de“]');
-    L.push('Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de. Fragen dazu? Schreibt uns – wir antworten. Bis zur nächsten Sitzung!');
+      const stempel = { angenommen: 'Stempel „Angenommen“ (3 s)', geaendert: 'Stempel „Angenommen“ (3 s)', abgelehnt: 'Stempel „Abgelehnt“, schwarz (3 s)', vertagt: 'Stempel „Vertagt“ (3 s)', zurueckgezogen: 'Stempel „Zurückgezogen“ (3 s)', kenntnis: 'Stempel „Kenntnis“ (3 s)' }[t.beschluss] || 'keins';
+      if (erg) take('du in die Kamera, kurze Pause vor dem Ergebnis', `${erg}${t.ergebnis && t.beschluss ? ' ' + t.ergebnis + '.' : ''}`, stempel);
+    });
+    if (ent.length > wahl.length) take('du, schneller Schnitt', `Außerdem entschieden: ${ent.slice(wahl.length).map(t => `${kurzTitel(t.titel)} – ${(beschlussLabel(t.beschluss) || t.ergebnis || '').toLowerCase()}`).join(', ')}.`, `Liste „Außerdem entschieden“ / ${ent.slice(wahl.length, wahl.length + 5).map(t => kurzTitel(t.titel)).join(' | ')} (5 s)`);
+    take('du in die Kamera, Lächeln', 'Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de. Fragen dazu? Schreibt uns – wir antworten. Bis zur nächsten Sitzung!', 'Großer Text „Alle Vorlagen und Ergebnisse“ / „*spd-soltau.de*|/ratsbericht“ (4 s), danach Schlusskarte aus dem Grundkit');
     if (frei.length) {
       L.push(''); L.push('— Stichworte aus den Notizen der Fraktion (zur Inspiration, NICHT veröffentlichen):');
       for (const n of frei) { const z = String(n.text || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' / '); if (z) L.push(`• ${vorname(n.name)}: ${z.slice(0, 200)}`); else if (n.skizze) L.push(`• ${vorname(n.name)}: Skizze (siehe unten)`); }

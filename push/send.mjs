@@ -824,6 +824,36 @@ async function auftraege(subs, approved, logKeys) {
     }
   } catch (e) { log('Aufträge:', e.message); }
 }
+// ---------- Filmdreh: hochgeladene Dateiteile zusammensetzen → Medienmanager; fertige Overlay-Aufträge ins Projektmaterial ----------
+async function filmUploads(subs, logKeys) {
+  try {
+    const offen = await queryAll(client, 'FilmMaterial', q => q.eq('status', 'wartet'));
+    for (const m of offen) {
+      const teile = (await queryAll(client, 'FilmTeile', q => q.eq('materialId', m._id))).sort((a, b) => a.nr - b.nr);
+      if (teile.length < (m.teile || 1)) { if (NOW - new Date(m._createdDate).getTime() > 40 * 60 * 1000) { if (!DRY) await client.items.update('FilmMaterial', { ...m, status: 'fehler', fehler: 'Upload unvollständig – bitte noch einmal hochladen.' }); } continue; }
+      if (DRY) { log(`  Film: würde ${m.name} (${teile.length} Teile) ablegen`); continue; }
+      try {
+        const buf = Buffer.concat(teile.map(t => Buffer.from(t.daten || '', 'base64')));
+        const name = (m.name || 'datei').replace(/[^\wäöüÄÖÜß.-]+/g, '-');
+        const { uploadUrl } = await client.files.generateFileUploadUrl(m.mime || 'application/octet-stream', { fileName: name, sizeInBytes: String(buf.length), parentFolderId: 'media-root' });
+        const res = await fetch(uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(name), { method: 'PUT', headers: { 'Content-Type': m.mime || 'application/octet-stream' }, body: buf });
+        if (!res.ok) throw new Error('Upload ' + res.status);
+        const j = await res.json(); const f = j.file || j; const dateiUrl = f.url || '';
+        await client.items.update('FilmMaterial', { ...m, status: dateiUrl ? 'fertig' : 'fehler', url: dateiUrl, fehler: dateiUrl ? '' : 'Keine Adresse von Wix' });
+        const ids = teile.map(t => t._id); for (let i = 0; i < ids.length; i += 100) await client.items.bulkRemove('FilmTeile', ids.slice(i, i + 100)).catch(() => {});
+        log(`  Film: ${name} abgelegt (${Math.round(buf.length / 1024)} KB)`);
+        if (m.memberId) await send(byMembers(subs, [m.memberId]), { title: 'Datei bereit: ' + (m.titel || name), body: 'Liegt jetzt im Filmdreh-Projekt.', tag: 'film:' + m._id, url: url('/mitglieder/#filmdreh' + (m.projektId ? '/p-' + m.projektId : '')) }, 'film:' + m._id, logKeys);
+      } catch (e) { log('  Film-Upload:', e.message); await client.items.update('FilmMaterial', { ...m, status: 'fehler', fehler: e.message.slice(0, 160) }).catch(() => {}); }
+    }
+    // Fertige Overlay-Aufträge eines Projekts als Material ablegen (dann sehen beide im Team den Download)
+    for (const a of await queryAll(client, 'Auftraege', q => q.eq('status', 'fertig'))) {
+      if (!a.projektId || a.materialAngelegt || !a.url) continue;
+      if (DRY) continue;
+      await client.items.insert('FilmMaterial', { title: a.titel || 'Overlays', projektId: a.projektId, art: 'overlays', titel: a.titel || 'Overlays', url: a.url, name: a.dateiName || 'overlays.zip', mime: 'application/zip', groesse: a.groesse || 0, status: 'fertig', von: a.von || '', memberId: a.memberId || '', auftragId: a._id }).catch(e => log('  Film-Material:', e.message));
+      await client.items.update('Auftraege', { ...a, materialAngelegt: true }).catch(() => {});
+    }
+  } catch (e) { log('Filmdreh:', e.message); }
+}
 // ---------- Ratsberichte: freigegebene Sitzungen als öffentliche Kopie (nur öffentlich sagbare Felder) – danach Website neu bauen ----------
 const TESTER_MAILS = ['weber.soltau@gmail.com'];
 async function ratsberichte() {
@@ -900,6 +930,7 @@ const st = await loadSettings(approved);
   await mitfahren(st, subs, logKeys);
   await feedback(subs, approved, logKeys);
   await auftraege(subs, approved, logKeys);
+  await filmUploads(subs, logKeys);
   await ratsberichte();
   await abonnenten();
   await statistik();

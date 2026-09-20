@@ -15,6 +15,8 @@ import { BEREICHE as RAT_BEREICHE, bereichVon, gremiumVon } from './lib/rat.mjs'
 import { makeDemoClient } from './demo.js';
 import { makeNotizen, strokesToPng } from './notizen.js';
 import { makeRueckblick } from './rueckblick.js';
+import { makeFilm } from './film.js';
+import { FILM_TEAM } from './lib/film.mjs';
 import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
@@ -395,6 +397,7 @@ const inFraktion = () => !!settings?.groups.fraktion.has(me.id); // Ratsarbeit: 
 const SEC_VIS = { umfragen: 'umfragen', dokumente: 'dokumente', rat: 'rat', mitglieder: 'mitglieder', versammlung: 'versammlung', wahlkampf: 'wahlkampf' };
 const secVisible = k => {
   if (k === 'hilfe') return true;
+  if (k === 'filmdreh') return istFilmTeam();
   if (k === 'ratsarbeit') return inFraktion();
   if (k === 'vorstand') return anyRight();
   if (k === 'beitraege') return me.can('beitraege');
@@ -428,6 +431,7 @@ const ICON = {
   cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
   poll: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
   chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 6-7"/></svg>',
+  film: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20M2 15h20M7 4v16M17 4v16"/></svg>',
   flask: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/><path d="M7 15h10"/></svg>',
   doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>',
   rat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg>',
@@ -461,7 +465,7 @@ function navGroups() {
   return [
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
-    ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
+    ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('filmdreh', 'Filmdreh', ICON.film)]],
     ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), sec('feedback', 'Wünsche zur App', ICON.idea), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
@@ -524,7 +528,7 @@ async function updateBadges() {
   if (me.can('freigaben')) setBadge('vorstand', await vorstand.badge());
   if (inFraktion()) setBadge('ratsarbeit', await ratsarbeit.badge());
 }
-const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe, feedback: secFeedback,
+const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe, feedback: secFeedback, filmdreh: v => film.sec(v),
   versammlung: v => bereiche.versammlung(v), wahlkampf: v => bereiche.wahlkampf(v), wissen: v => bereiche.wissen(v), planung: v => bereiche.planung(v), ideen: v => bereiche.ideen(v) };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
@@ -1849,6 +1853,9 @@ const chatSenden = async ({ text, bild }) => {
 const notizen = makeNotizen({ db, store, esc, $, $$, msg, busy, errText, shareText, chatSenden, me: () => me });
 // Sitzungsrückblick (Video, Kacheln) – nur für Brian; im Demo für alle Rollen sichtbar
 const istBrian = () => DEMO || TESTER.includes(String(me?.email || '').toLowerCase());
+// Filmdreh (Regie-Modus) – nur für das Filmteam (Brian, Birhat); im Demo für alle Rollen sichtbar
+const istFilmTeam = () => DEMO || FILM_TEAM.includes(String(me?.email || '').toLowerCase());
+const film = makeFilm({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtWhen, ICON, DEMO, BASE, me: () => me, echtesKonto, route });
 const rueckblick = makeRueckblick({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me: () => me, echtesKonto, DEMO });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 

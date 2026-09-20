@@ -1748,3 +1748,55 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .rb-auftrag-kopf{display:flex;gap:12px;align-items:center;justify-content:space-between}
 .rb-balken{height:12px;background:var(--grau);overflow:hidden}
 .rb-balken span{display:block;height:100%;background:var(--rot);transition:width .6s var(--ease)}
+/* Filmdreh (Regie-Modus) */
+.fp-liste{display:grid;gap:10px;margin-top:12px}
+.fp-karte{display:grid;gap:4px;padding:14px 16px;background:#fff;border-left:4px solid var(--muted);color:var(--ink);text-decoration:none}
+.fp-karte.st-skript,.fp-karte.st-dreh{border-left-color:var(--rot)}
+.fp-karte.st-schnitt{border-left-color:#F28C00}
+.fp-karte.st-online{border-left-color:#177A38}
+.fp-karte b{font:700 18px/1.2 var(--display);text-transform:uppercase}
+.fp-karte small{color:var(--muted)}
+.fp-status{font:700 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--rot)}
+.fp-statusleiste{align-items:center;margin-bottom:6px}
+.fp-statusleiste input[type=date]{margin-left:auto;font:inherit;font-size:14px;padding:7px 10px;border:2px solid var(--schwarz)}
+#fp-skript,#fp-drehplan,#fp-notizen{width:100%;font:inherit;font-size:15px;line-height:1.5;padding:12px;border:2px solid var(--schwarz);box-sizing:border-box}
+.ow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.ow-form{display:grid;gap:10px}
+.ow-form .field input,.ow-form .field select,.ow-form .field textarea{width:100%;font:inherit;font-size:15px;padding:9px 10px;border:2px solid var(--schwarz);box-sizing:border-box}
+.ow-preview{display:grid;gap:8px}
+.ow-frame{width:270px;height:480px;overflow:hidden;background:#00B140;border:2px solid var(--schwarz)}
+.ow-frame iframe{width:1080px;height:1920px;border:0;transform:scale(.25);transform-origin:0 0;pointer-events:none}
+.ow-liste{display:grid;gap:6px;margin-top:14px}
+.ow-item{display:flex;gap:12px;align-items:center;padding:10px 12px;background:#fff;border-left:4px solid var(--rot)}
+.ow-item>div:first-of-type{flex:1;min-width:0;display:grid;gap:2px}
+.ow-item small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ow-nr{font:800 16px/1 var(--display);color:var(--rot)}
+.ow-item .mb-actions{gap:8px}
+.ow-item .linkbtn{font-size:14px}
+.fm-liste{display:grid;gap:8px}
+.fm-zeile{display:flex;gap:12px;align-items:center;padding:10px 12px;background:#fff;border-left:4px solid var(--schwarz)}
+.fm-zeile.art-link{border-left-color:var(--muted)}
+.fm-zeile.art-overlays{border-left-color:#177A38}
+.fm-zeile .rz-ico{flex:0 0 auto}
+.fm-text{flex:1;min-width:0;display:grid;gap:2px}
+.fm-text small{color:var(--muted)}
+.fm-zeile .linkbtn{font-size:20px;text-decoration:none;color:var(--muted)}
+.fm-neu{display:grid;gap:8px;margin-top:14px;padding:14px;background:var(--grau)}
+.fm-neu input[type=file]{font:inherit;font-size:14px}
+.ki-setup{display:grid;gap:8px;padding:14px;background:var(--grau)}
+.ki-chat{display:grid;gap:10px;max-height:420px;overflow:auto;padding:12px;background:#fff;border:2px solid var(--schwarz)}
+.ki-msg{display:grid;gap:4px;max-width:90%}
+.ki-msg.du{justify-self:end}
+.ki-msg.du .ki-text{background:var(--schwarz);color:#fff}
+.ki-wer{font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ki-text{padding:10px 12px;background:var(--grau);font-size:15px;line-height:1.5}
+.ki-vorschlag{display:flex;gap:8px;flex-wrap:wrap}
+.ki-form{display:flex;gap:8px;margin-top:10px;align-items:stretch}
+.ki-form textarea{flex:1;min-width:0;font:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--schwarz);resize:vertical}
+.ki-knoepfe{display:grid;gap:6px}
+#ki-mic.aktiv{background:var(--rot);color:#fff;border-color:var(--rot)}
+.rot{color:var(--rot)}
+@container site (max-width:700px){
+  .ow{grid-template-columns:minmax(0,1fr)}
+  .ow-preview{justify-items:center}
+}

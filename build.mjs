@@ -342,6 +342,14 @@ async function main() {
     for (const f of await readdir(helpDir)) if (/\.(mp4|jpg|webp|vtt)$/.test(f)) await copyFile(path.join(helpDir, f), path.join(OUT, 'assets', 'hilfe', f));
   }
   await buildApp();
+  // Overlay-Bühne (video/insta/stage.html) für die Vorschau in der Werkstatt – Pfade auf assets/insta/ umgebogen
+  try {
+    const stDir = path.join(OUT, 'assets', 'insta'); await mkdir(path.join(stDir, 'fonts'), { recursive: true });
+    let stage = await readFile(path.join(__dirname, 'video', 'insta', 'stage.html'), 'utf8');
+    stage = stage.replace(/\.\.\/fonts\//g, 'fonts/').replace(/\.\.\/\.\.\/dist\/assets\/images\//g, '../images/');
+    await writeFile(path.join(stDir, 'stage.html'), stage, 'utf8');
+    for (const f of await readdir(path.join(__dirname, 'video', 'fonts'))) if (f.endsWith('.ttf')) await copyFile(path.join(__dirname, 'video', 'fonts', f), path.join(stDir, 'fonts', f));
+  } catch (e) { console.log('[build] Overlay-Bühne:', e.message); }
   const imgDir = path.join(__dirname, 'src', 'images');
   if (existsSync(imgDir)) {
     await mkdir(path.join(OUT, 'assets', 'images'), { recursive: true });
