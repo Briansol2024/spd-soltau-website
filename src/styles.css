@@ -1403,16 +1403,21 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .top-mehr{grid-column:1/-1;font-size:13px}
 .top-mehr summary{cursor:pointer;color:var(--rot);font-weight:700}
 .top-mehr input,.top-mehr textarea{display:block;width:100%;margin-top:6px;font:inherit;font-size:14px;padding:8px 10px;border:2px solid var(--schwarz);box-sizing:border-box}
-.fokus{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.fokus{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;padding:0 12px 12px;--fokus-rand:12px}
 /* Sitzungsmodus = Vollbild: Kopf, Menü, Leiste, Fußzeile und Hinweise verschwinden, nur die Sitzung bleibt */
 body.fokus-modus .app-header,body.fokus-modus .mb-head,body.fokus-modus .mb-side,body.fokus-modus .mb-tabbar,body.fokus-modus .mb-sheet,body.fokus-modus .app-footer,body.fokus-modus .demo-note,body.fokus-modus #mb-hub,body.fokus-modus .totop{display:none!important}
 body.fokus-modus.has-tabbar{padding-bottom:0}
 body.fokus-modus .mb-layout{grid-template-columns:minmax(0,1fr)}
-.fokus-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:10px 14px;background:var(--schwarz);color:#fff}
+body.fokus-modus .mb-wrap{padding:0;max-width:none}
+body.fokus-modus .mb-main{margin:0}
+.fokus-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin:0 calc(-1 * var(--fokus-rand));padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:var(--schwarz);color:#fff}
 .fokus-bar-tag{margin-right:auto;order:0}
 .fokus-bar-titel{flex-basis:100%;min-width:0;line-height:1.1;order:2}
 .fokus-bar .fokus-hilfe,.fokus-bar .fokus-ende{order:1}
 .fokus-bar-meta{flex-basis:100%;order:3}
+@container site (min-width:900px){
+  .fokus{max-width:1200px;margin:0 auto;padding:0 24px 24px;--fokus-rand:24px}
+}
 @container site (min-width:600px){
   .fokus-bar-tag{margin-right:0}
   .fokus-bar-titel{order:0;flex:1 1 0;flex-basis:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1443,7 +1448,7 @@ body.fokus-modus .mb-layout{grid-template-columns:minmax(0,1fr)}
 .fokus-dok:hover{border-color:var(--rot)}
 .fokus-nachschlagen{display:grid;gap:10px}
 /* Chat im Sitzungsmodus: zugeklappt eine Leiste unten, aufgeklappt Liste + Eingabe */
-.fokus-chat{position:sticky;bottom:0;z-index:35;background:#fff;border:2px solid var(--schwarz);border-bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08)}
+.fokus-chat{position:sticky;bottom:0;z-index:35;margin:0 calc(-1 * var(--fokus-rand)) calc(-1 * var(--fokus-rand));background:#fff;border:2px solid var(--schwarz);border-bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08)}
 .fokus-chat-kopf{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:0;background:var(--schwarz);color:#fff;cursor:pointer;text-align:left;font:inherit}
 .fokus-chat-titel{font:800 14px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
 .fokus-chat-titel .mb-badge{position:static;height:18px;min-width:18px;line-height:18px;font-size:11px;padding:0 5px;background:var(--rot);color:#fff;border-radius:9px;text-align:center}
