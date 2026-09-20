@@ -185,7 +185,7 @@ function renderAuth(tab = 'login', hint = '') {
         <p class="note" id="p-msg" hidden></p>
         <div class="mb-actions"><button class="btn btn-rot" type="submit">Link schicken</button><button class="btn btn-line" type="button" id="p-back">Zurück</button></div>
       </form>
-      <p class="small muted">Noch kein Konto und nur mal reinschauen? <a href="?demo">Vorschau mit Beispieldaten öffnen</a></p>
+      ${istTester() ? '<p class="small muted"><a href="?demo">Demo-Modus öffnen (Beispieldaten)</a></p>' : ''}
       <p class="small"><a class="btn btn-line btn-sm" href="#hilfe">Hilfe &amp; Anleitungen (Videos)</a></p>
     </div>
     <div class="mb-aside">
@@ -394,6 +394,7 @@ const ICON = {
   cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
   poll: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
   chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 6-7"/></svg>',
+  flask: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/><path d="M7 15h10"/></svg>',
   doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>',
   rat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg>',
   users: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -427,9 +428,11 @@ function navGroups() {
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
     ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
-    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help)]],
+    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), istTester() ? ['demo', DEMO ? 'Demo-Modus: an' : 'Demo-Modus: aus', ICON.flask, demoLink(!DEMO)] : null]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
+// Demo-Modus per Schalter (nur Tester): Seite mit oder ohne ?demo neu laden, aktueller Bereich bleibt
+const demoLink = an => REDIRECT + (an ? '?demo' : '') + (location.hash && !/^#(anmelden|registrieren)$/.test(location.hash) ? location.hash : '#start');
 function navList() {
   return `${navGroups().map(([title, items]) => `<div class="mb-group"><div class="mb-group-title">${title}</div>${items.map(([k, l, icon, href]) => `<a href="${href}" data-sec="${k}">${icon}<span>${l}</span><b class="mb-badge" data-badge="${k}" hidden></b></a>`).join('')}</div>`).join('')}
   <button type="button" class="mb-logout" data-logout>${ICON.out}<span>Abmelden</span></button>`;
@@ -1253,6 +1256,13 @@ async function secProfil(v) {
     } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
     busy(btn, false);
   });
+  if (istTester()) v.insertAdjacentHTML('beforeend', `<section class="mb-sub tester"><h4 class="doc-cat">Testen <span class="small muted">nur für dich sichtbar</span></h4>
+    <div class="mb-actions">
+      <a class="btn ${DEMO ? 'btn-line' : 'btn-schwarz'} btn-sm" href="${esc(demoLink(!DEMO))}">${ICON.flask}Demo-Modus ${DEMO ? 'ausschalten' : 'einschalten'}</a>
+      <a class="btn btn-line btn-sm" href="${esc(new URL(`${BASE}/bald/?test=10`, location.href).href)}" target="_blank" rel="noopener">Countdown: letzte 10 Sekunden</a>
+      <a class="btn btn-line btn-sm" href="${esc(new URL(`${BASE}/bald/?test=ende`, location.href).href)}" target="_blank" rel="noopener">Countdown: nach dem Start</a>
+    </div>
+    <p class="small muted">Demo-Modus = Mitgliederbereich mit Beispieldaten (nichts wird gespeichert). Die Countdown-Testansichten merken sich den Besuch nicht – am Dienstag siehst du die echte Willkommensseite.</p></section>`);
 }
 
 // ---------- Push-Benachrichtigungen ----------
