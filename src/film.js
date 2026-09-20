@@ -13,10 +13,15 @@ export function takesAus(skript) {
   if (bloecke.length) return bloecke.map((b, i) => {
     const zeilen = b.split('\n'); const kopf = zeilen[0];
     const bild = kopf.replace(/^TAKE\s*\d+\s*[·–-]?\s*/i, '').replace(/^\s*Bild:\s*/i, '').trim();
-    const sagt = (zeilen.find(z => /^\s*Du sagst:/i.test(z)) || '').replace(/^\s*Du sagst:\s*/i, '').replace(/^[„"“]/, '').replace(/[“"”]$/, '').trim();
-    const overlay = (zeilen.find(z => /^\s*Overlay:/i.test(z)) || '').replace(/^\s*Overlay:\s*/i, '').trim();
-    const rest = zeilen.slice(1).filter(z => !/^\s*(Du sagst|Overlay):/i.test(z)).join('\n').trim();
-    return { nr: i + 1, bild, text: sagt || rest, overlay, notiz: sagt ? rest : '' };
+    // „Du sagst:“ darf über mehrere Zeilen gehen – bis zur nächsten Zeile mit „Overlay:“
+    let sagt = '', overlay = '', rest = [], modus = '';
+    for (const z of zeilen.slice(1)) {
+      if (/^\s*Du sagst:/i.test(z)) { modus = 'sagt'; sagt += z.replace(/^\s*Du sagst:\s*/i, '') + '\n'; continue; }
+      if (/^\s*Overlay:/i.test(z)) { modus = 'overlay'; overlay += z.replace(/^\s*Overlay:\s*/i, '') + ' '; continue; }
+      if (modus === 'sagt') sagt += z + '\n'; else if (modus === 'overlay') overlay += z + ' '; else rest.push(z);
+    }
+    sagt = sagt.trim().replace(/^[„"“]/, '').replace(/[“"”]$/, '').trim(); overlay = overlay.trim();
+    return { nr: i + 1, bild, text: sagt || rest.join('\n').trim(), overlay, notiz: sagt ? rest.join('\n').trim() : '' };
   });
   return text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map((t, i) => ({ nr: i + 1, bild: (t.match(/\[(?:Bild|Kamera)[^\]]*\]/i) || [''])[0].replace(/^\[|\]$/g, ''), text: t.replace(/\[[^\]]*\]\s*/g, '').trim(), overlay: (t.match(/\[Overlay:\s*([^\]]+)\]/i) || [])[1] || '', notiz: '' }));
 }
@@ -87,7 +92,7 @@ export function makeFilm(ctx) {
         <div class="ki-schritt"><span class="fp-schritt-nr">2</span><div>
           <b>Claudes Antwort hier einfügen</b> <span class="small muted">– einfach alles, was Claude geantwortet hat.</span>
           <textarea id="ki-antwort" rows="4" placeholder="Antwort einfügen …"></textarea>
-          <div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="ki-uebernehmen">Übernehmen</button><span class="small muted">Skript Take für Take landet unten, die Overlays in Schritt 2.</span></div>
+          <div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="ki-uebernehmen">Übernehmen</button><span class="small muted">Skript landet unten, der Drehplan darunter, die Overlays in Schritt 2.</span></div>
         </div></div>
       </details>
       <div class="field"><label for="fp-skript">Skript <span class="muted">– Take für Take, speichert von selbst</span></label><textarea id="fp-skript" rows="14" placeholder="TAKE 1 · Bild: du in die Kamera&#10;Du sagst: „Moin Soltau! …“&#10;Overlay: Großer Text „…“ (4 s)">${esc(p.skript || '')}</textarea></div>
@@ -145,8 +150,9 @@ export function makeFilm(ctx) {
       const r = antwortLesen(text); if (!r || !r.skript) { $('#ki-msg', v).textContent = 'In der Antwort war kein Skript im Take-Format – bitte Claude um „Take für Take“ bitten.'; return; }
       const patch = { skript: r.skript, kiWunsch: wunsch() };
       if (r.overlays?.length) patch.overlays = JSON.stringify(r.overlays);
+      if (r.drehplan) patch.drehplan = r.drehplan;
       await speichern(patch); st.tab = 'skript'; projekt(v, p._id);
-      $('#ki-msg', v).textContent = `Übernommen: ${takesAus(r.skript).length} Takes${r.overlays?.length ? `, ${r.overlays.length} Overlays` : ''}.${r.hinweis ? ' Claude fragt: ' + r.hinweis.slice(0, 120) : ''}`;
+      $('#ki-msg', v).textContent = `Übernommen: ${takesAus(r.skript).length} Takes${r.overlays?.length ? `, ${r.overlays.length} Overlays` : ''}${r.drehplan ? ', Drehplan' : ''}.${r.hinweis ? ' Claude fragt: ' + r.hinweis.slice(0, 120) : ''}`;
     };
     $('#ki-kopieren', v)?.addEventListener('click', async () => {
       const text = AUFTRAG(p, overlays, wunsch()); await speichern({ kiWunsch: wunsch() });

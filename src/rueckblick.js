@@ -26,22 +26,22 @@ export function makeRueckblick(ctx) {
     L.push('');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
     take('du in die Kamera, Blick direkt rein', `Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`, `Großer Text „${istRat ? 'Ratssitzung' : r.gremium} ${dat}“ / „So hat der Rat|*entschieden*“ (4 s)`);
+    // Je Entscheidung ein Take mit zwei, drei Sätzen am Stück – wenige Schnitte, locker erzählt
     wahl.forEach((t, i) => {
       const z = zahlen(t);
       const stand = z.da ? `${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : '';
       const lab = beschlussLabel(t.beschluss) || 'Ergebnis';
-      const ordnung = ['Erstens', 'Zweitens', 'Drittens', 'Viertens', 'Fünftens', 'Sechstens', 'Siebtens', 'Achtens'][i] || 'Dann';
-      take('du in die Kamera', `${ordnung}: ${kurzTitel(t.titel)}.`, `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „*${lab}*${stand ? '|' + stand : ''}“ (4 s)`);
-      const haltung = { 'dafür': 'Wir haben dafür gestimmt.', dagegen: 'Wir haben dagegen gestimmt.', Enthaltung: 'Wir haben uns enthalten.', 'Änderungsantrag': 'Wir hatten einen Änderungsantrag gestellt.' }[t.position] || '';
+      const einstieg = ['Fangen wir mit dem größten Punkt an', 'Dann', 'Und noch etwas, das viele betrifft', 'Außerdem', 'Und dann war da noch', 'Zum Schluss ein Punkt, der mir wichtig ist', 'Ein Letztes', 'Und'][i] || 'Und';
+      const haltung = { 'dafür': 'Wir haben dafür gestimmt', dagegen: 'Wir haben dagegen gestimmt', Enthaltung: 'Wir haben uns enthalten', 'Änderungsantrag': 'Wir hatten einen Änderungsantrag gestellt' }[t.position] || '';
+      const zahlSatz = z.da ? ` – ${z.ja} zu ${z.nein}${z.enth ? `, ${z.enth} ${z.enth === 1 ? 'Enthaltung' : 'Enthaltungen'}` : ''}` : '';
+      const erg = { angenommen: `und der Rat hat es angenommen${zahlSatz}.`, abgelehnt: `aber der Rat hat es abgelehnt${zahlSatz}.`, geaendert: `und in der geänderten Fassung ist es durchgegangen${zahlSatz}.`, vertagt: 'aber das wurde vertagt – kommt also noch mal auf den Tisch.', zurueckgezogen: 'aber der Antrag wurde zurückgezogen.', kenntnis: 'das hat der Rat zur Kenntnis genommen.' }[t.beschluss] || (t.ergebnis ? `Ergebnis: ${t.ergebnis}.` : '');
       const arg = satz1(t.einordnung);
-      if (arg || haltung) take('du, etwas näher (oder Vorlage/Foto im Bild)', [arg, haltung].filter(Boolean).join(' '), 'keins – der Satz trägt allein');
-      const zahlSatz = z.da ? ` mit ${z.ja} zu ${z.nein}${z.enth ? ` bei ${z.enth} ${z.enth === 1 ? 'Enthaltung' : 'Enthaltungen'}` : ''}` : '';
-      const erg = { angenommen: `Ergebnis: angenommen${zahlSatz}.`, abgelehnt: `Ergebnis: abgelehnt${zahlSatz}.`, geaendert: `Ergebnis: in geänderter Fassung angenommen${zahlSatz}.`, vertagt: 'Ergebnis: vertagt – das kommt noch mal auf den Tisch.', zurueckgezogen: 'Ergebnis: zurückgezogen.', kenntnis: 'Der Rat hat das zur Kenntnis genommen.' }[t.beschluss] || (t.ergebnis ? `Ergebnis: ${t.ergebnis}` : '');
-      const stempel = { angenommen: 'Stempel „Angenommen“ (3 s)', geaendert: 'Stempel „Angenommen“ (3 s)', abgelehnt: 'Stempel „Abgelehnt“, schwarz (3 s)', vertagt: 'Stempel „Vertagt“ (3 s)', zurueckgezogen: 'Stempel „Zurückgezogen“ (3 s)', kenntnis: 'Stempel „Kenntnis“ (3 s)' }[t.beschluss] || 'keins';
-      if (erg) take('du in die Kamera, kurze Pause vor dem Ergebnis', `${erg}${t.ergebnis && t.beschluss ? ' ' + t.ergebnis + '.' : ''}`, stempel);
+      const text = [`${einstieg}: ${kurzTitel(t.titel)}.`, arg, haltung && erg ? `${haltung}, ${erg}` : (haltung ? haltung + '.' : erg ? erg.charAt(0).toUpperCase() + erg.slice(1) : ''), t.ergebnis && t.beschluss ? t.ergebnis + '.' : ''].filter(Boolean).join(' ');
+      take(i % 2 ? 'du, etwas näher, ruhig mit Vorlage oder Foto in der Hand' : 'du in die Kamera, locker, gern mit Geste', text, `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „*${lab}*${stand ? '|' + stand : ''}“ (4 s) – bei „${kurzTitel(t.titel).split(' ')[0]}“ einblenden`);
     });
     if (ent.length > wahl.length) take('du, schneller Schnitt', `Außerdem entschieden: ${ent.slice(wahl.length).map(t => `${kurzTitel(t.titel)} – ${(beschlussLabel(t.beschluss) || t.ergebnis || '').toLowerCase()}`).join(', ')}.`, `Liste „Außerdem entschieden“ / ${ent.slice(wahl.length, wahl.length + 5).map(t => kurzTitel(t.titel)).join(' | ')} (5 s)`);
-    take('du in die Kamera, Lächeln', 'Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de. Fragen dazu? Schreibt uns – wir antworten. Bis zur nächsten Sitzung!', 'Großer Text „Alle Vorlagen und Ergebnisse“ / „*spd-soltau.de*|/ratsbericht“ (4 s), danach Schlusskarte aus dem Grundkit');
+    take('du in die Kamera, Lächeln', 'Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de – und wenn ihr zu einem Punkt Fragen habt, schreibt uns einfach, wir antworten. Bis zur nächsten Sitzung!', 'Großer Text „Alle Vorlagen und Ergebnisse“ / „*spd-soltau.de*|/ratsbericht“ (4 s), danach Schlusskarte aus dem Grundkit');
+    L.push('DREHPLAN'); L.push(drehplanAuto(r, wahl.length + 2).trim());
     if (frei.length) {
       L.push(''); L.push('— Stichworte aus den Notizen der Fraktion (zur Inspiration, NICHT veröffentlichen):');
       for (const n of frei) { const z = String(n.text || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' / '); if (z) L.push(`• ${vorname(n.name)}: ${z.slice(0, 200)}`); else if (n.skizze) L.push(`• ${vorname(n.name)}: Skizze (siehe unten)`); }
@@ -167,7 +167,18 @@ export function makeRueckblick(ctx) {
     clips.push({ id: 'abspann', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht' } });
     return { titel: `Overlays ${r.gremium || 'Sitzung'} ${r.sitzung || ''}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie im Drehplan.', nurGruen: !alpha, drehplan, clips };
   }
-  // Overlays als Einträge für die Filmdreh-Werkstatt ({ typ, dauer, werte }) – gleiche Logik wie das Manifest
+  // Drehplan für ein Sitzungsvideo – automatisch, passend zur Zahl der Takes
+  function drehplanAuto(r, nTakes) {
+    const istRat = /^Rat\b/.test(r.gremium || '');
+    return `Aufnahmen vorher (je 5–10 s, Handy hochkant):
+A1 Übersichtskachel „So hat der Rat entschieden“ aus dem Rückblick – als Abschlussbild
+A2 spd-soltau.de/ratsbericht am Handy scrollen – Einblendung beim letzten Take
+A3 Kurzer Schwenk ${istRat ? 'Rathaus oder Alte Reithalle' : 'Rathaus'} von außen (optional, als Auftakt unter Take 1)
+Kamera & Ort: Handy hochkant auf Augenhöhe (Stativ oder abgestellt), Licht von vorn – Fenster im Rücken der Kamera –, ruhiger Hintergrund (Roter Bahnhof, Rathaus), 1 bis 1,5 m Abstand, Ansteckmikro oder nah dran, keine Musik im Raum.
+Reihenfolge beim Dreh: erst alle ${nTakes} Kamera-Takes am Stück, jeden zweimal (einmal locker, einmal konzentriert), Blick in die Linse; danach A1–A3.
+Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 beim „spd-soltau.de“-Satz, A1 als Abschlussbild 3 s; Overlays auf Grün per Chroma-Key (#00B140) beim genannten Stichwort ein; Musik leise, automatische Untertitel an, Schlusskarte aus dem Grundkit.`;
+  }
+  // Overlays als Einträge für die Filmdreh-Werkstatt ({ typ, dauer, werte }) – sparsam: eins je Entscheidung
   function overlaysAusSitzung(r, tops) {
     const ent = tops.filter(hatErgebnis); const istRat = /^Rat\b/.test(r.gremium || '');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
@@ -176,7 +187,7 @@ export function makeRueckblick(ctx) {
     ent.slice(0, 8).forEach((t, i) => {
       const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
       out.push({ typ: 'gross', dauer: 4, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, pos: 'oben', gr: 'm' } });
-      if (stempelText[t.beschluss]) out.push({ typ: 'stempel', dauer: 3, werte: { text: stempelText[t.beschluss], art: t.beschluss === 'abgelehnt' ? 'schwarz' : '' } });
+      void stempelText;
     });
     out.push({ typ: 'gross', dauer: 4, werte: { label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht', pos: 'oben', gr: 'm' } });
     return out;
@@ -302,10 +313,10 @@ export function makeRueckblick(ctx) {
       $('#rb-teilen', v).addEventListener('click', () => shareText($('#rb-skript', v).value));
       $('#rb-speichern', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { r = await db.update('Ratsvorbereitung', { ...r, skript: $('#rb-skript', v).value }); $('#rb-skript-msg', v).textContent = 'gespeichert'; } catch (err) { $('#rb-skript-msg', v).textContent = 'Nicht gespeichert: ' + errText(err); } busy(b, false); });
       // Video-Projekt (Filmdreh) aus der Sitzung: mit Claudes Antwort oder aus dem automatischen Skript
-      const projektAnlegen = async (skript, ovl, hinweis) => {
+      const projektAnlegen = async (skript, ovl, hinweis, drehplan = '') => {
         const alle = await db.list('FilmProjekte', { limit: 100 }).catch(() => []);
         const alt = alle.find(x => x.sitzungId === r._id);
-        const daten = { title: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, titel: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, art: 'ratsbericht', status: 'skript', datum: r.sitzung || '', sitzungId: r._id, skript, overlays: JSON.stringify(ovl || []), drehplan: 'A1 Übersichtskachel aus dem Rückblick als Abschlussbild\nA2 spd-soltau.de/ratsbericht scrollen', notizen: `Aus dem Sitzungsrückblick angelegt.${hinweis ? ' Claude fragt: ' + hinweis : ''}`, ki: '[]', takesFertig: '[]', von: me().name, memberId: me().id };
+        const daten = { title: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, titel: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, art: 'ratsbericht', status: 'skript', datum: r.sitzung || '', sitzungId: r._id, skript, overlays: JSON.stringify(ovl || []), drehplan: drehplan || drehplanAuto(r, (skript.match(/TAKE\s*\d+/gi) || []).length), notizen: `Aus dem Sitzungsrückblick angelegt.${hinweis ? ' Claude fragt: ' + hinweis : ''}`, ki: '[]', takesFertig: '[]', von: me().name, memberId: me().id };
         const p2 = alt ? await db.update('FilmProjekte', { ...alt, ...daten, notizen: alt.notizen || daten.notizen }) : await db.insert('FilmProjekte', daten);
         location.hash = '#filmdreh/dreh-' + p2._id;
       };
@@ -314,9 +325,9 @@ export function makeRueckblick(ctx) {
         const b = e.currentTarget; const ant = antwortLesen($('#rb-claude-antwort', v).value);
         if (!ant || !ant.skript) { $('#rb-projekt-msg', v).textContent = 'In der Antwort war kein Skript im Take-Format.'; return; }
         busy(b, true);
-        try { await projektAnlegen(ant.skript, ant.overlays && ant.overlays.length ? ant.overlays : overlaysAusSitzung(r, tops), ant.hinweis); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); }
+        try { await projektAnlegen(ant.skript, ant.overlays && ant.overlays.length ? ant.overlays : overlaysAusSitzung(r, tops), ant.hinweis, ant.drehplan || ''); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); }
       });
-      $('#rb-projekt-auto', v)?.addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { await projektAnlegen($('#rb-skript', v).value, overlaysAusSitzung(r, tops), ''); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); } });
+      $('#rb-projekt-auto', v)?.addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { const r2 = antwortLesen($('#rb-skript', v).value) || {}; await projektAnlegen(r2.skript || $('#rb-skript', v).value, overlaysAusSitzung(r, tops), '', r2.drehplan || ''); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); } });
       $('#rb-kachel', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); const url = await kachelUebersicht(r, tops); bildZeigen(url, `Ratssitzung-${r.sitzung || ''}.png`, `So hat der Rat entschieden – ${r.gremium} ${fmtDate(r.sitzung)}`); busy(b, false); });
       // Story-Serie: alle Entscheidungen als 9:16-Bilder, dazu ZIP
       $('#rb-story', v)?.addEventListener('click', async e => {

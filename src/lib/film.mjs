@@ -32,29 +32,40 @@ export function AUFTRAG(p, overlays, wunsch, verlauf = []) {
   return `Du bist der Regieassistent der SPD Soltau (Ortsverein und Ratsfraktion in Soltau, Niedersachsen) für kurze Instagram-Videos (Reels, Stories) und Erklärvideos zur Website spd-soltau.de und zur Mitglieder-App.
 Stil: informell, persönlich, kurze klare Sätze, kein Amtsdeutsch, zugewandt, gern „Moin Soltau!“, Claim „Aus Liebe zu Soltau“. Sprecher: Brian Weber (stellv. Vorsitzender, Ratsmitglied) oder Birhat Kaçar (Vorsitzender, Fraktionsvorsitzender). Keine Angriffe auf Personen, nichts erfinden – wenn Fakten fehlen, nachfragen.
 
-AUFGABE: Schreib das Skript TAKE FÜR TAKE. Jeder Take = eine Einstellung mit genau dem Satz (höchstens zwei kurzen Sätzen), der gesprochen wird. Kein Fließtext. Ein Reel (45 s) hat 8–14 Takes, ein Erklärvideo 15–25. Format je Take, Leerzeile dazwischen:
-TAKE 1 · Bild: du in die Kamera (oder: Handy links im Bild, Bildschirmaufnahme A2 …)
-Du sagst: „…“
-Overlay: Großer Text „…“ / „…|*…*“ (4 s) – oder: keins
-Overlay-Bausteine (typ → Felder; Zeilen mit | trennen, *Wort* = rot):
+AUFGABE: Schreib das Skript in TAKES – locker und natürlich, wie jemand, der vor der Kamera einfach erzählt. Ein Take ist eine Einstellung, in der der Sprecher zwei bis vier Sätze am Stück sagt: mit Übergängen („und deshalb“, „das heißt für euch“), ruhig ein Halbsatz, ruhig ein kleines Augenzwinkern. Nicht abgehackt, keine Stichpunkte, keine Aufzählung im Stakkato. Wenige Schnitte: ein Reel (45 s) hat 4–7 Takes, ein Erklärvideo 8–14. Professionell heißt: eine klare Botschaft pro Take, konkrete Zahlen, Orte, Namen; keine Floskeln, keine Parteisprache.
+Format je Take, Leerzeile dazwischen:
+TAKE 1 · Bild: du in die Kamera, sitzend, Rathaus im Hintergrund (Handy hochkant, Augenhöhe)
+Du sagst: „… zwei bis vier Sätze am Stück, so wie man spricht …“
+Overlay: Großer Text „…“ / „…|*…*“ (4 s) – bei „Stichwort“ einblenden – oder: keins
+Overlays sparsam: höchstens eins je Take und nur, wo es die Botschaft trägt (eine Zahl, ein Name, ein Ergebnis). Bausteine (typ → Felder; Zeilen mit | trennen, *Wort* = rot):
 ${BAUSTEINE_TEXT}
-Danach: in ein, zwei Sätzen fragen, ob das Skript so passt oder was anders soll. Liefere außerdem die Overlays als JSON-Liste in genau dieser Form (in einer Zeile, nach der Überschrift OVERLAYS-JSON, ein Eintrag je Take mit Overlay, gleiche Reihenfolge):
+Nach dem letzten Take: in ein, zwei Sätzen fragen, ob das Skript so passt oder was anders soll.
+Danach IMMER ein Abschnitt DREHPLAN (Überschrift genau so, dann kurze Zeilen):
+DREHPLAN
+Aufnahmen vorher: A1 … (Bildschirmaufnahme/Foto/Szene, je 5–10 s), A2 …
+Kamera & Ort: Handy hochkant, Augenhöhe, Licht von vorn oder seitlich, ruhiger Hintergrund, Abstand, Ton
+Reihenfolge beim Dreh: welche Takes am Stück, jeden zweimal, danach die Aufnahmen A1 …
+Schnitt: wo A1/A2 hineingeschnitten werden, Overlays auf Grün (Chroma-Key), Musik leise, Untertitel an
+Zum Schluss die Overlays als JSON-Liste in genau dieser Form (in einer Zeile, nach der Überschrift OVERLAYS-JSON, ein Eintrag je Take mit Overlay, gleiche Reihenfolge):
 OVERLAYS-JSON
 [{"typ":"gross","dauer":4,"werte":{"label":"…","text":"…|*…*","pos":"oben","gr":"m"}}, {"typ":"stempel","dauer":3,"werte":{"text":"Angenommen"}}]
-Keine Markdown-Formatierung, keine Codeblöcke, keine Einleitung wie „Hier ist“. Wenn der Nutzer nur eine Rückfrage stellt oder eine Änderung wünscht, antworte kurz und liefere das komplette überarbeitete Skript erneut.
+Keine Markdown-Formatierung, keine Codeblöcke, keine Einleitung wie „Hier ist“. Wenn der Nutzer nur eine Rückfrage stellt oder eine Änderung wünscht, antworte kurz und liefere danach das komplette überarbeitete Skript samt DREHPLAN und OVERLAYS-JSON erneut.
 
 PROJEKT: „${p.titel}“ (${art}${p.datum ? ', Termin ' + p.datum : ''}).
 ${p.skript ? 'BISHERIGES SKRIPT:\n' + String(p.skript).slice(0, 4000) + '\n' : ''}${overlays && overlays.length ? 'BISHERIGE OVERLAYS: ' + JSON.stringify(overlays).slice(0, 1500) + '\n' : ''}${gespraech}
 WUNSCH: ${wunsch || 'Bitte ein Skript vorschlagen.'}`;
 }
-// Antwort → { skript (nur Takes), overlays, hinweis (Rückfrage) }
+// Antwort → { skript (nur Takes), drehplan, overlays, hinweis (Rückfrage) }
 export function antwortLesen(text) {
   const t = String(text || '').replace(/\r/g, '').replace(/```[a-z]*\n?/gi, '').trim(); if (!t) return null;
   let overlays = null; let skript = t;
   const m = t.match(/OVERLAYS-JSON\s*\n?\s*(\[[\s\S]*?\])/i);
   if (m) { try { overlays = JSON.parse(m[1]).filter(o => overlayTyp(o.typ)).map(o => ({ typ: o.typ, dauer: +o.dauer || overlayTyp(o.typ).dauer, werte: o.werte || {} })); } catch (e) { overlays = null; } skript = (t.slice(0, m.index) + t.slice(m.index + m[0].length)).trim(); }
   else { try { const j = JSON.parse(t.match(/\{[\s\S]*\}/)?.[0] || ''); if (j && (j.skript || j.antwort)) { skript = j.skript || j.antwort; if (Array.isArray(j.overlays)) overlays = j.overlays.filter(o => overlayTyp(o.typ)).map(o => ({ typ: o.typ, dauer: +o.dauer || overlayTyp(o.typ).dauer, werte: o.werte || {} })); } } catch (e) { /* Klartext */ } }
+  let drehplan = '';
+  const dp = skript.match(/^\s*(?:\*\*)?DREHPLAN(?:\*\*)?\s*:?\s*$/im);
+  if (dp) { drehplan = skript.slice(dp.index + dp[0].length).trim(); skript = skript.slice(0, dp.index).trim(); }
   const erst = skript.search(/TAKE\s*\d+/i);
-  if (erst >= 0) { const bloecke = skript.slice(erst).split(/\n\s*\n/); const vorher = skript.slice(0, erst).trim(); const frage = bloecke.filter(b => !/^\s*TAKE\s*\d+/i.test(b)); return { skript: bloecke.filter(b => /^\s*TAKE\s*\d+/i.test(b)).join('\n\n'), overlays, hinweis: [vorher, frage.join(' ')].filter(Boolean).join(' ').trim() }; }
-  return { skript: '', overlays, hinweis: skript };
+  if (erst >= 0) { const bloecke = skript.slice(erst).split(/\n\s*\n/); const vorher = skript.slice(0, erst).trim(); const frage = bloecke.filter(b => !/^\s*TAKE\s*\d+/i.test(b)); return { skript: bloecke.filter(b => /^\s*TAKE\s*\d+/i.test(b)).join('\n\n'), drehplan, overlays, hinweis: [vorher, frage.join(' ')].filter(Boolean).join(' ').trim() }; }
+  return { skript: '', drehplan, overlays, hinweis: skript };
 }
