@@ -240,6 +240,13 @@ Wunsch des Vorsitzes (19.09.2026): nicht durchgehend Rot/Schwarz/Weiß, sondern 
 die Klasse `foto` sorgt für den dunklen Verlauf, `foto foto-rot` für die SPD-rote Tönung (Zahlenbänder). Jeder Seitenkopf hat sein Motiv (`pageHead(…, foto)`),
 die drei Kästen am Seitenende sind Fotokästen, das Newsletter-Band ist hell. Neue Motive: Bild nach `src/images/motiv-<name>.jpg`, Name in `MOTIVE` eintragen. Fremde Fotos (Wikimedia Commons, CC BY-SA 4.0: Altes Rathaus, Rathaus bei Nacht, Marktstraße, Hagen, Bahnhofsgebäude, Heide, Allee bei Timmerloh, Poststraße 11) stehen mit Urheber in `MOTIV_CREDITS` und erscheinen automatisch unter Impressum → Bildnachweise.
 
+## Vorschau und Tests (nur für Tester)
+
+`?demo` (Mitgliederbereich mit Beispieldaten) läuft auf localhost immer, im Netz nur auf Geräten, auf denen sich zuvor eine Adresse aus `TESTER`
+(`src/members.js`, derzeit weber.soltau@gmail.com) echt angemeldet hat – das setzt das Merkmal `spd-tester` im Browser. Alle anderen landen bei `?demo`
+in der normalen Anmeldung. Dasselbe Merkmal schaltet auf der Countdown-Seite den Testmodus frei: `/bald/?test=10` zeigt die letzten zehn Sekunden mit
+Konfetti, `/bald/?test=ende` die Willkommensseite nach dem Start – beides ohne dass sich das Gerät den Besuch merkt.
+
 ## Rechtliches
 
 Impressum (§ 5 DDG, § 18 MStV), Datenschutzerklärung (Hosting GitHub Pages, Wix, Formulare, Newsletter, Mitgliederbereich inkl. Art. 9, Push, reCAPTCHA, Gerätespeicher,

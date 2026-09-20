@@ -25,7 +25,13 @@ const app = document.getElementById('mitglieder-app');
 if (!app) throw new Error('Mitgliederbereich: Container fehlt');
 const $ = (s, r = app) => r.querySelector(s);
 const $$ = (s, r = app) => [...r.querySelectorAll(s)];
-const DEMO = /[?&]demo\b/.test(location.search);
+// Vorschau mit Beispieldaten (?demo) nur für freigegebene Tester: auf localhost immer, sonst erst nach einer echten Anmeldung
+// mit einer Adresse aus TESTER (setzt auf dem Gerät das Merkmal „spd-tester“). Alle anderen landen bei ?demo in der normalen Anmeldung.
+const TESTER = ['weber.soltau@gmail.com'];
+const istTester = () => { try { return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || localStorage.getItem('spd-tester') === '1'; } catch (e) { return false; } };
+const demoGewuenscht = /[?&]demo\b/.test(location.search);
+if (demoGewuenscht && !istTester()) location.replace(location.pathname + location.hash);
+const DEMO = demoGewuenscht && istTester();
 const VIDEO = /[?&]video\b/.test(location.search); // Aufnahme der Hilfevideos: ohne Vorschau-Hinweis
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
 const BASE = SPD.base || '.';
@@ -337,6 +343,7 @@ async function loadMe() {
   const c = member.contact || {}, p = member.profile || {};
   const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || p.nickname || member.loginEmail;
   me = { id: member._id, name, email: member.loginEmail, rollen: [], vorstand: false, can: r => !!settings?.rights[r]?.has(me.id), sees: k => canSee(settings, me.id, k) };
+  try { if (TESTER.includes(String(member.loginEmail || '').toLowerCase())) localStorage.setItem('spd-tester', '1'); else localStorage.removeItem('spd-tester'); } catch (e) { /* ohne Speicher */ }
   await loadSettings();
   const mine = people.find(x => x.memberId === me.id);
   if (mine) { me.rollen = mine.rollen || []; me.vorstand = !!mine.vorstand; if (mine.name) me.name = mine.name; }

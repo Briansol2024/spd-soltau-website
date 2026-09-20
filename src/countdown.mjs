@@ -144,9 +144,16 @@ body.live .cd-box::before{background:#fff}
 </div>
 <script>
 (() => {
-  const WILLKOMMEN = new URLSearchParams(location.search).has('willkommen'); // Erstbesuch nach dem Start: Null + Konfetti, dann zur Website
-  const ZIEL = WILLKOMMEN ? Date.now() - 1 : Date.parse(document.body.dataset.countdown);
-  const merken = () => { try { localStorage.setItem('spd-willkommen', '1'); } catch (e) { /* egal */ } };
+  const Q = new URLSearchParams(location.search);
+  // Testmodus nur für freigegebene Tester (Merkmal „spd-tester“ wird im Mitgliederbereich nach der Anmeldung gesetzt) oder auf localhost:
+  // ?test=10 zeigt die letzten 10 Sekunden samt Konfetti, ?test=ende die Seite nach dem Start – ohne dass sich das Gerät den Besuch merkt
+  let tester = false; try { tester = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || localStorage.getItem('spd-tester') === '1'; } catch (e) { /* egal */ }
+  const TEST = tester ? Q.get('test') : null;
+  const WILLKOMMEN = Q.has('willkommen') || TEST === 'ende'; // Erstbesuch nach dem Start: Null + Konfetti, dann zur Website
+  const ZIEL = WILLKOMMEN ? Date.now() - 1 : /^[0-9]+$/.test(TEST || '') ? Date.now() + Number(TEST) * 1000 : Date.parse(document.body.dataset.countdown);
+  const merken = () => { if (TEST !== null) return; try { localStorage.setItem('spd-willkommen', '1'); } catch (e) { /* egal */ } };
+  if (TEST !== null) document.body.removeAttribute('data-root');
+  if (TEST !== null) { const hinweis = document.createElement('p'); hinweis.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9;margin:0;padding:8px 14px;background:#fff;color:#0F0F0F;font:700 13px/1 sans-serif;letter-spacing:.1em;text-transform:uppercase'; hinweis.textContent = TEST === 'ende' ? 'Testansicht: nach dem Start' : 'Testansicht: die letzten ' + TEST + ' Sekunden'; document.body.appendChild(hinweis); }
   const START = ZIEL - 3 * 86400000; // Balken: die letzten drei Tage
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = s => document.querySelector(s);
