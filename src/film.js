@@ -58,7 +58,7 @@ export function makeFilm(ctx) {
   }
   // Foto verkleinern (max. 1600 px, JPEG) und stückweise hochladen wie im Material-Tab; Vorschau sofort über eine lokale Adresse
   async function bildHochladen(file, p) {
-    const bmp = await createImageBitmap(file).catch(() => null);
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }).catch(() => createImageBitmap(file).catch(() => null)); // Handy-Fotos: Drehung aus den Bilddaten übernehmen
     let blob = file;
     if (bmp) { const f = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)); const c = document.createElement('canvas'); c.width = Math.round(bmp.width * f); c.height = Math.round(bmp.height * f); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .86)); }
     const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
