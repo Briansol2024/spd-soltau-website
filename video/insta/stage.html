@@ -378,6 +378,8 @@ const clip = q.get('clip') || 'intro';
 const bg = q.get('bg') || 'gruen';
 if (bg !== 'keins') document.body.classList.add(bg);
 window.__ticks = [];
+// Tempo: alle Bewegungen dieses Clips schneller oder langsamer (0,25–4, Standard 1) – gilt für Einblenden, Verzögerungen und Ausblenden
+const tempo = Math.min(4, Math.max(.25, parseFloat(q.get('tempo')) || 1));
 // Farben je Clip: akzent = Farbe der *hervorgehobenen* Wörter, Kästen und Balken (Standard SPD-Rot); akzent2 = Zweitfarbe für ~Wörter~
 for (const [k, v] of [['akzent', '--rot'], ['akzent2', '--akzent2'], ['textfarbe', '--text']]) if (/^#[0-9a-f]{6}$/i.test(q.get(k) || '')) document.documentElement.style.setProperty(v, q.get(k));
 const hervor = t => String(t).replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/~(.+?)~/g, '<u class="a2">$1</u>');
@@ -532,11 +534,12 @@ if (clip === 'gegen') document.querySelectorAll('.gegen .z:not(.bleibt)').forEac
 window.__anims = null;
 window.seek = t => {
   if (!window.__anims) { window.__anims = document.getAnimations(); window.__anims.forEach(a => a.pause()); }
-  window.__anims.forEach(a => { a.currentTime = t; });
-  window.__ticks.forEach(f => f(t));
+  window.__anims.forEach(a => { a.currentTime = t * tempo; });
+  window.__ticks.forEach(f => f(t * tempo));
 };
-// Vorschau in der App: Ticks laufen in Echtzeit, bis seek() übernimmt
-if (window.__ticks.length) { const t0 = performance.now(); (function lauf() { if (window.__anims) return; window.__ticks.forEach(f => f(performance.now() - t0)); requestAnimationFrame(lauf); })(); }
+// Vorschau in der App: läuft in Echtzeit im gewählten Tempo, bis seek() übernimmt
+if (tempo !== 1) { document.body.offsetHeight; document.getAnimations().forEach(a => { a.playbackRate = tempo; }); }
+if (window.__ticks.length) { const t0 = performance.now(); (function lauf() { if (window.__anims) return; window.__ticks.forEach(f => f((performance.now() - t0) * tempo)); requestAnimationFrame(lauf); })(); }
 </script>
 </body>
 </html>
