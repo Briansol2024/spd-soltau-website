@@ -1,5 +1,7 @@
 # Push-Dienst der SPD-Soltau-App: verschickt Benachrichtigungen und führt Vorstands-Aktionen aus (siehe push/README.md).
 # Läuft alle 5 Minuten (GitHub verzögert Cron-Läufe manchmal um einige Minuten) und manuell.
+# Zwischen zwei Läufen schaut push/schnell.mjs alle 20 Sekunden nach, ob ein Overlay-Auftrag oder ein Upload wartet –
+# dann läuft der Dienst sofort (Render-Roboter startet innerhalb einer halben Minute statt nach bis zu 5).
 #
 # Secrets:   WIX_API_KEY, VAPID_PRIVATE_KEY, für E-Mail (Newsletter/Presse) SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM (optional MAIL_REPLY_TO)
 # Variables: WIX_SITE_ID, WIX_CLIENT_ID, VAPID_PUBLIC_KEY, VAPID_SUBJECT, PUSH_SITE_URL, SITE_URL, VORSTAND_EMAILS
@@ -22,6 +24,23 @@ concurrency:
 jobs:
   send:
     runs-on: ubuntu-latest
+    env:
+      WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      WIX_SITE_ID: ${{ vars.WIX_SITE_ID }}
+      VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+      VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+      PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+      WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
+      VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      MAIL_FROM: ${{ secrets.MAIL_FROM }}
+      MAIL_REPLY_TO: ${{ secrets.MAIL_REPLY_TO }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,31 +49,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node push/send.mjs
-        env:
-          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
-          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-          WIX_SITE_ID: ${{ vars.WIX_SITE_ID }}
-          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
-          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
-          PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}
-          WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
-          VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # GitHub führt Zeitplan-Läufe oft erst Stunden später aus. Deshalb plant jeder Lauf den nächsten selbst:
-      # 4 Minuten warten, dann neu starten – außer es wartet schon ein anderer Lauf (dann übernimmt der).
-      - name: Nächsten Lauf in 4 Minuten planen
+      # 4 Minuten warten – dabei alle 20 Sekunden nachsehen, ob ein Auftrag oder Upload wartet (dann sofort ein Lauf) –, dann neu starten.
+      - name: Nächsten Lauf in 4 Minuten planen, dazwischen Schnellchecks
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          sleep 240
+          for i in $(seq 1 12); do
+            sleep 20
+            if node push/schnell.mjs; then node push/send.mjs || true; fi
+          done
           andere=$(gh run list --workflow=push.yml --status queued --json databaseId --jq 'length')
           laufend=$(gh run list --workflow=push.yml --status in_progress --json databaseId --jq 'length')
           if [ "$andere" = "0" ] && [ "$laufend" -le "1" ]; then gh workflow run push.yml; echo "nächster Lauf geplant"; else echo "ein anderer Lauf wartet schon ($andere wartend, $laufend laufend)"; fi
-          SITE_URL: ${{ vars.SITE_URL }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          MAIL_REPLY_TO: ${{ secrets.MAIL_REPLY_TO }}

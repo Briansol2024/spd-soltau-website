@@ -213,7 +213,7 @@ Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 b
     const fakten = ent.map(t => { const z = zahlen(t); return `- TOP ${t.nr}: ${t.titel} – Beschluss: ${beschlussLabel(t.beschluss) || t.ergebnis || 'offen'}${z.da ? ` (${z.ja} Ja, ${z.nein} Nein${z.enth ? ', ' + z.enth + ' Enthaltungen' : ''})` : ''}; SPD: ${t.position || 'offen'}${t.einordnung ? `; unsere Argumente: ${t.einordnung}` : ''}${t.ergebnis && t.beschluss ? `; Anmerkung: ${t.ergebnis}` : ''}`; }).join('\n');
     return AUFTRAG({ titel: `${r.gremium || 'Sitzung'} ${fmtDate(r.sitzung)} – Reel`, art: 'ratsbericht', datum: r.sitzung, skript: '' }, [], `Ein Reel (ca. 45 Sekunden) zur ${r.gremium || 'Sitzung'} vom ${fmtDate(r.sitzung)}. Sprecher: Brian Weber, allein in die Kamera. Nur diese Fakten verwenden, nichts dazuerfinden:\n${fakten || '(noch keine Ergebnisse eingetragen)'}\nWichtigste Entscheidungen zuerst, jede mit Ergebnis und unserer Haltung; am Ende Verweis auf spd-soltau.de/ratsbericht.`);
   }
-  const AUFTRAG_TEXT = { wartet: 'Wartet auf den Agenten – er startet innerhalb von 5 Minuten.', gestartet: 'Der Agent rendert – meist 5 bis 10 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', laeuft: 'Der Agent rendert – meist 5 bis 10 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', fertig: 'Fertig – zum Download bereit.', fehler: 'Das hat nicht geklappt.' };
+  const AUFTRAG_TEXT = { wartet: 'Wartet auf den Render-Roboter bei GitHub – er startet innerhalb einer halben Minute.', gestartet: 'Der Render-Roboter rendert – meist 2 bis 5 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', laeuft: 'Der Render-Roboter rendert – meist 2 bis 5 Minuten. Du bekommst eine Push-Nachricht, sobald die ZIP fertig ist.', fertig: 'Fertig – zum Download bereit.', fehler: 'Das hat nicht geklappt.' };
   const mb = n => n ? `${Math.round(n / 1048576 * 10) / 10} MB` : '';
   async function bildTeilen(dataUrl, name, text) {
     try {
@@ -239,7 +239,7 @@ Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 b
     const laeuft = a => ['wartet', 'gestartet', 'laeuft'].includes(a.status);
     const seit = a => { const m = Math.round((Date.now() - new Date(a._createdDate || 0).getTime()) / 60000); return m < 1 ? 'gerade eben' : `seit ${m} Min.`; };
     const prozent = a => a.status === 'fertig' ? 100 : a.status === 'wartet' ? 3 : Math.max(8, Math.min(99, +a.fortschritt || 8));
-    const schritt = a => a.status === 'wartet' ? 'Wartet auf den Agenten – der Push-Dienst holt die Bestellung innerhalb von 5 Minuten ab.' : a.status === 'gestartet' ? (a.schritt || 'Agent startet – Rechner wird vorbereitet (etwa 1 Minute).') : a.status === 'laeuft' ? (a.schritt || 'Der Agent rendert …') : '';
+    const schritt = a => a.status === 'wartet' ? 'Wartet auf den Render-Roboter bei GitHub – er holt die Bestellung innerhalb einer halben Minute ab.' : a.status === 'gestartet' ? (a.schritt || 'Agent startet – Rechner wird vorbereitet (etwa 1 Minute).') : a.status === 'laeuft' ? (a.schritt || 'Der Agent rendert …') : '';
     const ent = () => tops.filter(hatErgebnis);
     const berichtVorschlag = () => { const e = ent(); const themen = e.slice(0, 3).map(t => kurzTitel(t.titel)); return `In der Sitzung am ${fmtDate(r.sitzung)} ging es um ${themen.length ? themen.join(', ').replace(/, ([^,]*)$/, ' und $1') : 'mehrere Punkte'}. ${e.length} ${e.length === 1 ? 'Entscheidung' : 'Entscheidungen'} – hier die Ergebnisse und wie wir abgestimmt haben.`; };
     const render = () => {
