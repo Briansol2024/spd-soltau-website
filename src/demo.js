@@ -118,8 +118,8 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
         { nr: '2', titel: 'Website: neue Bereiche im Mitgliederbereich', position: 'dafür', einordnung: 'Jahresplan und Ideen freischalten.', redner: 'Brian', diskussion: 'Alle wollen die Sitzungsmodus-Ansicht ausprobieren.', ergebnis: '' },
       ], von: people[1].name, title: 'Vorstandssitzung' },
       { _id: uid(), _owner: ids[1], _createdDate: daysAgo(40), sitzung: daysAgo(10).slice(0, 10), typ: 'Rat', gremium: 'Rat der Stadt Soltau', titel: 'Marktstraße', ort: 'Alte Reithalle', zeit: '18:00', tops: [
-        { nr: '9', titel: 'Sanierung Marktstraße – Bauabschnitt 1', position: 'dafür', einordnung: 'Mit unserem Änderungsantrag: zwölf zusätzliche Bäume.', redner: people[5].name, diskussion: 'Fraktion einstimmig dafür, Bäume als Bedingung.', ergebnis: 'Beschlossen 21:8 – Änderungsantrag angenommen.' },
-        { nr: '10', titel: 'Vergnügungssteuer – Änderung', position: 'dagegen', einordnung: 'Belastet kleine Vereine.', redner: people[6].name, diskussion: '', ergebnis: 'Abgelehnt mit 14:15.' },
+        { nr: '9', titel: 'Sanierung Marktstraße – Bauabschnitt 1', position: 'dafür', einordnung: 'Mit unserem Änderungsantrag: zwölf zusätzliche Bäume.', redner: people[5].name, diskussion: 'Fraktion einstimmig dafür, Bäume als Bedingung.', beschluss: 'geaendert', abstimmung: '21:8', ergebnis: 'inklusive unserer zwölf Bäume', ergebnisVon: people[1].name, ergebnisAm: daysAgo(10) },
+        { nr: '10', titel: 'Vergnügungssteuer – Änderung', position: 'dagegen', einordnung: 'Belastet kleine Vereine.', redner: people[6].name, diskussion: '', beschluss: 'abgelehnt', abstimmung: '14:15', ergebnis: '', ergebnisVon: people[1].name, ergebnisAm: daysAgo(10) },
       ], von: people[1].name, title: 'Rat der Stadt Soltau', b: 'rat' },
     ],
     Profile: [

@@ -1447,6 +1447,20 @@ body.fokus-modus .mb-main{margin:0}
 .fokus-dok small{font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .fokus-dok:hover{border-color:var(--rot)}
 .fokus-nachschlagen{display:grid;gap:10px}
+/* Ergebnis: Beschluss-Chips (ein Tipp), Abstimmung + Anmerkung */
+.fokus-ergebnis-text{font-size:18px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fokus-ergebnis-text .pos{margin-left:0;font-size:13px;padding:7px 9px 6px}
+.fokus-beschluss{display:flex;gap:6px;flex-wrap:wrap}
+.fokus-beschluss .chip[aria-pressed="true"]{background:var(--schwarz);color:#fff}
+.fokus-ergebnis-mehr{display:grid;grid-template-columns:130px minmax(0,1fr) auto;gap:8px;align-items:center}
+.fokus-ergebnis-mehr input{font:inherit;font-size:15px;padding:9px 10px;border:2px solid var(--schwarz);min-width:0;width:100%;box-sizing:border-box}
+.pos.besch-angenommen,.pos.besch-geaendert{background:#177A38;border-color:#177A38;color:#fff}
+.pos.besch-abgelehnt{background:var(--rot);border-color:var(--rot);color:#fff}
+.pos.besch-vertagt,.pos.besch-zurueckgezogen,.pos.besch-kenntnis{background:var(--grau)}
+@container site (max-width:600px){
+  .fokus-ergebnis-mehr{grid-template-columns:minmax(0,1fr) auto}
+  .fokus-ergebnis-mehr input:nth-child(2){grid-column:1/-1}
+}
 /* Chat im Sitzungsmodus: zugeklappt eine Leiste unten, aufgeklappt Liste + Eingabe */
 .fokus-chat{position:sticky;bottom:0;z-index:35;margin:0 calc(-1 * var(--fokus-rand)) calc(-1 * var(--fokus-rand));background:#fff;border:2px solid var(--schwarz);border-bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08)}
 .fokus-chat-kopf{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:0;background:var(--schwarz);color:#fff;cursor:pointer;text-align:left;font:inherit}
