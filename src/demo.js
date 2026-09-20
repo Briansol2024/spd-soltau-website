@@ -22,13 +22,17 @@ function statistikDemo() {
 }
 const inDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
-export function makeDemoClient(SPD, { mitglied = false } = {}) {
+// rolle: 'vorstand' (alles), 'rat' (Ratsmitglied: Gruppen Rat + Fraktion, keine Vorstandsrechte) oder 'mitglied' (keine Rollen, keine Rechte)
+export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {}) {
+  if (mitglied) rolle = 'mitglied';
+  const ichVorstand = rolle === 'vorstand', ichRat = rolle === 'rat';
+  mitglied = !ichVorstand; // Max ist kein Vorstand: Einstellungen stammen dann von people[1]
   const ME = 'demo-me';
   const pool = [...(SPD.vorstand || []), ...(SPD.rat || []), ...(SPD.fraktion || [])].map(p => p.name).filter(Boolean);
   const names = [...new Set(pool)].filter(n => !/max mustermann/i.test(n)).slice(0, 14);
   if (!names.length) names.push('Birhat Kaçar', 'Manuela Bartels', 'Inna Herold', 'Reiner Klatt', 'Karin Ruland', 'Harald Garbers');
   while (names.length < 14) names.push('Mitglied ' + (names.length + 1)); // Beispieldaten brauchen 5 Vorstand + 6 Rat + 3 weitere
-  const people = ['Max Mustermann', ...names].map((name, i) => ({ _id: uid(), memberId: i === 0 ? ME : 'demo-m' + i, name, vorstand: i < 5 && !(mitglied && i === 0), rollen: mitglied && i === 0 ? ['Mitglied'] : i < 5 ? ['Vorstandsmitglied'] : i < 11 ? ['Ratsmitglied'] : ['Mitglied'], pushAktiv: i % 3 !== 1, status: 'aktiv', title: name }));
+  const people = ['Max Mustermann', ...names].map((name, i) => ({ _id: uid(), memberId: i === 0 ? ME : 'demo-m' + i, name, vorstand: i < 5 && !(mitglied && i === 0), rollen: i === 0 ? (ichVorstand ? ['Vorstandsmitglied'] : ichRat ? ['Ratsmitglied'] : ['Mitglied']) : i < 5 ? ['Vorstandsmitglied'] : i < 11 ? ['Ratsmitglied'] : ['Mitglied'], pushAktiv: i % 3 !== 1, status: 'aktiv', title: name }));
   const ids = people.map(p => p.memberId);
   const OWNER = mitglied ? ids[1] : ME; // wer die Einstellungen gespeichert hat (muss zum Vorstand gehören)
   const VON = mitglied ? people[1].name : 'Max Mustermann';
@@ -53,7 +57,7 @@ export function makeDemoClient(SPD, { mitglied = false } = {}) {
     Benachrichtigungen: [
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'registrierung', empfaenger: mitglied ? [ids[1], ids[2]] : [ME, ids[1]], namen: mitglied ? [people[1].name, people[2].name] : ['Max Mustermann', people[1].name], von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'recht:umfragen', empfaenger: mitglied ? [ids[1], ids[2]] : [ME, ids[1], ids[2]], namen: mitglied ? [people[1].name, people[2].name] : ['Max Mustermann', people[1].name, people[2].name], von: VON },
-      { _id: uid(), _owner: OWNER, _createdDate: daysAgo(4), thema: 'gruppe:rat', empfaenger: [...(mitglied ? [] : [ME]), ...ids.slice(5, 11)], namen: [...(mitglied ? [] : ['Max Mustermann']), ...people.slice(5, 11).map(p => p.name)], von: VON },
+      { _id: uid(), _owner: OWNER, _createdDate: daysAgo(4), thema: 'gruppe:rat', empfaenger: [...(ichVorstand || ichRat ? [ME] : []), ...ids.slice(5, 11)], namen: [...(ichVorstand || ichRat ? ['Max Mustermann'] : []), ...people.slice(5, 11).map(p => p.name)], von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(4), thema: 'gruppe:fraktion', empfaenger: [ids[2], ...ids.slice(11, 13)], namen: [people[2], ...people.slice(11, 13)].map(p => p.name), von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(2), thema: 'sicht:rat', modus: 'gruppen', gruppen: ['fraktion'], empfaenger: ids.slice(13, 14), namen: people.slice(13, 14).map(p => p.name), von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'whatsapp', empfaenger: [], gruppen: [{ name: 'SPD Soltau – Mitglieder', url: 'https://chat.whatsapp.com/BEISPIEL1' }, { name: 'Ratsfraktion', url: 'https://chat.whatsapp.com/BEISPIEL2' }], von: VON },

@@ -367,14 +367,6 @@ dialog[open]::backdrop{animation:fadeIn .35s}
 .ansprech .person .plate{margin:0;box-shadow:none;border-left:0;padding:12px 16px;align-self:center}
 .ansprech .person:hover .plate{transform:none}
 .poll{display:grid;gap:8px}
-.poll button{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;text-align:left;padding:14px 16px;background:#fff;border:2px solid var(--schwarz);font:700 19px/1 var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--ink);position:relative;overflow:hidden;transition:border-color .2s,color .2s}
-.poll button:hover{border-color:var(--rot);color:var(--rot)}
-.poll button .bar{position:absolute;left:0;top:0;bottom:0;background:var(--rot);opacity:.14;width:0;transition:width .9s var(--ease)}
-.poll button span{position:relative}
-.poll button .pct{color:var(--muted);font-variant-numeric:tabular-nums}
-.poll button[disabled]{cursor:default}
-.poll button.mine{border-color:var(--rot);color:var(--rot)}
-.poll button.mine .bar{opacity:.24}
 .topics{display:flex;gap:6px;flex-wrap:wrap}
 .box-schwarz .tag{justify-self:start}
 
@@ -492,7 +484,6 @@ dialog[open]::backdrop{animation:fadeIn .35s}
   .ziel summary{font-size:22px;padding:14px 0;gap:12px}
   .ziel summary .num{font-size:22px}
   /* Umfrage, Boxen, Formulare */
-  .poll button{font-size:16px;padding:12px 12px}
   .box{padding:20px}
   .box h3{font-size:22px}
   .split{gap:28px}
@@ -864,8 +855,39 @@ body.sheet-open{overflow:hidden}
 .poll-row.mine .bar{background:rgba(227,0,15,.3)}
 .poll-row .lbl,.poll-row .pct{position:relative}
 .poll-row .pct{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
-.poll-vote{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-.poll-vote.compact .chip{font-size:13px;padding:6px 10px}
+/* Umfrage-Karte: Antworten wie auf einem Stimmzettel (Kreis = eine Antwort, Kästchen = mehrere), gewählt = schwarz mit Punkt/Haken */
+.poll-vote{display:grid;gap:8px;margin-top:4px}
+.poll-vote .stimme{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:#fff;border:2px solid var(--schwarz);color:var(--ink);font:700 17px/1.15 var(--display);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .2s var(--spring)}
+.poll-vote .stimme::before{content:'';flex:0 0 20px;width:20px;height:20px;border:2px solid var(--schwarz);border-radius:50%;background:#fff;transition:box-shadow .2s,border-color .2s}
+.poll-vote.mehrfach .stimme::before{border-radius:3px}
+.poll-vote .stimme:hover{border-color:var(--rot);color:var(--rot)}
+.poll-vote .stimme:hover::before{border-color:var(--rot)}
+.poll-vote .stimme:active{transform:scale(.98)}
+.poll-vote .stimme[aria-pressed="true"]{background:var(--schwarz);border-color:var(--schwarz);color:#fff}
+.poll-vote .stimme[aria-pressed="true"]::before{border-color:#fff;box-shadow:inset 0 0 0 3px var(--schwarz),inset 0 0 0 10px #fff}
+.poll-vote .stimme[aria-pressed="true"]:hover{color:#fff}
+.poll-vote.compact{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.poll-vote.compact .stimme{font-size:14px;padding:8px 10px;gap:8px}
+.poll-vote.compact .stimme::before{flex-basis:16px;width:16px;height:16px}
+.poll-vote.compact .stimme[aria-pressed="true"]::before{box-shadow:inset 0 0 0 2px var(--schwarz),inset 0 0 0 8px #fff}
+.poll-vote .btn{justify-self:start}
+/* Teilen und Schließen: Textknöpfe unter der Karte – bewusst anders als die Antworten */
+.poll-foot{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:4px;padding-top:10px;border-top:1px solid var(--linie)}
+.poll-foot .linkbtn{display:inline-flex;align-items:center;gap:6px;color:var(--schwarz);text-decoration:none;font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase}
+.poll-foot .linkbtn:hover{color:var(--rot)}
+.poll-foot .linkbtn.rot{color:var(--rot)}
+.poll-foot .linkbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Demo-Modus: Rollenwahl im Blatt */
+.demo-rollen{display:grid;gap:8px;margin-top:10px}
+.demo-rolle{display:grid;gap:3px;padding:12px 14px;border:2px solid var(--schwarz);background:#fff;color:var(--ink);text-decoration:none;transition:transform .2s var(--spring)}
+.demo-rolle:hover{border-color:var(--rot)}
+.demo-rolle:active{transform:scale(.98)}
+.demo-rolle b{font:700 16px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.demo-rolle span{font-size:14px;color:var(--muted)}
+.demo-rolle.aktiv{background:var(--schwarz);border-color:var(--schwarz);color:#fff}
+.demo-rolle.aktiv span{color:#d8d8d8}
+.demo-rolle.ende{border-color:var(--rot);color:var(--rot)}
+.demo-test-kopf{margin-top:22px}
 .doc{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--linie)}
 .doc-list .doc:first-child{border-top:0}
 .doc-title{font:700 20px/1.1 var(--display);text-transform:uppercase;color:var(--ink);text-decoration:none}

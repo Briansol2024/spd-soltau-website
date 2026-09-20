@@ -34,6 +34,14 @@ const demoGewuenscht = /[?&]demo\b/.test(location.search);
 if (demoGewuenscht && !istTester()) location.replace(location.pathname + location.hash);
 const DEMO = demoGewuenscht && istTester();
 const VIDEO = /[?&]video\b/.test(location.search); // Aufnahme der Hilfevideos: ohne Vorschau-Hinweis
+// Drei Demo-Rollen: Mitglied (keine Rollen, keine Rechte), Ratsmitglied (Rat + Fraktion, keine Vorstandsrechte), Vorstand (alles)
+const DEMO_ROLLEN = [
+  ['mitglied', 'Mitglied', 'Keine Rollen, keine Rechte – so sieht es für die meisten aus.'],
+  ['rat', 'Ratsmitglied', 'Dazu Sitzungen und Ratsarbeit – aber ohne Vorstandsrechte: keine Umfragen, Termine oder Einstellungen anlegen.'],
+  ['vorstand', 'Vorstand', 'Alles, mit Beispieldaten – auch Eingang, Rechte und Statistik.'],
+];
+const DEMO_ROLLE = !DEMO ? '' : VIDEO || /[?&]mitglied\b/.test(location.search) ? 'mitglied' : (r => DEMO_ROLLEN.some(([k]) => k === r) ? r : 'vorstand')((location.search.match(/[?&]demo=([a-z]+)/) || [])[1] || '');
+const demoName = r => (DEMO_ROLLEN.find(([k]) => k === r) || [])[1] || '';
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
 const BASE = SPD.base || '.';
 const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Dokumente, Nachrichten)' };
@@ -71,7 +79,7 @@ async function inboxPut(item) {
 }
 
 // ---------- Wix-Client (oder Vorschau-Attrappe) ----------
-const client = DEMO ? makeDemoClient(SPD, { mitglied: VIDEO || /[?&]mitglied\b/.test(location.search) }) : createClient({
+const client = DEMO ? makeDemoClient(SPD, { rolle: DEMO_ROLLE }) : createClient({
   modules: { items, members },
   auth: OAuthStrategy({ clientId: CFG.clientId, tokens: store.get('spd-tokens') || undefined }),
 });
@@ -430,11 +438,21 @@ function navGroups() {
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
     ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit)]],
-    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), istTester() ? ['demo', DEMO ? 'Demo-Modus: an' : 'Demo-Modus: aus', ICON.flask, demoLink(!DEMO)] : null]],
+    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
-// Demo-Modus per Schalter (nur Tester): Seite mit oder ohne ?demo neu laden, aktueller Bereich bleibt
-const demoLink = an => REDIRECT + (an ? '?demo' : '') + (location.hash && !/^#(anmelden|registrieren)$/.test(location.hash) ? location.hash : '#start');
+// Demo-Modus per Schalter (nur Tester): Seite mit der gewünschten Rolle (oder ohne ?demo) neu laden, aktueller Bereich bleibt
+const demoLink = rolle => REDIRECT + (rolle ? '?demo=' + rolle : '') + (location.hash && !/^#(anmelden|registrieren|demo)$/.test(location.hash) ? location.hash : '#start');
+const baldLink = test => new URL(`${BASE}/bald/?test=${test}`, location.href).href;
+// Auswahlblatt: Rolle wählen, Demo beenden, Countdown-Testansichten
+function demoBlatt() {
+  blatt('Demo-Modus', `<p class="small muted">Vorführung mit Beispieldaten – nichts wird gespeichert. ${DEMO ? `Gerade: <b>${esc(demoName(DEMO_ROLLE))}</b>.` : 'Gerade: <b>aus</b>, du siehst deine echten Daten.'}</p>
+    <div class="demo-rollen">${DEMO_ROLLEN.map(([k, n, t]) => `<a class="demo-rolle${DEMO && DEMO_ROLLE === k ? ' aktiv' : ''}" href="${esc(demoLink(k))}"><b>Als ${n}</b><span>${t}</span></a>`).join('')}
+    ${DEMO ? `<a class="demo-rolle ende" href="${esc(demoLink(''))}"><b>Demo beenden</b><span>Zurück zu deinen echten Daten.</span></a>` : ''}</div>
+    <h4 class="doc-cat demo-test-kopf">Countdown testen</h4>
+    <div class="mb-actions"><a class="btn btn-line btn-sm" href="${esc(baldLink(10))}" target="_blank" rel="noopener">Letzte 10 Sekunden</a><a class="btn btn-line btn-sm" href="${esc(baldLink('ende'))}" target="_blank" rel="noopener">Nach dem Start</a></div>
+    <p class="small muted">Öffnet sich in einem neuen Tab. Das Gerät merkt sich den Testbesuch nicht – am Dienstag siehst du die echte Willkommensseite.</p>`);
+}
 function navList() {
   return `${navGroups().map(([title, items]) => `<div class="mb-group"><div class="mb-group-title">${title}</div>${items.map(([k, l, icon, href]) => `<a href="${href}" data-sec="${k}">${icon}<span>${l}</span><b class="mb-badge" data-badge="${k}" hidden></b></a>`).join('')}</div>`).join('')}
   <button type="button" class="mb-logout" data-logout>${ICON.out}<span>Abmelden</span></button>`;
@@ -442,7 +460,7 @@ function navList() {
 function renderShell() {
   const first = me.name.split(' ')[0] || me.name;
   view(`
-  ${DEMO && !VIDEO ? `<p class="note note-info demo-note"><b>Demo-Modus.</b> Beispieldaten zum Vorführen – nichts wird gespeichert. <a href="${esc(demoLink(false))}">Demo beenden</a></p>` : ''}
+  ${DEMO && !VIDEO ? `<p class="note note-info demo-note"><b>Demo-Modus – als ${esc(demoName(DEMO_ROLLE))}.</b> Beispieldaten, nichts wird gespeichert. <a href="#demo">Rolle wechseln</a> · <a href="${esc(demoLink(''))}">Demo beenden</a></p>` : ''}
   <div class="mb-layout">
     <aside class="mb-side" aria-label="Bereiche">${navList()}</aside>
     <div class="mb-main">
@@ -489,6 +507,7 @@ async function route() {
   if (['eingang', 'anliegen', 'wer', 'nachricht', 'rechte'].includes(key)) key = 'vorstand';
   if (key === 'push' || key === 'app-install') key = 'profil';
   if (key === 'mehr') { key = 'start'; $('#mb-more', document.body)?.click(); }
+  if (key === 'demo') { const zurueck = route.lastKey || 'start'; history.replaceState(null, '', location.pathname + location.search + '#' + zurueck); if (istTester()) demoBlatt(); if (route.lastKey) return; key = zurueck; }
   if (!RENDER[key] || !secVisible(key)) key = 'start';
   if (key !== 'ratsarbeit') ratsarbeit.blattZu(false);
   const navKey = HUB_OF[key] || key;
@@ -941,10 +960,11 @@ function pollCard(u, stimmen, open) {
   const isPublic = u.col === 'UmfragenOeffentlich';
   return `<article class="mb-card poll" id="u-${esc(u._id)}" data-id="${esc(u._id)}" data-col="${esc(u.col)}">
     <div class="hl-head"><div><span class="tag ${isPublic ? 'tag-schwarz' : ''}">${isPublic ? 'Öffentlich' : 'Intern'}</span> <span class="small muted">von ${esc(u.von || '–')}${u.endetAm ? ` · ${open ? 'bis' : 'endete'} ${esc(fmtShort(u.endetAm))}` : ''} · ${total} Stimme${total === 1 ? '' : 'n'}</span><h4>${esc(u.frage)}</h4>${u.beschreibung ? `<p class="small">${nl2br(u.beschreibung)}</p>` : ''}</div>
-      <div class="mb-actions">${open ? waBtn(`🗳️ Umfrage: ${u.frage}\n${isPublic ? 'Abstimmen auf der Startseite: ' + new URL(BASE + '/', location.href).href : 'Abstimmen im Mitgliederbereich: ' + appLink('#umfragen/u-' + u._id)}`) : ''}${open && (u._owner === me.id || me.can('umfragen')) ? '<button type="button" class="linkbtn" data-close-poll>Umfrage schließen</button>' : ''}</div></div>
+    </div>
     ${showResults ? `<div class="poll-results">${opts.map((o, i) => `<div class="poll-row ${mine && (mine.auswahl || []).includes(i) ? 'mine' : ''}"><span class="bar" style="width:${Math.round(counts[i] / max * 100)}%"></span><span class="lbl">${esc(o)}</span><span class="pct">${counts[i]}${total ? ` · ${Math.round(counts[i] / total * 100)} %` : ''}</span></div>`).join('')}</div>${mine && open ? '<p class="small muted">Du hast abgestimmt. Tippe auf eine Antwort, um deine Stimme zu ändern.</p>' : ''}` : ''}
-    ${open ? `<div class="poll-vote ${showResults ? 'compact' : ''}">${opts.map((o, i) => `<button type="button" class="chip" data-vote="${i}" aria-pressed="${!!mine && (mine.auswahl || []).includes(i)}">${esc(o)}</button>`).join('')}${u.mehrfach ? '<button type="button" class="btn btn-schwarz btn-sm" data-vote-save>Auswahl speichern</button>' : ''}</div><p class="small muted">${u.mehrfach ? 'Mehrere Antworten möglich. ' : ''}${isPublic ? 'Diese Umfrage läuft auch öffentlich auf der Startseite; die Auswertung sehen nur Mitglieder.' : 'Der Vorstand kann im CMS sehen, wer wie abgestimmt hat – die Abstimmung ist also nicht geheim.'}</p>` : ''}
+    ${open ? `<div class="poll-vote ${showResults ? 'compact' : ''} ${u.mehrfach ? 'mehrfach' : ''}">${opts.map((o, i) => `<button type="button" class="stimme" data-vote="${i}" aria-pressed="${!!mine && (mine.auswahl || []).includes(i)}"><span>${esc(o)}</span></button>`).join('')}${u.mehrfach ? '<button type="button" class="btn btn-schwarz btn-sm" data-vote-save>Auswahl speichern</button>' : ''}</div><p class="small muted">${u.mehrfach ? 'Mehrere Antworten möglich. ' : ''}${isPublic ? 'Diese Umfrage läuft auch öffentlich auf der Startseite; die Auswertung sehen nur Mitglieder.' : 'Der Vorstand kann im CMS sehen, wer wie abgestimmt hat – die Abstimmung ist also nicht geheim.'}</p>` : ''}
     <p class="note" hidden></p>
+    ${open ? `<div class="poll-foot"><button type="button" class="linkbtn share" data-share="${esc(`🗳️ Umfrage: ${u.frage}\n${isPublic ? 'Abstimmen auf der Startseite: ' + new URL(BASE + '/', location.href).href : 'Abstimmen im Mitgliederbereich: ' + appLink('#umfragen/u-' + u._id)}`)}">${SHARE_ICON}Teilen</button>${u._owner === me.id || me.can('umfragen') ? `<button type="button" class="linkbtn rot" data-close-poll>${ICON.close}Umfrage schließen</button>` : ''}</div>` : ''}
   </article>`;
 }
 function wirePolls(v, all, stimmen) {
@@ -1260,11 +1280,11 @@ async function secProfil(v) {
   });
   if (istTester()) v.insertAdjacentHTML('beforeend', `<section class="mb-sub tester"><h4 class="doc-cat">Testen <span class="small muted">nur für dich sichtbar</span></h4>
     <div class="mb-actions">
-      <a class="btn ${DEMO ? 'btn-line' : 'btn-schwarz'} btn-sm" href="${esc(demoLink(!DEMO))}">${ICON.flask}Demo-Modus ${DEMO ? 'ausschalten' : 'einschalten'}</a>
-      <a class="btn btn-line btn-sm" href="${esc(new URL(`${BASE}/bald/?test=10`, location.href).href)}" target="_blank" rel="noopener">Countdown: letzte 10 Sekunden</a>
-      <a class="btn btn-line btn-sm" href="${esc(new URL(`${BASE}/bald/?test=ende`, location.href).href)}" target="_blank" rel="noopener">Countdown: nach dem Start</a>
+      <a class="btn btn-schwarz btn-sm" href="#demo">${ICON.flask}Demo-Modus${DEMO ? `: ${esc(demoName(DEMO_ROLLE))}` : ''}</a>
+      <a class="btn btn-line btn-sm" href="${esc(baldLink(10))}" target="_blank" rel="noopener">Countdown: letzte 10 Sekunden</a>
+      <a class="btn btn-line btn-sm" href="${esc(baldLink('ende'))}" target="_blank" rel="noopener">Countdown: nach dem Start</a>
     </div>
-    <p class="small muted">Demo-Modus = Mitgliederbereich mit Beispieldaten (nichts wird gespeichert). Die Countdown-Testansichten merken sich den Besuch nicht – am Dienstag siehst du die echte Willkommensseite.</p></section>`);
+    <p class="small muted">Demo-Modus = Mitgliederbereich mit Beispieldaten als Mitglied, Ratsmitglied oder Vorstand (nichts wird gespeichert). Die Countdown-Testansichten merken sich den Besuch nicht – am Dienstag siehst du die echte Willkommensseite.</p></section>`);
 }
 
 // ---------- Push-Benachrichtigungen ----------
