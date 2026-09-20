@@ -14,6 +14,9 @@ export const OVERLAY_TYPEN = [
   { id: 'intro', name: 'Intro „Moin, Soltau!“', dauer: 4, felder: [['text', 'Tag-Zeile (optional)', 'text']], beispiel: { text: 'Aus Liebe zu Soltau' } },
   { id: 'outro', name: 'Schlusskarte', dauer: 6, felder: [['text', 'Aufruf (optional)', 'text']], beispiel: { text: '' } },
 ];
+// Animationsarten – jeder Baustein kann jede; die Bühne (stage.html) kennt sie als ?anim=
+export const ANIMATIONEN = [['', 'Pop', 'springt rein – Standard, energisch'], ['wisch', 'Wischen', 'wischt von der Seite ins Bild – dynamisch, passt zu Bewegung'], ['weich', 'Weich', 'blendet weich ein – ruhig, seriös'], ['fall', 'Fallen', 'fällt von oben und wippt nach – für eine Betonung'], ['tipp', 'Tippen', 'Buchstabe für Buchstabe – für Stichworte, Zahlen, Listen']];
+OVERLAY_TYPEN.forEach(t => t.felder.push(['anim', 'Animation', 'select', ...ANIMATIONEN.map(([v, l]) => [v, l])]));
 export const overlayTyp = id => OVERLAY_TYPEN.find(t => t.id === id);
 // Aus einem Overlay-Eintrag { typ, dauer, werte } den Clip fürs Manifest bauen (Zeilen-Felder → |)
 export function overlayClip(o, i) {
@@ -26,7 +29,8 @@ export function overlayClip(o, i) {
 
 // ---- Claude: Auftrag und Antwort – gemeinsam für App (Abo per Kopieren, API) und den KI-Agenten auf dem SKM-Server ----
 import { SKIZZE_ANLEITUNG } from './storyboard.mjs';
-export const BAUSTEINE_TEXT = OVERLAY_TYPEN.map(t => `- ${t.id} (${t.name}, ${t.dauer} s): ${t.felder.map(([k, l]) => `${k}=${l}`).join('; ')}`).join('\n');
+export const BAUSTEINE_TEXT = OVERLAY_TYPEN.map(t => `- ${t.id} (${t.name}, ${t.dauer} s): ${t.felder.filter(([k]) => k !== 'anim').map(([k, l, art, ...opts]) => `${k}=${l}${art === 'select' ? ' [' + opts.map(([v, ol]) => `${v || 'leer'}=${ol}`).join(', ') + ']' : ''}`).join('; ')}`).join('\n')
+  + `\nJeder Baustein hat zusätzlich anim=Animation: ${ANIMATIONEN.map(([v, l, b]) => `${v || 'pop'} (${b})`).join('; ')}. Zur Aussage passend wählen und über das Video abwechseln – nicht jedes Overlay gleich.`;
 export function AUFTRAG(p, overlays, wunsch, verlauf = []) {
   const art = (FILM_ARTEN.find(([k]) => k === p.art) || [])[1] || p.art || 'Reel';
   const gespraech = verlauf.length ? '\nBISHERIGES GESPRÄCH (neueste zuletzt):\n' + verlauf.map(m => `${m.rolle === 'du' ? 'Nutzer' : 'Du'}: ${String(m.text || '').slice(0, 1200)}`).join('\n') + '\n' : '';
@@ -51,7 +55,7 @@ Reihenfolge beim Dreh: welche Takes am Stück, jeden zweimal, danach die Aufnahm
 Schnitt: wo A1/A2 hineingeschnitten werden, Overlays auf Grün (Chroma-Key), Musik leise, Untertitel an
 Zum Schluss die Overlays als JSON-Liste in genau dieser Form (in einer Zeile, nach der Überschrift OVERLAYS-JSON, ein Eintrag je Take mit Overlay, gleiche Reihenfolge):
 OVERLAYS-JSON
-[{"typ":"gross","dauer":4,"werte":{"label":"…","text":"…|*…*","pos":"oben","gr":"m"}}, {"typ":"stempel","dauer":3,"werte":{"text":"Angenommen"}}]
+[{"typ":"gross","dauer":4,"werte":{"label":"…","text":"…|*…*","pos":"oben","gr":"m","anim":"weich"}}, {"typ":"stempel","dauer":3,"werte":{"text":"Angenommen","anim":"fall"}}]
 Keine Markdown-Formatierung, keine Codeblöcke, keine Einleitung wie „Hier ist“. Wenn der Nutzer nur eine Rückfrage stellt oder eine Änderung wünscht, antworte kurz und liefere danach das komplette überarbeitete Skript samt DREHPLAN und OVERLAYS-JSON erneut.
 
 PROJEKT: „${p.titel}“ (${art}${p.datum ? ', Termin ' + p.datum : ''}).

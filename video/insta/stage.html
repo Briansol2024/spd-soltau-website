@@ -155,6 +155,40 @@ body.rot .outro .strich{background:#fff}
 @keyframes handyRein{from{opacity:0;transform:translateX(-120px) rotate(-6deg)}to{opacity:1;transform:none}}
 body.gruen .handy .screen{background:#00B140}
 
+/* ---------- Animationsarten (?anim=pop|wisch|weich|fall|tipp): gleiche Zeiten, anderer Weg ins Bild ----------
+   pop = Standard (springt rein) · wisch = wischt von der Seite rein · weich = blendet weich ein · fall = fällt von oben mit Nachwippen · tipp = Buchstabe für Buchstabe */
+@keyframes wischIn{from{clip-path:inset(0 100% 0 0);transform:translateX(-40px)}to{clip-path:inset(0 0 0 0);transform:none}}
+@keyframes wischInR{from{clip-path:inset(0 0 0 100%);transform:translateX(40px)}to{clip-path:inset(0 0 0 0);transform:none}}
+@keyframes weichIn{from{opacity:0;filter:blur(14px);transform:scale(1.05)}to{opacity:1;filter:blur(0);transform:none}}
+@keyframes fallIn{0%{opacity:0;transform:translateY(-140px)}60%{opacity:1;transform:translateY(14px)}82%{transform:translateY(-6px)}100%{opacity:1;transform:none}}
+@keyframes stempelWisch{from{clip-path:inset(0 100% 0 0);transform:rotate(-8deg)}to{clip-path:inset(0 0 0 0);transform:rotate(-8deg)}}
+@keyframes stempelWeich{from{opacity:0;transform:rotate(-8deg) scale(1.15);filter:blur(10px)}to{opacity:1;transform:rotate(-8deg) scale(1);filter:blur(0)}}
+@keyframes stempelFall{0%{opacity:0;transform:rotate(-8deg) translateY(-220px)}60%{opacity:1;transform:rotate(-8deg) translateY(18px)}100%{opacity:1;transform:rotate(-8deg)}}
+@keyframes tippIn{from{opacity:0}to{opacity:1}}
+@keyframes tpc{0%{opacity:1}100%{opacity:0}}
+/* Elemente mit einer Einblend-Animation */
+[data-anim=wisch] :is(.ey,.gross,.liste .titel,.liste .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z){animation-name:wischIn;animation-timing-function:var(--ease)}
+[data-anim=weich] :is(.ey,.gross,.liste .titel,.liste .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i){animation-name:weichIn;animation-timing-function:var(--ease);animation-duration:.8s}
+[data-anim=fall] :is(.ey,.gross,.liste .titel,.liste .p,.zitat .anf,.zitat p,.zitat .wer,.aufruf .datum,.aufruf .name,.aufruf .sub,.aufruf .foto,.intro .eyebrow,.intro .tag,.outro .box,.outro img,.outro .claim,.outro .url,.outro .insta,.outro .cta,.vs .karte,.vs .oder,.szene-text,.gegen .z,.intro h1 i){animation-name:fallIn;animation-timing-function:ease-out;animation-duration:.7s}
+/* Elemente mit Ein- und Ausblendung */
+[data-anim=wisch] .wort .z{animation-name:wischIn,wortOut;animation-timing-function:var(--ease),var(--ease)}
+[data-anim=wisch] .wort.rechts .z{animation-name:wischInR,wortOut}
+[data-anim=weich] .wort .z{animation-name:weichIn,wortOut;animation-timing-function:var(--ease),var(--ease);animation-duration:.8s,.45s}
+[data-anim=fall] .wort .z{animation-name:fallIn,wortOut;animation-timing-function:ease-out,var(--ease);animation-duration:.7s,.45s}
+[data-anim=weich] .binde .name,[data-anim=weich] .binde .rolle{animation-name:weichIn,bindeOut;animation-duration:.8s,.5s}
+[data-anim=fall] .binde .name,[data-anim=fall] .binde .rolle{animation-name:fallIn,bindeOut;animation-timing-function:ease-out,var(--ease);animation-duration:.7s,.5s}
+[data-anim=weich] .intro h1 i.bang{animation-name:weichIn,bang}
+[data-anim=fall] .intro h1 i.bang{animation-name:fallIn,bang}
+[data-anim=wisch] .stempel span{animation-name:stempelWisch;animation-timing-function:var(--ease)}
+[data-anim=weich] .stempel span{animation-name:stempelWeich;animation-timing-function:var(--ease);animation-duration:.8s}
+[data-anim=fall] .stempel span{animation-name:stempelFall;animation-timing-function:ease-out;animation-duration:.7s}
+/* Tippen: Buchstaben einzeln (JS wickelt sie ein), Cursor blinkt solange getippt wird */
+.tp{opacity:0;animation:tippIn 1ms steps(1,end) both}
+.tp-c{display:inline-block;width:.08em;height:.85em;background:currentColor;margin-left:.06em;vertical-align:-.06em;opacity:0;animation:tpc .5s steps(2,start) forwards}
+[data-anim=tipp] .gross,[data-anim=tipp] .zitat p,[data-anim=tipp] .aufruf .name,[data-anim=tipp] .ey,[data-anim=tipp] .liste .titel,[data-anim=tipp] .szene-text,[data-anim=tipp] .vs .karte,[data-anim=tipp] .outro .claim,[data-anim=tipp] .outro .cta,[data-anim=tipp] .intro .tag,[data-anim=tipp] .aufruf .sub,[data-anim=tipp] .zitat .wer,[data-anim=tipp] .gegen .z{animation-name:none}
+[data-anim=tipp] .wort .z{animation-name:none,wortOut}
+[data-anim=tipp] .binde .name,[data-anim=tipp] .binde .rolle{animation-name:bindeIn,bindeOut}
+
 </style>
 </head>
 <body>
@@ -164,6 +198,8 @@ const q = new URLSearchParams(location.search);
 const clip = q.get('clip') || 'intro';
 const bg = q.get('bg') || 'gruen';
 if (bg !== 'keins') document.body.classList.add(bg);
+const anim = ['wisch', 'weich', 'fall', 'tipp'].includes(q.get('anim')) ? q.get('anim') : 'pop';
+document.body.dataset.anim = anim;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const letters = (word, delay0, step, rotIdx = []) => [...word].map((ch, i) => `<i class="${rotIdx.includes(i) ? 'rot' : ''}${i === word.length - 1 && /[!,]/.test(ch) && clip === 'intro' && word.endsWith('!') ? ' bang' : ''}" style="animation-delay:${(delay0 + i * step).toFixed(2)}s${i === word.length - 1 && word.endsWith('!') ? ',1.9s' : ''}">${esc(ch)}</i>`).join('');
 let html = '';
@@ -222,6 +258,18 @@ if (clip === 'intro') {
   html = `<div class="mitte ${pos}">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<p class="gross ${q.get('gr') === 'xl' ? 'xl' : q.get('gr') === 'm' ? 'm' : ''}">${zeilen.map(z => z.replace(/\*(.+?)\*/g, '<b>$1</b>')).join('<br>')}</p></div>`;
 }
 document.body.insertAdjacentHTML('beforeend', html);
+// Tippen: Text in einzelne Buchstaben zerlegen, jeder erscheint nach dem vorigen; Start = bisherige Verzögerung des Elements
+if (anim === 'tipp') {
+  const ziele = document.querySelectorAll('.gross, .wort .z, .zitat p, .liste .p span, .binde .name, .aufruf .name, .aufruf .sub, .ey, .liste .titel, .szene-text, .vs .karte, .outro .claim, .outro .cta, .intro .tag, .zitat .wer, .gegen .z');
+  ziele.forEach(el => {
+    const wirt = el.closest('.liste .p') || el; // Verzögerung steht am Listenpunkt, getippt wird der Text darin
+    const cs = getComputedStyle(wirt); const start = (parseFloat(cs.animationDelay) || 0) + (cs.animationName.split(',')[0].trim() !== 'none' ? .35 : 0); // erst reinkommen, dann tippen
+    const zeichen = []; const sammeln = n => { if (n.nodeType === 3) zeichen.push(n); else if (!n.classList?.contains('kante')) [...n.childNodes].forEach(sammeln); }; sammeln(el);
+    const n = zeichen.reduce((a, t) => a + t.data.replace(/\s/g, '').length, 0); const schritt = Math.min(.055, 1.2 / Math.max(n, 1)); let i = 0;
+    zeichen.forEach(t => { const f = document.createDocumentFragment(); for (const ch of t.data) { if (/\s/.test(ch)) { f.append(ch); continue; } const s = document.createElement('span'); s.className = 'tp'; s.textContent = ch; s.style.animationDelay = (start + i * schritt).toFixed(3) + 's'; i++; f.append(s); } t.replaceWith(f); });
+    const c = document.createElement('span'); c.className = 'tp-c'; c.style.animationDelay = start.toFixed(2) + 's'; c.style.animationIterationCount = String(Math.max(1, Math.ceil(i * schritt / .5))); el.append(c);
+  });
+}
 if (clip === 'gegen') document.querySelectorAll('.gegen .z:not(.bleibt)').forEach((z, i) => { z.style.setProperty('--d', (1.0 + i * .9).toFixed(2) + 's'); });
 // Bild-für-Bild-Steuerung für render.mjs
 window.__anims = null;

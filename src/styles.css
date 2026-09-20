@@ -1854,3 +1854,5 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .sb-karte .sb-frame{width:100%}
 .sb-karte figcaption{font-size:13px;line-height:1.35}
 .sb-karte figcaption b{color:var(--rot)}
+.ow-anim{display:grid;gap:6px}
+.ow-anim-chips{display:flex;flex-wrap:wrap;gap:6px}

@@ -16,6 +16,20 @@ Liegen in `video/insta/out/`, jeweils in zwei Fassungen:
 - **binde-‹name›** (6 s) – Bauchbinde unten links: Name (rot) + Rolle (schwarz); fährt rein, bleibt 4 s, fährt raus – für Vorstand und alle Gewählten
 - **wort-‹text›-links / -rechts** (3 s) – große Wörter neben der Person („Neue Website“, „Ab Dienstag 18 Uhr“, „Mitglieder-App“, „Jetzt mitreden“ …). *links* = Text links, du stehst rechts; *rechts* = umgekehrt (lässt rechts Platz für die Instagram-Symbole)
 
+## Animationsarten
+
+Jeder Baustein kann auf fünf Arten ins Bild kommen – in der App unter „Baustein bauen“ per Chip vergleichen, Claude wählt sie im Skript mit (`anim`):
+
+| `anim` | Wirkung | Passt zu |
+|---|---|---|
+| `pop` (Standard) | springt mit kleinem Überschwung rein | Energie, Betonung |
+| `wisch` | wischt von der Seite ins Bild | Bewegung im Bild, Schnittwechsel |
+| `weich` | blendet weich ein, leicht unscharf → scharf | ruhige, seriöse Aussagen |
+| `fall` | fällt von oben und wippt nach | eine Zahl, ein Ergebnis |
+| `tipp` | Buchstabe für Buchstabe mit Cursor | Stichworte, Listen, Adressen |
+
+Direkt auf der Bühne: `stage.html?clip=gross&text=…&anim=weich`.
+
 ## So geht's in CapCut (Handy)
 
 1. Eigenes Video in die Zeitleiste, dann **Overlay → Overlay hinzufügen** → den `…-gruen.mp4`-Clip wählen.

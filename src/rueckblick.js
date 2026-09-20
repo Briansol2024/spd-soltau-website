@@ -163,14 +163,14 @@ export function makeRueckblick(ctx) {
     const ent = tops.filter(hatErgebnis); const istRat = /^Rat\b/.test(r.gremium || '');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
     const stempelText = { angenommen: 'Angenommen', geaendert: 'Angenommen', abgelehnt: 'Abgelehnt', vertagt: 'Vertagt', zurueckgezogen: 'Zurückgezogen', kenntnis: 'Kenntnis' };
-    const clips = [{ id: 'intro', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*' } }];
+    const clips = [{ id: 'intro', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', anim: 'fall' } }];
     ent.slice(0, 8).forEach((t, i) => {
       const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
-      clips.push({ id: `top${slugify(nr)}-${slugify(kurzTitel(t.titel)).slice(0, 24)}`, dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}` } });
+      clips.push({ id: `top${slugify(nr)}-${slugify(kurzTitel(t.titel)).slice(0, 24)}`, dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, anim: i % 2 ? 'weich' : 'wisch' } });
       if (stempelText[t.beschluss]) clips.push({ id: `top${slugify(nr)}-stempel`, dauer: 3, q: { clip: 'stempel', text: stempelText[t.beschluss], ...(t.beschluss === 'abgelehnt' ? { art: 'schwarz' } : {}) } });
     });
     if (ent.length > 8) clips.push({ id: 'weitere', dauer: 5, q: { clip: 'liste', titel: 'Außerdem entschieden', text: ent.slice(8, 13).map(t => kurzTitel(t.titel)).join('|') } });
-    clips.push({ id: 'abspann', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht' } });
+    clips.push({ id: 'abspann', dauer: 4, q: { clip: 'gross', pos: 'oben', gr: 'm', label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht', anim: 'tipp' } });
     return { titel: `Overlays ${r.gremium || 'Sitzung'} ${r.sitzung || ''}`, hinweis: 'Text-Overlays auf Grün (CapCut: Chroma-Key) – Reihenfolge wie im Drehplan.', nurGruen: !alpha, drehplan, clips };
   }
   // Drehplan für ein Sitzungsvideo – automatisch, passend zur Zahl der Takes
@@ -189,13 +189,13 @@ Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 b
     const ent = tops.filter(hatErgebnis); const istRat = /^Rat\b/.test(r.gremium || '');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
     const stempelText = { angenommen: 'Angenommen', geaendert: 'Angenommen', abgelehnt: 'Abgelehnt', vertagt: 'Vertagt', zurueckgezogen: 'Zurückgezogen', kenntnis: 'Kenntnis' };
-    const out = [{ typ: 'gross', dauer: 4, werte: { label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', pos: 'oben', gr: 'm' } }];
+    const out = [{ typ: 'gross', dauer: 4, werte: { label: `${istRat ? 'Ratssitzung' : r.gremium || 'Sitzung'} ${dat}`, text: 'So hat der Rat|*entschieden*', pos: 'oben', gr: 'm', anim: 'fall' } }];
     ent.slice(0, 8).forEach((t, i) => {
       const z = zahlen(t); const lab = beschlussLabel(t.beschluss) || 'Ergebnis'; const nr = t.nr || String(i + 1);
-      out.push({ typ: 'gross', dauer: 4, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, pos: 'oben', gr: 'm' } });
+      out.push({ typ: 'gross', dauer: 4, werte: { label: `TOP ${nr} · ${kurzTitel(t.titel)}`, text: `*${lab}*${z.da ? `|${z.ja} : ${z.nein}${z.enth ? ' : ' + z.enth : ''}` : ''}`, pos: 'oben', gr: 'm', anim: i % 2 ? 'weich' : 'wisch' } });
       void stempelText;
     });
-    out.push({ typ: 'gross', dauer: 4, werte: { label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht', pos: 'oben', gr: 'm' } });
+    out.push({ typ: 'gross', dauer: 4, werte: { label: 'Alle Vorlagen und Ergebnisse', text: '*spd-soltau.de*|/ratsbericht', pos: 'oben', gr: 'm', anim: 'tipp' } });
     return out;
   }
   // Auftrag für Claude: alle öffentlichen Fakten der Sitzung + Take-Format (aus der gemeinsamen Bibliothek)
