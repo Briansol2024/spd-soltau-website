@@ -40,6 +40,17 @@ jobs:
           WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
           VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # GitHub führt Zeitplan-Läufe oft erst Stunden später aus. Deshalb plant jeder Lauf den nächsten selbst:
+      # 4 Minuten warten, dann neu starten – außer es wartet schon ein anderer Lauf (dann übernimmt der).
+      - name: Nächsten Lauf in 4 Minuten planen
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sleep 240
+          andere=$(gh run list --workflow=push.yml --status queued --json databaseId --jq 'length')
+          laufend=$(gh run list --workflow=push.yml --status in_progress --json databaseId --jq 'length')
+          if [ "$andere" = "0" ] && [ "$laufend" -le "1" ]; then gh workflow run push.yml; echo "nächster Lauf geplant"; else echo "ein anderer Lauf wartet schon ($andere wartend, $laufend laufend)"; fi
           SITE_URL: ${{ vars.SITE_URL }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}

@@ -149,7 +149,7 @@ async function syncMembers(subs) {
     for (const e of existing) if (!keep.has(e.memberId)) await client.items.remove('AppMitglieder', e._id).catch(() => {});
   }
   log(`Mitglieder: ${approved.length} freigeschaltet, ${pending.length} wartend, Vorstand (Wix-Rolle): ${board.size}`);
-  return { approved, pending, board };
+  return { approved, pending, board, emails };
 }
 
 // Der in der App festgelegte Vorstand wird als Wix-Rolle „Vorstandsmitglied“ gespiegelt (Wix bleibt Quelle der Wahrheit)
@@ -755,11 +755,11 @@ async function mitfahren(st, subs, logKeys) {
 
 // ---------- Wünsche & Ideen zur App: per E-Mail an den Betreuer der Website (dazu ein Push an ihn), Status → zugestellt ----------
 const FEEDBACK_AN = (env.FEEDBACK_EMAIL || FB.FEEDBACK_EMAIL).toLowerCase();
-async function feedback(subs, approved, logKeys) {
+async function feedback(subs, approved, emails, logKeys) {
   try {
     const offen = (await queryAll(client, 'Feedback', q => q.descending('_createdDate'))).filter(f => f.status !== 'zugestellt');
     if (!offen.length) return;
-    const betreuer = approved.find(a => (a.email || '').toLowerCase() === FEEDBACK_AN);
+    const betreuer = approved.find(a => (emails.get(a.memberId) || '') === FEEDBACK_AN);
     for (const f of offen) {
       const kopf = `${FB.label(FB.WAS, f.was)} · ${FB.label(FB.WO, f.wo)}${f.bereich ? ' · ' + f.bereich : ''}`;
       const keyPush = 'feedback-push:' + f._id;
@@ -797,13 +797,13 @@ async function workflowStarten(datei, inputs = {}) {
   if (res.status !== 204) throw new Error(`${datei}: ${res.status} ${(await res.text()).slice(0, 120)}`);
 }
 // ---------- Overlay-Agent: wartende Aufträge starten, fertige melden ----------
-async function auftraege(subs, approved, logKeys) {
+async function auftraege(subs, approved, emails, logKeys) {
   try {
     const liste = await queryAll(client, 'Auftraege', q => q.ne('status', 'erledigt'));
     for (const a of liste) {
       const wer = approved.find(m => m.memberId === a.memberId);
       if (a.status === 'wartet') {
-        if (!wer || !TESTER_MAILS.includes((wer.email || '').toLowerCase())) { await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
+        if (!wer || !TESTER_MAILS.includes((emails.get(a.memberId) || '').toLowerCase())) { log(`  Auftrag ${a._id}: nicht freigegeben (${emails.get(a.memberId) || 'unbekannt'})`); if (!DRY) await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
         if (DRY) { log(`  Auftrag ${a._id}: würde Overlay-Agent starten (Trockenlauf)`); continue; }
         try { await workflowStarten('overlays.yml', { auftrag: a._id }); await client.items.update('Auftraege', { ...a, status: 'gestartet', gestartetAm: new Date().toISOString(), fortschritt: 3, schritt: 'Agent gestartet – der Rechner in der Cloud fährt hoch (etwa 1 Minute).' }); log(`  Auftrag ${a._id}: Overlay-Agent gestartet`); }
         catch (e) { log('  Auftrag starten:', e.message); await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Agent konnte nicht gestartet werden: ' + e.message.slice(0, 160) }).catch(() => {}); }
@@ -855,7 +855,7 @@ async function filmUploads(subs, logKeys) {
   } catch (e) { log('Filmdreh:', e.message); }
 }
 // ---------- Ratsberichte: freigegebene Sitzungen als öffentliche Kopie (nur öffentlich sagbare Felder) – danach Website neu bauen ----------
-const TESTER_MAILS = ['weber.soltau@gmail.com'];
+const TESTER_MAILS = ['weber.soltau@gmail.com', 'birhat.kacar@web.de']; // dürfen den Overlay-Agenten bestellen (Filmteam)
 async function ratsberichte() {
   try {
     const sitzungen = await queryAll(client, 'Ratsvorbereitung');
@@ -884,7 +884,7 @@ async function ratsberichte() {
     log('fertig', stats); return;
   }
   const logKeys = await loadLog();
-  const { approved, pending } = await syncMembers(subs);
+  const { approved, pending, emails } = await syncMembers(subs);
   // ---- Statistik: Rohdaten (Seitenaufrufe) zu Tageswerten verdichten und löschen – so bleibt nichts Personenbezogenes liegen ----
 async function statistik() {
   let roh = [];
@@ -928,8 +928,8 @@ const st = await loadSettings(approved);
   await stammtisch(st);
   await weitereErinnerungen(st, subs, logKeys);
   await mitfahren(st, subs, logKeys);
-  await feedback(subs, approved, logKeys);
-  await auftraege(subs, approved, logKeys);
+  await feedback(subs, approved, emails, logKeys);
+  await auftraege(subs, approved, emails, logKeys);
   await filmUploads(subs, logKeys);
   await ratsberichte();
   await abonnenten();
