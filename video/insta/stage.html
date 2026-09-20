@@ -471,14 +471,15 @@ if (clip === 'intro') {
   // Bilder-Kreis: bilder = Adressen mit | (leer → nummerierte Platzhalter), takt = Sekunden je Bild, art = schritt|fliessend, pos = oben|mitte|unten
   const urls = (q.get('bilder') || '').split('|').map(x => x.trim()).filter(Boolean); const n = Math.max(3, urls.length || +q.get('anzahl') || 4);
   const namen = (q.get('text') || '').split('|'); const takt = Math.max(1, parseFloat(q.get('takt')) || 3) * 1000; const fliessend = q.get('art') === 'fliessend';
-  const cy = { oben: 700, unten: 1250 }[q.get('pos')] || 980, rx = 430, ry = 150; const kw = q.get('gr') === 'gross' ? 380 : 300;
+  const cy = { oben: 700, unten: 1250 }[q.get('pos')] || 980, rx = 390, ry = 150; const kw = q.get('gr') === 'gross' ? 480 : 380;
   html = `<div class="kreis" style="--kw:${kw}px;${format(q)}">${Array.from({ length: n }, (_, i) => `<figure class="kk ${gestalt(q)}" data-i="${i}">${urls[i] ? `<img src="${esc(urls[i])}" alt="">` : `<div class="platz">${i + 1}</div>`}${namen[i] ? `<small>${esc(namen[i])}</small>` : ''}</figure>`).join('')}</div>`;
   window.__ticks.push(t => {
     const s = Math.max(0, t - 600) / takt; const k = Math.floor(s), f = s - k; const ease = f < .5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
     const phi = fliessend ? (t / takt) * (2 * Math.PI / n) : (k + ease) * (2 * Math.PI / n);
     // vorn scharf und groß, seitlich kleiner und leicht unscharf, hinten schrumpft es weg (als verschwände es hinter dem Körper) – keine Transparenz, sonst grünstichig beim Keying
-    document.querySelectorAll('.kreis .kk').forEach(el => { const i = +el.dataset.i; const a = (2 * Math.PI * i) / n - phi; const d = Math.cos(a); const weg = Math.min(1, Math.max(0, (d + .55) / .35)); const sc = (.55 + .45 * (d + 1) / 2) * weg;
-      el.style.display = weg > 0 ? '' : 'none'; el.style.transform = `translate(${(540 + rx * Math.sin(a) - kw / 2).toFixed(1)}px,${(cy + ry * d - kw / 2 - 20).toFixed(1)}px) scale(${sc.toFixed(3)})`; el.style.zIndex = String(Math.round(100 + 50 * d)); el.style.filter = `blur(${(3.5 * (1 - Math.max(0, d))).toFixed(1)}px) brightness(${(.7 + .3 * (d + 1) / 2).toFixed(2)})`; });
+    // Größe: vorn 1, seitlich ~0,8, weiter hinten ~0,6; nur ganz hinten (d < −0,7) schrumpft es weg – so bleiben auch bei drei Bildern die Seiten groß
+    document.querySelectorAll('.kreis .kk').forEach(el => { const i = +el.dataset.i; const a = (2 * Math.PI * i) / n - phi; const d = Math.cos(a); const weg = Math.min(1, Math.max(0, (d + .95) / .25)); const sc = (.6 + .4 * (d + 1) / 2) * weg;
+      el.style.display = weg > 0 ? '' : 'none'; el.style.transform = `translate(${(540 + rx * Math.sin(a) - kw / 2).toFixed(1)}px,${(cy + ry * d - kw / 2 - 20).toFixed(1)}px) scale(${sc.toFixed(3)})`; el.style.zIndex = String(Math.round(100 + 50 * d)); el.style.filter = `blur(${(3 * (1 - d) / 2).toFixed(1)}px) brightness(${(.72 + .28 * (d + 1) / 2).toFixed(2)})`; });
   });
 } else if (clip === 'pin') {
   // Karten-Pin: fällt auf x/y (Prozent) – auf ein Kartenbild oder frei (dann in CapCut per Tracking anheften)
