@@ -4,6 +4,7 @@
 // Claude: über das eigene Claude-Abo – Auftrag kopieren, in Claude einfügen (oder dort sprechen), Antwort zurück einfügen. Kein Server, kein Schlüssel, keine Kosten.
 import { FILM_ARTEN, FILM_STATUS, OVERLAY_TYPEN, overlayTyp, overlayClip, AUFTRAG, antwortLesen } from './lib/film.mjs';
 import { TEIL_BYTES, toB64 } from './lib/rat.mjs';
+import { skizzeLesen, skizzeSvg, skizzeText, overlayKurz } from './lib/storyboard.mjs';
 
 const MAX_UPLOAD = 40 * 1024 * 1024;
 // Takes aus dem Skript lesen – Take-Format, sonst Absätze
@@ -15,16 +16,17 @@ export function takesAus(skript) {
     const zeilen = b.split('\n'); const kopf = zeilen[0];
     const bild = kopf.replace(/^TAKE\s*\d+\s*[·–-]?\s*/i, '').replace(/^\s*Bild:\s*/i, '').trim();
     // „Du sagst:“ darf über mehrere Zeilen gehen – bis zur nächsten Zeile mit „Overlay:“
-    let sagt = '', overlay = '', rest = [], modus = '';
+    let sagt = '', overlay = '', rest = [], modus = '', skizze = '';
     for (const z of zeilen.slice(1)) {
+      if (/^\s*(?:Skizze|Storyboard):/i.test(z)) { modus = ''; skizze = z.trim(); continue; }
       if (/^\s*Du sagst:/i.test(z)) { modus = 'sagt'; sagt += z.replace(/^\s*Du sagst:\s*/i, '') + '\n'; continue; }
       if (/^\s*Overlay:/i.test(z)) { modus = 'overlay'; overlay += z.replace(/^\s*Overlay:\s*/i, '') + ' '; continue; }
       if (modus === 'sagt') sagt += z + '\n'; else if (modus === 'overlay') overlay += z + ' '; else rest.push(z);
     }
     sagt = sagt.trim().replace(/^[„"“]/, '').replace(/[“"”]$/, '').trim(); overlay = overlay.trim();
-    return { nr: i + 1, bild, text: sagt || rest.join('\n').trim(), overlay, notiz: sagt ? rest.join('\n').trim() : '' };
+    return { nr: i + 1, bild, text: sagt || rest.join('\n').trim(), overlay, notiz: sagt ? rest.join('\n').trim() : '', skizze: skizzeLesen(skizze, bild, overlay) };
   });
-  return text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map((t, i) => ({ nr: i + 1, bild: (t.match(/\[(?:Bild|Kamera)[^\]]*\]/i) || [''])[0].replace(/^\[|\]$/g, ''), text: t.replace(/\[[^\]]*\]\s*/g, '').trim(), overlay: (t.match(/\[Overlay:\s*([^\]]+)\]/i) || [])[1] || '', notiz: '' }));
+  return text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map((t, i) => ({ nr: i + 1, skizze: skizzeLesen('', (t.match(/\[(?:Bild|Kamera)[^\]]*\]/i) || [''])[0], ''), bild: (t.match(/\[(?:Bild|Kamera)[^\]]*\]/i) || [''])[0].replace(/^\[|\]$/g, ''), text: t.replace(/\[[^\]]*\]\s*/g, '').trim(), overlay: (t.match(/\[Overlay:\s*([^\]]+)\]/i) || [])[1] || '', notiz: '' }));
 }
 
 export function makeFilm(ctx) {
@@ -98,6 +100,10 @@ export function makeFilm(ctx) {
       </details>
       <div class="field"><label for="fp-skript">Skript <span class="muted">– Take für Take, speichert von selbst</span></label><textarea id="fp-skript" rows="14" placeholder="TAKE 1 · Bild: du in die Kamera&#10;Du sagst: „Moin Soltau! …“&#10;Overlay: Großer Text „…“ (4 s)">${esc(p.skript || '')}</textarea></div>
       <div class="mb-actions"><span class="small muted" id="fp-skript-msg">${takes.length ? `${takes.length} Takes erkannt` : ''}</span><button type="button" class="linkbtn" id="fp-skript-teilen">Skript teilen …</button></div>
+      <details class="mb-details sb" ${takes.length ? 'open' : ''}><summary>Storyboard <span class="small muted">– Skizze je Take: wo ihr steht, was die Kamera macht, wo das Overlay sitzt</span></summary>
+        ${takes.length ? `<div class="sb-grid">${takes.map(t => `<figure class="sb-karte"><div class="sb-frame">${skizzeSvg(t.skizze, { typ: overlayKurz(t.overlay) })}</div><figcaption><b>Take ${esc(t.nr)}</b> ${esc(skizzeText(t.skizze))}${t.skizze.ausZeile ? '' : ' <span class="muted">(aus „Bild:“ abgeleitet)</span>'}</figcaption></figure>`).join('')}</div>
+        <div class="mb-actions"><button type="button" class="linkbtn" id="fp-sb-teilen">Storyboard als Bild teilen …</button><span class="small muted">Claude schreibt je Take eine „Skizze:“-Zeile mit – ändert ihr sie im Skript, ändert sich die Zeichnung.</span></div>` : '<p class="small muted">Sobald das Skript Takes hat, erscheint hier je Take eine Skizze.</p>'}
+      </details>
       <details class="mb-details"><summary>Drehplan (optional)</summary><textarea id="fp-drehplan" rows="5" placeholder="Bildschirmaufnahmen vorher: A1 Startseite scrollen, A2 Registrieren … Wer macht was, wann.">${esc(p.drehplan || '')}</textarea></details>
     </section>`;
   }
@@ -144,6 +150,7 @@ export function makeFilm(ctx) {
     $$('[data-status]', v).forEach(b => b.addEventListener('click', async () => { await speichern({ status: b.dataset.status }); projekt(v, p._id); }));
     $('#fp-datum', v)?.addEventListener('change', e => speichern({ datum: e.target.value }));
     $('#fp-skript-teilen', v)?.addEventListener('click', () => shareText(`🎬 ${p.titel}\n\n${$('#fp-skript', v).value}`));
+    $('#fp-sb-teilen', v)?.addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { await storyboardTeilen(p, takesAus($('#fp-skript', v).value)); } catch (err) { msg($('#fp-skript-msg', v), 'Bild nicht erstellt: ' + errText(err), 'err'); } busy(b, false); });
     $('#fp-loeschen', v)?.addEventListener('click', async () => { if (!confirm('Video wirklich löschen?')) return; try { await db.remove('FilmProjekte', p._id); location.hash = '#filmdreh'; } catch (err) { alert('Nicht gelöscht: ' + errText(err)); } });
     // ---- Claude: Auftrag kopieren, Antwort einfügen ----
     const wunsch = () => $('#ki-wunsch', v)?.value.trim() || '';
@@ -235,6 +242,27 @@ export function makeFilm(ctx) {
   }
 
   // ---------- Drehmodus: ein Take groß, Kamera, Satz, Overlay ----------
+  // Storyboard als ein Bild (3 Spalten): Skizze + Take-Nummer + Kurztext
+  async function storyboardTeilen(p, takes) {
+    if (!takes.length) return;
+    const SP = 3, BW = 270, BH = 480, PAD = 24, CAP = 96, KOPF = 90;
+    const zeilen = Math.ceil(takes.length / SP);
+    const c = document.createElement('canvas'); c.width = PAD * 2 + SP * BW + (SP - 1) * PAD; c.height = KOPF + zeilen * (BH + CAP + PAD) + PAD;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#0F0F0F'; g.font = '700 30px system-ui, sans-serif'; g.fillText(`Storyboard – ${p.titel}`.slice(0, 60), PAD, 46);
+    g.fillStyle = '#7C7676'; g.font = '18px system-ui, sans-serif'; g.fillText(`${takes.length} Takes${p.datum ? ' · ' + p.datum : ''} · SPD Soltau`, PAD, 74);
+    const bild = svg => new Promise((ok, nein) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => nein(new Error('SVG')); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+    const wrap = (text, x, y, breite, zeile) => { const w = text.split(' '); let l = ''; for (const wort of w) { const t = l ? l + ' ' + wort : wort; if (g.measureText(t).width > breite && l) { g.fillText(l, x, y); y += zeile; l = wort; } else l = t; } if (l) g.fillText(l, x, y); };
+    for (let i = 0; i < takes.length; i++) {
+      const t = takes[i]; const x = PAD + (i % SP) * (BW + PAD), y = KOPF + Math.floor(i / SP) * (BH + CAP + PAD);
+      g.drawImage(await bild(skizzeSvg(t.skizze, { typ: overlayKurz(t.overlay) })), x, y, BW, BH);
+      g.fillStyle = '#E3000F'; g.font = '700 20px system-ui, sans-serif'; g.fillText(`TAKE ${t.nr}`, x, y + BH + 26);
+      g.fillStyle = '#232222'; g.font = '15px system-ui, sans-serif'; wrap(skizzeText(t.skizze), x, y + BH + 50, BW, 19);
+    }
+    const dataUrl = c.toDataURL('image/png'); const name = `storyboard-${String(p.titel || 'video').toLowerCase().replace(/[^a-z0-9äöüß]+/g, '-').slice(0, 40)}.png`;
+    try { const blob = await (await fetch(dataUrl)).blob(); const file = new File([blob], name, { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Storyboard', text: p.titel }); return; } } catch (e) { /* abgebrochen oder kein Teilen */ }
+    const a = document.createElement('a'); a.href = dataUrl; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  }
   function dreh(v, p) {
     const takes = takesAus(p.skript); if (!takes.length) { location.hash = '#filmdreh/p-' + p._id; return; }
     const fertig = new Set(parseJson(p.takesFertig, []));
@@ -246,7 +274,7 @@ export function makeFilm(ctx) {
       <div class="fokus-zeile"><span class="fokus-zaehler">Take ${st.take + 1} von ${takes.length}</span><button type="button" class="chip" id="dr-kasten" aria-pressed="${imKasten}">${imKasten ? '✓ Im Kasten' : 'Im Kasten?'}</button><span class="fokus-wach small" id="fo-wach" hidden>● Bildschirm bleibt an</span></div>
       <div class="fokus-top dreh-take${imKasten ? ' ok' : ''}" id="fo-top">
         <div class="fokus-nr">TAKE ${esc(t.nr)}</div>
-        ${t.bild ? `<div class="dreh-bild"><span class="fokus-label">Kamera &amp; Bild</span><p>${esc(t.bild)}</p></div>` : ''}
+        <div class="dreh-bild"><div class="sb-frame">${skizzeSvg(t.skizze, { typ: overlayKurz(t.overlay) })}</div><div><span class="fokus-label">Kamera &amp; Bild</span>${t.bild ? `<p>${esc(t.bild)}</p>` : ''}<p class="sb-text">${esc(skizzeText(t.skizze))}</p></div></div>
         <div class="dreh-text"><span class="fokus-label">Du sagst</span><p class="dreh-satz">${nl2br(t.text)}</p></div>
         ${t.overlay ? `<div class="dreh-overlay"><span class="fokus-label">Overlay dazu</span><p>${esc(t.overlay)}</p></div>` : ''}
         ${t.notiz ? `<p class="small muted">${nl2br(t.notiz)}</p>` : ''}

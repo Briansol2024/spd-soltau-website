@@ -2,6 +2,7 @@
 // die freigegebenen Notizen aller Teilnehmenden, ein fertiges Instagram-Skript (nur aus öffentlich Sagbarem: Titel,
 // Haltung, Argumente, Ergebnis – nie aus „intern besprochen“) und Ergebnis-Kacheln als PNG für Post oder Story.
 import { AUFTRAG, antwortLesen } from './lib/film.mjs';
+import { skizzeZeile } from './lib/storyboard.mjs';
 export function makeRueckblick(ctx) {
   const { db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me, echtesKonto, DEMO } = ctx;
   const zahlen = t => {
@@ -24,11 +25,12 @@ export function makeRueckblick(ctx) {
     const datum = fmtDate(r.sitzung);
     const istRat = /^Rat\b/.test(r.gremium || '');
     const L = []; let nr = 0;
-    const take = (bild, text, overlay) => { nr++; L.push(`TAKE ${nr} · ${bild}`); L.push(`Du sagst: „${text}“`); L.push(`Overlay: ${overlay || 'keins'}`); L.push(''); };
+    const take = (bild, text, overlay, skizze) => { nr++; L.push(`TAKE ${nr} · ${bild}`); L.push(skizzeZeile(skizze)); L.push(`Du sagst: „${text}“`); L.push(`Overlay: ${overlay || 'keins'}`); L.push(''); };
+    const ort = istRat ? 'Rathaus' : 'ruhige Wand';
     L.push(`🎬 ${r.gremium || 'Sitzung'} vom ${datum} – ${variante === 'kurz' ? 'Reel, ca. 45 Sekunden' : 'ausführlich, ca. 90 Sekunden'} – Take für Take`);
     L.push('');
     const dat = `${String(r.sitzung || '').slice(8, 10)}.${String(r.sitzung || '').slice(5, 7)}.`;
-    take('du in die Kamera, Blick direkt rein', `Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`, `Großer Text „${istRat ? 'Ratssitzung' : r.gremium} ${dat}“ / „So hat der Rat entschieden“ (4 s)`);
+    take('du in die Kamera, Blick direkt rein', `Moin Soltau! ${istRat ? 'Ratssitzung' : r.gremium} – ${tops.length} Punkte, ${ent.length} ${ent.length === 1 ? 'Entscheidung' : 'Entscheidungen'}. Das Wichtigste in ${variante === 'kurz' ? '45 Sekunden' : 'anderthalb Minuten'}.`, `Großer Text „${istRat ? 'Ratssitzung' : r.gremium} ${dat}“ / „So hat der Rat entschieden“ (4 s)`, { einstellung: 'halbnah', position: 'mitte', overlay: 'oben', hintergrund: ort });
     // Je Entscheidung ein Take mit zwei, drei Sätzen am Stück – wenige Schnitte, locker erzählt
     wahl.forEach((t, i) => {
       const z = zahlen(t);
@@ -40,10 +42,11 @@ export function makeRueckblick(ctx) {
       const erg = { angenommen: `und der Rat hat es angenommen${zahlSatz}.`, abgelehnt: `aber der Rat hat es abgelehnt${zahlSatz}.`, geaendert: `und in der geänderten Fassung ist es durchgegangen${zahlSatz}.`, vertagt: 'aber das wurde vertagt – kommt also noch mal auf den Tisch.', zurueckgezogen: 'aber der Antrag wurde zurückgezogen.', kenntnis: 'das hat der Rat zur Kenntnis genommen.' }[t.beschluss] || (t.ergebnis ? `Ergebnis: ${t.ergebnis}.` : '');
       const arg = satz1(t.einordnung);
       const text = [`${einstieg}: ${sprechTitel(t.titel)}.`, arg, haltung && erg ? `${haltung}, ${erg}` : (haltung ? haltung + '.' : erg ? erg.charAt(0).toUpperCase() + erg.slice(1) : ''), t.ergebnis && t.beschluss ? t.ergebnis + '.' : ''].filter(Boolean).join(' ');
-      take(i % 2 ? 'du, etwas näher, ruhig mit Vorlage oder Foto in der Hand' : 'du in die Kamera, locker, gern mit Geste', text, `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „${lesbar(`*${lab}*${stand ? '|' + stand : ''}`)}“ (4 s) – bei „${sprechTitel(t.titel).split(' ')[0]}“ einblenden`);
+      take(i % 2 ? 'du, etwas näher, ruhig mit Vorlage oder Foto in der Hand' : 'du in die Kamera, locker, gern mit Geste', text, `Großer Text „TOP ${t.nr || ''} · ${kurzTitel(t.titel)}“ / „${lesbar(`*${lab}*${stand ? '|' + stand : ''}`)}“ (4 s) – bei „${sprechTitel(t.titel).split(' ')[0]}“ einblenden`,
+        i % 2 ? { einstellung: 'nah', position: 'links', overlay: 'oben rechts', hintergrund: ort } : { einstellung: 'halbnah', position: 'rechts', kamera: i === 0 ? 'Zoom rein' : 'steht', overlay: 'oben links', hintergrund: ort });
     });
-    if (ent.length > wahl.length) take('du, schneller Schnitt', `Außerdem entschieden: ${ent.slice(wahl.length).map(t => `${sprechTitel(t.titel)} – ${(beschlussLabel(t.beschluss) || t.ergebnis || '').toLowerCase()}`).join(', ')}.`, `Liste „Außerdem entschieden“ / ${ent.slice(wahl.length, wahl.length + 5).map(t => kurzTitel(t.titel)).join(' | ')} (5 s)`);
-    take('du in die Kamera, Lächeln', 'Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de – und wenn ihr zu einem Punkt Fragen habt, schreibt uns einfach, wir antworten. Bis zur nächsten Sitzung!', 'Großer Text „Alle Vorlagen und Ergebnisse“ / „spd-soltau.de/ratsbericht“ (4 s), danach Schlusskarte aus dem Grundkit');
+    if (ent.length > wahl.length) take('du, schneller Schnitt', `Außerdem entschieden: ${ent.slice(wahl.length).map(t => `${sprechTitel(t.titel)} – ${(beschlussLabel(t.beschluss) || t.ergebnis || '').toLowerCase()}`).join(', ')}.`, `Liste „Außerdem entschieden“ / ${ent.slice(wahl.length, wahl.length + 5).map(t => kurzTitel(t.titel)).join(' | ')} (5 s)`, { einstellung: 'halbnah', position: 'links', overlay: 'mitte rechts', hintergrund: ort });
+    take('du in die Kamera, Lächeln', 'Alle Vorlagen und Ergebnisse findet ihr auf spd-soltau.de – und wenn ihr zu einem Punkt Fragen habt, schreibt uns einfach, wir antworten. Bis zur nächsten Sitzung!', 'Großer Text „Alle Vorlagen und Ergebnisse“ / „spd-soltau.de/ratsbericht“ (4 s), danach Schlusskarte aus dem Grundkit', { einstellung: 'nah', position: 'mitte', overlay: 'unten', hintergrund: ort });
     L.push('DREHPLAN'); L.push(drehplanAuto(r, wahl.length + 2).trim());
     if (frei.length) {
       L.push(''); L.push('— Stichworte aus den Notizen der Fraktion (zur Inspiration, NICHT veröffentlichen):');

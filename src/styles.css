@@ -1843,3 +1843,14 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .ki-schritt:first-of-type{border-top:0}
 .ki-schritt>div{display:grid;gap:8px;min-width:0}
 .ki-schritt .fp-schritt-nr{font-size:22px;line-height:1;padding-top:2px}
+/* Storyboard: Skizze je Take */
+.sb-frame{width:112px;flex:none}
+.sb-frame svg{display:block;width:100%;height:auto}
+.dreh-bild{display:flex;gap:16px;align-items:flex-start}
+.dreh-bild>div:last-child{min-width:0;display:grid;gap:6px}
+.sb-text{margin:0;font-size:14px;line-height:1.4;color:var(--muted)}
+.sb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px 14px;padding-top:6px}
+.sb-karte{margin:0;display:grid;gap:6px}
+.sb-karte .sb-frame{width:100%}
+.sb-karte figcaption{font-size:13px;line-height:1.35}
+.sb-karte figcaption b{color:var(--rot)}

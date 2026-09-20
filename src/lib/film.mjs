@@ -25,6 +25,7 @@ export function overlayClip(o, i) {
 }
 
 // ---- Claude: Auftrag und Antwort – gemeinsam für App (Abo per Kopieren, API) und den KI-Agenten auf dem SKM-Server ----
+import { SKIZZE_ANLEITUNG } from './storyboard.mjs';
 export const BAUSTEINE_TEXT = OVERLAY_TYPEN.map(t => `- ${t.id} (${t.name}, ${t.dauer} s): ${t.felder.map(([k, l]) => `${k}=${l}`).join('; ')}`).join('\n');
 export function AUFTRAG(p, overlays, wunsch, verlauf = []) {
   const art = (FILM_ARTEN.find(([k]) => k === p.art) || [])[1] || p.art || 'Reel';
@@ -35,8 +36,10 @@ Stil: informell, persönlich, kurze klare Sätze, kein Amtsdeutsch, zugewandt, g
 AUFGABE: Schreib das Skript in TAKES – locker und natürlich, wie jemand, der vor der Kamera einfach erzählt. Ein Take ist eine Einstellung, in der der Sprecher zwei bis vier Sätze am Stück sagt: mit Übergängen („und deshalb“, „das heißt für euch“), ruhig ein Halbsatz, ruhig ein kleines Augenzwinkern. Nicht abgehackt, keine Stichpunkte, keine Aufzählung im Stakkato. Wenige Schnitte: ein Reel (45 s) hat 4–7 Takes, ein Erklärvideo 8–14. Professionell heißt: eine klare Botschaft pro Take, konkrete Zahlen, Orte, Namen; keine Floskeln, keine Parteisprache.
 Format je Take, Leerzeile dazwischen:
 TAKE 1 · Bild: du in die Kamera, sitzend, Rathaus im Hintergrund (Handy hochkant, Augenhöhe)
+Skizze: Einstellung halbnah · Position rechts · Blick Kamera · Kamera steht · Overlay oben links · Hintergrund Rathaus
 Du sagst: „… zwei bis vier Sätze am Stück, so wie man spricht …“
 Overlay: Großer Text „…“ / „…|*…*“ (4 s) – bei „Stichwort“ einblenden – oder: keins
+${SKIZZE_ANLEITUNG}
 Overlays sparsam: höchstens eins je Take und nur, wo es die Botschaft trägt (eine Zahl, ein Name, ein Ergebnis). Bausteine (typ → Felder; Zeilen mit | trennen, *Wort* = rot):
 ${BAUSTEINE_TEXT}
 Nach dem letzten Take: in ein, zwei Sätzen fragen, ob das Skript so passt oder was anders soll.
