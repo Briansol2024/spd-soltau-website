@@ -686,8 +686,9 @@ function monatsKalender(events, ansichtEvents) {
 }
 async function secTermine(v) {
   const events = visibleEvents().slice(0, 40);
-  const [zusagen, listen, helfer, fahrten, terminPolls, stimmen] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => []), db.list('Umfragen', { eq: { nurZusagen: true } }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => [])]);
+  const [zusagen, listen, helfer, fahrten, terminPolls, stimmen, mitfahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => []), db.list('Umfragen', { eq: { nurZusagen: true } }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => []), db.list('Mitfahrten', { limit: 1000 }).catch(() => [])]);
   secTermine.polls = { terminPolls: terminPolls.map(u => ({ ...u, col: 'Umfragen' })), stimmen };
+  secTermine.mitfahrten = mitfahrten; // wer bei welchem Angebot mitfährt (Sammlung Mitfahrten: fahrtId, memberId, name)
   const today = todayIso();
   const ics = CFG.ics || {};
   // Listen, die an einem angezeigten Termin hängen, stehen direkt im Termin – der Rest unten
@@ -777,8 +778,17 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
       ${terminPoll(ev, mine)}
       ${me.sees('helfer') ? myLists.map(l => helperList(l, helfer, events, true)).join('') : ''}
       ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
-      <details class="mb-details rides" data-ev="${esc(ev.id)}"><summary>🚗 Mitfahren${rides.length ? ` (${rides.length})` : ''}</summary>
-        <div class="ride-list">${rides.length ? rides.map(r => `<p class="small ride" data-id="${esc(r._id)}">${r.typ === 'biete' ? '🚗' : '🙋'} <b>${esc(r.name)}</b> ${r.typ === 'biete' ? `bietet ${r.plaetze || 1} ${(r.plaetze || 1) === 1 ? 'Platz' : 'Plätze'}` : 'sucht eine Mitfahrgelegenheit'} ab ${esc(r.ab || '?')}${r.zeit ? ', ' + esc(r.zeit) + ' Uhr' : ''}${r.hinweis ? ' – ' + esc(r.hinweis) : ''}${r.memberId === me.id ? ` ${waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + ' Platz/Plätze' : 'Ich suche eine Mitfahrgelegenheit'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten')} <button type="button" class="linkbtn" data-del-ride>löschen</button>` : ''}</p>`).join('') : '<p class="small muted">Noch keine Einträge.</p>'}</div>
+      ${(() => {
+        const mitf = secTermine.mitfahrten || [];
+        const angebote = rides.filter(r => r.typ === 'biete'), gesuche = rides.filter(r => r.typ !== 'biete');
+        const freiGesamt = angebote.reduce((s, r) => s + Math.max(0, (r.plaetze || 1) - mitf.filter(m => m.fahrtId === r._id).length), 0);
+        const kurz = [angebote.length ? `${angebote.length} Angebot${angebote.length === 1 ? '' : 'e'}${freiGesamt ? ` · ${freiGesamt} ${freiGesamt === 1 ? 'Platz' : 'Plätze'} frei` : ' · voll'}` : '', gesuche.length ? `${gesuche.length} ${gesuche.length === 1 ? 'sucht' : 'suchen'} eine Mitfahrt` : ''].filter(Boolean).join(' · ');
+        return `<details class="mb-details rides" data-ev="${esc(ev.id)}"><summary><span class="rides-titel">🚗 Mitfahren</span>${kurz ? `<span class="rides-kurz">${esc(kurz)}</span>` : ''}</summary>
+        ${angebote.length ? `<div class="ride-list">${angebote.map(r => fahrtKarte(r, ev, mitf)).join('')}</div>` : ''}
+        ${gesuche.length ? `<div class="ride-list">${gesuche.map(r => fahrtKarte(r, ev, mitf)).join('')}</div>` : ''}
+        ${!rides.length ? '<p class="small muted">Noch niemand eingetragen – mach den Anfang.</p>' : ''}
+        <p class="fahrt-form-titel">Selbst eintragen</p>`;
+      })()}
         <form class="form mb-form ride-form" novalidate>
           <div class="mb-3">
             <div class="field"><label>Ich …</label><select name="typ"><option value="biete">biete Plätze an</option><option value="suche">suche eine Mitfahrt</option></select></div>
@@ -792,6 +802,32 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
       <p class="note" hidden></p>
     </div>
   </article>`;
+}
+// Mitfahren: Angebot mit Sitzplätzen (belegt / frei / dein Platz) und „Ich fahre mit“ – oder ein Gesuch
+const initialen = n => String(n || '').split(/\s+/).map(x => x[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || '·';
+function fahrtKarte(r, ev, mitf) {
+  const own = r.memberId === me.id, vorname = String(r.name || '').split(' ')[0];
+  const posten = waBtn(`🚗 ${r.typ === 'biete' ? 'Ich biete ' + (r.plaetze || 1) + (r.plaetze === 1 ? ' Platz' : ' Plätze') : 'Ich suche eine Mitfahrt'} ab ${r.ab || '?'} zu „${ev.title}“ (${fmtShort(ev.date)}${r.zeit ? ', ' + r.zeit + ' Uhr' : ''}). Eintragen: ${appLink('#termine/ev-' + ev.id)}`, 'In Gruppe posten');
+  if (r.typ !== 'biete') {
+    return `<article class="fahrt suche" data-id="${esc(r._id)}"><div class="fahrt-avatar" aria-hidden="true">${initialen(r.name)}</div><div class="fahrt-body">
+      <div class="fahrt-kopf"><b>${esc(r.name)}</b> sucht eine Mitfahrt ab <b>${esc(r.ab || '?')}</b>${r.zeit ? ` · ab ${esc(r.zeit)} Uhr` : ''}${r.hinweis ? ` · ${esc(r.hinweis)}` : ''}</div>
+      <p class="small muted">${own ? 'Sobald jemand Plätze anbietet, kannst du dort auf „Ich fahre mit“ tippen – dein Gesuch verschwindet dann von selbst.' : `Wer Plätze hat: unten ein Angebot eintragen, dann kann ${esc(vorname)} einsteigen.`}</p>
+      ${own ? `<div class="fahrt-actions">${posten}<button type="button" class="linkbtn" data-del-ride>Gesuch löschen</button></div>` : ''}
+    </div></article>`;
+  }
+  const plaetze = Math.max(1, +r.plaetze || 1);
+  const dabei = mitf.filter(m => m.fahrtId === r._id).slice(0, plaetze);
+  const ich = dabei.find(m => m.memberId === me.id);
+  const frei = Math.max(0, plaetze - dabei.length);
+  const sitze = Array.from({ length: plaetze }, (_, i) => { const m = dabei[i]; return `<span class="sitz ${m ? (m.memberId === me.id ? 'du' : 'belegt') : 'frei'}" title="${esc(m ? m.name : 'frei')}">${ICON.user}</span>`; }).join('');
+  return `<article class="fahrt biete${frei ? '' : ' voll'}${ich ? ' dabei' : ''}" data-id="${esc(r._id)}"><div class="fahrt-avatar" aria-hidden="true">${initialen(r.name)}</div><div class="fahrt-body">
+    <div class="fahrt-kopf"><b>${esc(r.name)}</b> fährt ab <b>${esc(r.ab || '?')}</b>${r.zeit ? ` · Abfahrt ${esc(r.zeit)} Uhr` : ''}${r.hinweis ? ` · ${esc(r.hinweis)}` : ''}</div>
+    <div class="sitze" role="img" aria-label="${frei} von ${plaetze} Plätzen frei">${sitze}</div>
+    <p class="small fahrt-frei">${frei ? `<b>${frei}</b> von ${plaetze} ${plaetze === 1 ? 'Platz' : 'Plätzen'} frei` : '<b>Voll</b> – alle Plätze belegt'}${dabei.length ? ` · mit dabei: ${esc(dabei.map(m => m.memberId === me.id ? 'du' : m.name).join(', '))}` : ''}</p>
+    <div class="fahrt-actions">${own ? `<span class="badge">Dein Angebot</span>${posten}<button type="button" class="linkbtn" data-del-ride>Angebot löschen</button>`
+      : ich ? `<button type="button" class="chip" data-mitfahren aria-pressed="true">✓ Ich fahre mit</button><span class="small muted">Nochmal tippen zum Aussteigen</span>`
+      : frei ? `<button type="button" class="btn btn-rot btn-sm" data-mitfahren>${ICON.plus}Ich fahre mit</button>` : '<span class="small muted">Vielleicht bietet noch jemand Plätze an.</span>'}</div>
+  </div></article>`;
 }
 // Umfrage zum Termin (z. B. Stammtisch: „Wo treffen wir uns?“) – sichtbar nur für Zusagen (und wer Umfragen verwalten darf)
 function terminPoll(ev, mine) {
@@ -873,9 +909,30 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
       } catch (err) { msg(art.querySelector('.note'), 'Das hat nicht geklappt: ' + errText(err)); busy(h, false); }
       return;
     }
-    // Fahrgemeinschaft löschen
+    // Mitfahren: einsteigen oder aussteigen – beim Einsteigen verschwindet das eigene Gesuch zum selben Termin
+    const mf = e.target.closest('button[data-mitfahren]');
+    if (mf) {
+      const fahrtId = mf.closest('.fahrt').dataset.id; const r = fahrten.find(x => x._id === fahrtId); if (!r) return;
+      const alle = secTermine.mitfahrten || []; const meins = alle.find(m => m.fahrtId === fahrtId && m.memberId === me.id);
+      busy(mf, true);
+      try {
+        if (meins) await db.remove('Mitfahrten', meins._id);
+        else {
+          if (alle.filter(m => m.fahrtId === fahrtId).length >= Math.max(1, +r.plaetze || 1)) { msg(mf.closest('.rsvp').querySelector(':scope > .rsvp-body > .note'), 'Gerade voll geworden – jemand war schneller.'); busy(mf, false); return; }
+          await db.insert('Mitfahrten', { fahrtId, eventId: r.eventId, eventTitel: r.eventTitel || '', memberId: me.id, name: me.name, title: `${me.name} fährt mit ${r.name}` });
+          for (const g of fahrten.filter(x => x.eventId === r.eventId && x.typ === 'suche' && x.memberId === me.id)) await db.remove('Fahrgemeinschaften', g._id).catch(() => {});
+        }
+        route();
+      } catch (err) { msg(mf.closest('.rsvp').querySelector(':scope > .rsvp-body > .note'), 'Das hat nicht geklappt: ' + errText(err)); busy(mf, false); }
+      return;
+    }
+    // Angebot oder Gesuch löschen (Mitfahrende werden mit ausgetragen)
     const d = e.target.closest('button[data-del-ride]');
-    if (d) { const id = d.closest('.ride').dataset.id; busy(d, true); try { await db.remove('Fahrgemeinschaften', id); route(); } catch (err) { busy(d, false); } return; }
+    if (d) {
+      const id = d.closest('.fahrt').dataset.id; busy(d, true);
+      try { for (const m of (secTermine.mitfahrten || []).filter(x => x.fahrtId === id)) await db.remove('Mitfahrten', m._id).catch(() => {}); await db.remove('Fahrgemeinschaften', id); route(); } catch (err) { busy(d, false); }
+      return;
+    }
     // Kalender-Adresse kopieren
     const c = e.target.closest('button[data-copy]');
     if (c) { try { await navigator.clipboard.writeText(c.dataset.copy); msg($('#ics-msg'), 'Adresse kopiert – im Kalender unter „Abonnement/Per URL“ einfügen.', 'ok'); } catch (err) { msg($('#ics-msg'), c.dataset.copy, 'info'); } }

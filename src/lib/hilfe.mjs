@@ -139,7 +139,8 @@ export const HELP_TOPICS = [
       '{tippe} bei einem Termin auf „Mitfahren“.',
       'Wähle „biete Plätze an“ oder „suche eine Mitfahrt“, trage deinen Ortsteil und die Abfahrtszeit ein.',
       '{tippe} auf „Eintragen“. Alle Mitglieder sehen jetzt deinen Eintrag mit deinem Namen.',
-      'Mit dem Teilen-Knopf schickst du dein Angebot auch in eure WhatsApp-Gruppe. Löschen geht jederzeit über „löschen“.',
+      'Bietet jemand Plätze an, {tippe} dort auf „Ich fahre mit“ – die Sitze zeigen, wie viele Plätze noch frei sind. Nochmal tippen heißt aussteigen.',
+      'Mit „In Gruppe posten“ schickst du dein Angebot auch in eure WhatsApp-Gruppe. Löschen geht jederzeit über „Angebot löschen“.',
     ] },
   },
   {

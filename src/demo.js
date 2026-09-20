@@ -195,11 +195,17 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
     ],
     Statistik: statistikDemo(),
     Fahrgemeinschaften: [
-      { _id: uid(), _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
+      { _id: 'demo-f1', _owner: ids[2], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'biete', ab: 'Harber', plaetze: 3, zeit: '18:30', memberId: ids[2], name: people[2].name, hinweis: '' },
       { _id: uid(), _owner: ids[7], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, typ: 'suche', ab: 'Wolterdingen', plaetze: 1, zeit: '', memberId: ids[7], name: people[7].name, hinweis: '' },
-      { _id: uid(), _owner: ids[9], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, typ: 'biete', ab: 'Tetendorf', plaetze: 2, zeit: '18:30', memberId: ids[9], name: people[9].name, hinweis: 'Fahre über Ahlften.' },
+      { _id: 'demo-f3', _owner: ids[9], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, typ: 'biete', ab: 'Tetendorf', plaetze: 2, zeit: '18:30', memberId: ids[9], name: people[9].name, hinweis: 'Fahre über Ahlften.' },
       { _id: uid(), _owner: ids[11], eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', eventDatum: demoEvents[1].date, typ: 'suche', ab: 'Harber', plaetze: 1, zeit: '', memberId: ids[11], name: people[11].name, hinweis: '' },
-      ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: uid(), _owner: ids[12], eventId: ev.find(e => /stammtisch/i.test(e.title)).id, eventTitel: 'Stammtisch', eventDatum: ev.find(e => /stammtisch/i.test(e.title)).date, typ: 'biete', ab: 'Wolterdingen', plaetze: 3, zeit: '18:45', memberId: ids[12], name: people[12].name, hinweis: '' }] : []),
+      ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: 'demo-f5', _owner: ids[12], eventId: ev.find(e => /stammtisch/i.test(e.title)).id, eventTitel: 'Stammtisch', eventDatum: ev.find(e => /stammtisch/i.test(e.title)).date, typ: 'biete', ab: 'Wolterdingen', plaetze: 3, zeit: '18:45', memberId: ids[12], name: people[12].name, hinweis: '' }] : []),
+    ],
+    Mitfahrten: [
+      { _id: uid(), _owner: ids[10], fahrtId: 'demo-f1', eventId: e0.id, eventTitel: e0.title, memberId: ids[10], name: people[10].name, title: `${people[10].name} fährt mit` },
+      { _id: uid(), _owner: ids[6], fahrtId: 'demo-f1', eventId: e0.id, eventTitel: e0.title, memberId: ids[6], name: people[6].name, title: `${people[6].name} fährt mit` },
+      { _id: uid(), _owner: ids[8], fahrtId: 'demo-f3', eventId: 'demo-ev-mv', eventTitel: 'Mitgliederversammlung', memberId: ids[8], name: people[8].name, title: `${people[8].name} fährt mit` },
+      { _id: uid(), _owner: ids[13], fahrtId: 'demo-f5', eventId: ev.find(e => /stammtisch/i.test(e.title))?.id || '', eventTitel: 'Stammtisch', memberId: ids[13], name: people[13].name, title: `${people[13].name} fährt mit` },
     ],
     Aktionen: [
       { _id: uid(), _owner: ME, _createdDate: daysAgo(1), typ: 'beitrag_erstellen', title: 'Beitrag: Radweg nach Harber', payload: JSON.stringify({ titel: 'Radweg nach Harber: Sanierung kommt' }), status: 'erledigt', ergebnis: 'veröffentlicht', von: 'Max Mustermann' },
