@@ -1835,3 +1835,7 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
   .fp-schritte{grid-template-columns:1fr 1fr}
   .fp-schritt.dreh{grid-column:1/-1}
 }
+.ki-agent{border-left:4px solid var(--rot)}
+.ki-wartet{display:flex;gap:10px;align-items:center;padding:8px 0}
+.gruen{color:#177A38}
+.ki-weg>summary{cursor:pointer}

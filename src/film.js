@@ -3,41 +3,11 @@
 //   ein Take groß auf dem Bildschirm, Kamera, Satz, Overlay). Dazu Material (Dateien/Links) und die Vorlagen.
 // Claude: Standardweg ist das eigene Claude-Abo – Auftrag kopieren, in Claude einfügen, Antwort zurück einfügen.
 // Optional automatisch über einen API-Schlüssel (liegt nur auf dem Gerät).
-import { FILM_ARTEN, FILM_STATUS, OVERLAY_TYPEN, overlayTyp, overlayClip } from './lib/film.mjs';
+import { FILM_ARTEN, FILM_STATUS, OVERLAY_TYPEN, overlayTyp, overlayClip, AUFTRAG, antwortLesen } from './lib/film.mjs';
 import { TEIL_BYTES, toB64 } from './lib/rat.mjs';
 
 const MAX_UPLOAD = 40 * 1024 * 1024;
 const KI_MODELLE = [['claude-sonnet-5', 'Claude Sonnet 5 (empfohlen)'], ['claude-opus-5', 'Claude Opus 5 (gründlicher)'], ['claude-haiku-4-5-20251001', 'Claude Haiku 4.5 (günstig)']];
-const BAUSTEINE_TEXT = OVERLAY_TYPEN.map(t => `- ${t.id} (${t.name}, ${t.dauer} s): ${t.felder.map(([k, l]) => `${k}=${l}`).join('; ')}`).join('\n');
-// Auftrag für Claude – identisch für Abo (kopieren) und API
-const AUFTRAG = (p, overlays, wunsch) => `Du bist der Regieassistent der SPD Soltau (Ortsverein und Ratsfraktion in Soltau, Niedersachsen) für kurze Instagram-Videos (Reels, Stories) und Erklärvideos zur Website spd-soltau.de und zur Mitglieder-App.
-Stil: informell, persönlich, kurze klare Sätze, kein Amtsdeutsch, zugewandt, gern „Moin Soltau!“, Claim „Aus Liebe zu Soltau“. Sprecher: Brian Weber (stellv. Vorsitzender, Ratsmitglied) oder Birhat Kaçar (Vorsitzender, Fraktionsvorsitzender). Keine Angriffe auf Personen, nichts erfinden – wenn Fakten fehlen, nachfragen.
-
-AUFGABE: Schreib das Skript TAKE FÜR TAKE. Jeder Take = eine Einstellung mit genau dem Satz (höchstens zwei kurzen Sätzen), der gesprochen wird. Kein Fließtext. Ein Reel (45 s) hat 8–14 Takes, ein Erklärvideo 15–25. Format je Take, Leerzeile dazwischen:
-TAKE 1 · Bild: du in die Kamera (oder: Handy links im Bild, Bildschirmaufnahme A2 …)
-Du sagst: „…“
-Overlay: Großer Text „…“ / „…|*…*“ (4 s) – oder: keins
-Overlay-Bausteine (typ → Felder; Zeilen mit | trennen, *Wort* = rot):
-${BAUSTEINE_TEXT}
-Danach: kurz fragen, ob das Skript so passt. Wenn es passt, liefere zusätzlich die Overlays als JSON-Liste in genau dieser Form (in einer Zeile, nach der Überschrift OVERLAYS-JSON):
-OVERLAYS-JSON
-[{"typ":"gross","dauer":4,"werte":{"label":"…","text":"…|*…*","pos":"oben","gr":"m"}}, {"typ":"stempel","dauer":3,"werte":{"text":"Angenommen"}}]
-
-PROJEKT: „${p.titel}“ (${(FILM_ARTEN.find(([k]) => k === p.art) || [])[1] || p.art || 'Reel'}${p.datum ? ', Termin ' + p.datum : ''}).
-${p.skript ? 'BISHERIGES SKRIPT:\n' + p.skript.slice(0, 4000) + '\n' : ''}${overlays.length ? 'BISHERIGE OVERLAYS: ' + JSON.stringify(overlays).slice(0, 1500) + '\n' : ''}
-WUNSCH: ${wunsch || 'Bitte ein Skript vorschlagen.'}`;
-// Antwort von Claude (Abo: eingefügt; API: Text) → Skript-Takes + Overlays
-function antwortLesen(text) {
-  const t = String(text || '').replace(/\r/g, '').trim(); if (!t) return null;
-  let overlays = null; let skript = t;
-  const m = t.match(/OVERLAYS-JSON\s*\n?\s*(\[[\s\S]*?\])/i);
-  if (m) { try { overlays = JSON.parse(m[1]).filter(o => overlayTyp(o.typ)).map(o => ({ typ: o.typ, dauer: +o.dauer || overlayTyp(o.typ).dauer, werte: o.werte || {} })); } catch (e) { overlays = null; } skript = t.slice(0, m.index).trim(); }
-  else { try { const j = JSON.parse(t.match(/\{[\s\S]*\}/)?.[0] || ''); if (j && (j.skript || j.antwort)) { skript = j.skript || j.antwort; if (Array.isArray(j.overlays)) overlays = j.overlays.filter(o => overlayTyp(o.typ)).map(o => ({ typ: o.typ, dauer: +o.dauer || overlayTyp(o.typ).dauer, werte: o.werte || {} })); } } catch (e) { /* Klartext */ } }
-  // Nachfrage-Sätze am Ende („Passt das so?“) vom Skript trennen
-  const takes = skript.match(/TAKE\s*\d+[\s\S]*$/i);
-  if (takes) { const bloecke = skript.slice(takes.index).split(/\n\s*\n/); const frage = bloecke.filter(b => !/^\s*TAKE\s*\d+/i.test(b)); return { skript: bloecke.filter(b => /^\s*TAKE\s*\d+/i.test(b)).join('\n\n'), overlays, hinweis: frage.join(' ').trim() }; }
-  return { skript, overlays, hinweis: '' };
-}
 async function claudeApi(key, model, prompt) {
   const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] }) });
   if (!res.ok) { let t = ''; try { t = (await res.json()).error?.message || ''; } catch (e) { /* leer */ } throw new Error(res.status === 401 ? 'Schlüssel ungültig' : res.status === 429 ? 'Zu viele Anfragen – kurz warten' : `${res.status} ${t}`.trim()); }
@@ -73,7 +43,13 @@ export function makeFilm(ctx) {
     [st.projekte, st.material] = await Promise.all([db.list('FilmProjekte', { desc: '_updatedDate', limit: 100 }).catch(() => []), db.list('FilmMaterial', { desc: '_createdDate', limit: 300 }).catch(() => [])]);
     st.konto = await (echtesKonto ? echtesKonto() : Promise.resolve({ db, me: me() })).catch(() => null);
     st.auftraege = st.konto ? await st.konto.db.list('Auftraege', { desc: '_createdDate', limit: 50 }).catch(() => []) : [];
+    st.kiStatus = (await kiDb().list('KiStatus', { eq: { key: 'agent' }, limit: 1 }).catch(() => []))[0] || null;
+    st.kiAuftraege = await kiDb().list('KiAuftraege', { desc: '_createdDate', limit: 30 }).catch(() => []);
   }
+  // KI-Anfragen laufen immer echt – auch im Demo über die echte Anmeldung im Hintergrund
+  const kiDb = () => (st.konto && st.konto.db) || db;
+  const agentOnline = () => st.kiStatus && st.kiStatus.zuletzt && Date.now() - new Date(st.kiStatus.zuletzt).getTime() < 3 * 60 * 1000 && st.kiStatus.angemeldet !== false;
+  const agentText = () => !st.kiStatus ? 'Agent noch nie gesehen' : st.kiStatus.angemeldet === false ? 'Agent läuft, aber Claude ist dort nicht angemeldet (claude → /login)' : agentOnline() ? `Agent online${st.kiStatus.host ? ' auf ' + st.kiStatus.host : ''}` : `Agent offline – zuletzt ${new Date(st.kiStatus.zuletzt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} Uhr`;
 
   // ---------- Übersicht: Projekte + Vorlagen ----------
   function uebersicht(v) {
@@ -120,13 +96,20 @@ export function makeFilm(ctx) {
     return `<section class="fp-block">
       <details class="mb-details ki" ${p.skript ? '' : 'open'}><summary>Skript mit Claude schreiben lassen</summary>
         <div class="ki-wege">
-          <div class="ki-weg"><b>Mit deinem Claude-Abo</b> <span class="small muted">(kostet nichts extra)</span>
+          <div class="ki-weg ki-agent"><b>Unser KI-Agent</b> <span class="small ${agentOnline() ? 'gruen' : 'rot'}" id="ki-agent-status">● ${esc(agentText())}</span>
+            <p class="small muted">Sag, worum es geht – der Agent auf dem SKM-Server fragt Claude (Abo) und liefert Skript Take für Take samt Overlays direkt hier hinein. Rückfragen und Änderungswünsche einfach als nächste Nachricht.</p>
+            ${(() => { const chat = parseJson(p.ki, []); return chat.length ? `<div class="ki-chat" id="ki-chat">${chat.slice(-8).map(m => `<div class="ki-msg ${m.rolle}"><span class="ki-wer">${m.rolle === 'du' ? 'Du' : 'Claude'}</span><div class="ki-text">${nl2br(m.text)}</div></div>`).join('')}</div>` : ''; })()}
+            ${(() => { const offen = st.kiAuftraege.find(a => a.projektId === p._id && ['wartet', 'laeuft'].includes(a.status)); return offen ? `<div class="ki-wartet" id="ki-wartet"><span class="rb-spinner"></span><span class="small">${esc(offen.status === 'laeuft' ? 'Claude schreibt … (meist 30–90 Sekunden)' : agentOnline() ? 'Der Agent holt die Anfrage gleich ab …' : 'Wartet auf den Agenten – der ist gerade offline.')}</span></div>` : ''; })()}
+            <div class="ki-form"><textarea id="ki-agent-in" rows="2" placeholder="z. B. „Reel über die neue Website, 45 Sekunden, ich rechts im Bild, Handy links“ – oder: „Take 3 kürzer, Take 5 raus“">${esc(p.kiWunsch && !p.skript ? p.kiWunsch : '')}</textarea><div class="ki-knoepfe"><button type="button" class="btn btn-line btn-sm" id="ki-mic" title="Sprechen statt tippen">🎤</button><button type="button" class="btn btn-rot btn-sm" id="ki-agent-los">Los</button></div></div>
+            <p class="small muted" id="ki-agent-msg"></p>
+          </div>
+          <details class="ki-weg"><summary><b>Ohne Agenten: mit deinem Claude-Abo per Kopieren</b> <span class="small muted">(falls der Agent offline ist)</span></summary>
             <ol class="small"><li>Unten kurz sagen, worum es geht – oder ins Mikrofon sprechen.</li><li><b>Auftrag kopieren</b>, in Claude (App oder claude.ai) einfügen, abschicken.</li><li>Claudes Antwort kopieren und hier <b>einfügen</b> – fertig: Skript Take für Take, Overlays gleich mit.</li></ol>
-            <div class="ki-form"><textarea id="ki-wunsch" rows="2" placeholder="z. B. Reel über die neue Website, 45 Sekunden, ich rechts im Bild, Handy links">${esc(p.kiWunsch || '')}</textarea><div class="ki-knoepfe"><button type="button" class="btn btn-line btn-sm" id="ki-mic" title="Sprechen statt tippen">🎤</button></div></div>
+            <div class="ki-form"><textarea id="ki-wunsch" rows="2" placeholder="z. B. Reel über die neue Website, 45 Sekunden, ich rechts im Bild, Handy links">${esc(p.kiWunsch || '')}</textarea></div>
             <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="ki-kopieren">Auftrag kopieren</button><a class="btn btn-line btn-sm" href="https://claude.ai/new" target="_blank" rel="noopener">Claude öffnen</a><span class="small muted" id="ki-msg"></span></div>
             <div class="field"><label for="ki-antwort">Antwort von Claude hier einfügen</label><textarea id="ki-antwort" rows="4" placeholder="Einfach alles einfügen, was Claude geantwortet hat."></textarea></div>
             <div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="ki-uebernehmen">Übernehmen</button></div>
-          </div>
+          </details>
           <details class="ki-weg ki-api"><summary>Automatisch mit API-Schlüssel <span class="small muted">(Anthropic-Konto, ein paar Cent je Anfrage)</span></summary>
             ${hatKey ? `<div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="ki-auto">Skript jetzt erzeugen</button><span class="small muted">${esc((KI_MODELLE.find(([k]) => k === kiModel()) || [])[1] || kiModel())} · <button type="button" class="linkbtn" id="ki-key-weg">Schlüssel löschen</button></span></div>` : `<div class="mb-2"><div class="field"><label for="ki-key">API-Schlüssel (bleibt nur auf diesem Gerät)</label><input id="ki-key" type="password" autocomplete="off" placeholder="sk-ant-…"></div><div class="field"><label for="ki-model">Modell</label><select id="ki-model">${KI_MODELLE.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div></div><div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="ki-key-save">Speichern</button></div>`}
           </details>
@@ -198,12 +181,51 @@ export function makeFilm(ctx) {
     $('#ki-key-save', v)?.addEventListener('click', () => { const k = $('#ki-key', v).value.trim(); if (!k.startsWith('sk-ant-')) { $('#ki-key', v).focus(); return; } try { localStorage.setItem('spd-claude-key', k); localStorage.setItem('spd-claude-model', $('#ki-model', v).value); } catch (e) { /* ohne Speicher */ } projekt(v, p._id); });
     $('#ki-key-weg', v)?.addEventListener('click', () => { try { localStorage.removeItem('spd-claude-key'); } catch (e) { /* egal */ } projekt(v, p._id); });
     $('#ki-auto', v)?.addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); $('#ki-msg', v).textContent = 'Claude schreibt …'; try { await uebernehmen(await claudeApi(kiKey(), kiModel(), AUFTRAG(p, overlays, wunsch()))); } catch (err) { $('#ki-msg', v).textContent = 'Das hat nicht geklappt: ' + errText(err); busy(b, false); } });
+    // ---- Unser KI-Agent (SKM-Server): Anfrage ablegen, Antwort abholen, Skript + Overlays übernehmen ----
+    const kiAnwenden = async a => {
+      const chat = parseJson(p.ki, []); chat.push({ rolle: 'du', text: a.wunsch, zeit: a._createdDate }); chat.push({ rolle: 'ki', text: a.hinweis || (a.skript ? 'Skript ist da.' : a.fehler || ''), zeit: a.fertigAm });
+      const patch = { ki: JSON.stringify(chat.slice(-30)), kiWunsch: '' };
+      if (a.skript) patch.skript = a.skript;
+      const ov = parseJson(a.overlays, null); if (Array.isArray(ov) && ov.length) patch.overlays = JSON.stringify(ov);
+      await speichern(patch);
+      try { await kiDb().update('KiAuftraege', { ...a, status: 'uebernommen' }); } catch (e) { /* Status nur Anzeige */ }
+      st.kiAuftraege = st.kiAuftraege.map(x => x._id === a._id ? { ...x, status: 'uebernommen' } : x);
+      st.tab = 'skript'; projekt(v, p._id);
+      const m = $('#ki-agent-msg', v); if (m) m.textContent = a.skript ? `Übernommen: ${takesAus(a.skript).length} Takes${ov?.length ? `, ${ov.length} Overlays` : ''}.` : (a.fehler ? 'Fehler: ' + a.fehler : 'Antwort erhalten.');
+    };
+    const kiPollen = () => {
+      clearInterval(st.kiTimer);
+      st.kiTimer = setInterval(async () => {
+        if (!v.isConnected || !location.hash.startsWith('#filmdreh/p-')) { clearInterval(st.kiTimer); return; }
+        const liste = await kiDb().list('KiAuftraege', { desc: '_createdDate', limit: 30 }).catch(() => null); if (!liste) return;
+        st.kiAuftraege = liste; st.kiStatus = (await kiDb().list('KiStatus', { eq: { key: 'agent' }, limit: 1 }).catch(() => []))[0] || st.kiStatus;
+        const fertig = liste.find(a => a.projektId === p._id && ['fertig', 'fehler'].includes(a.status));
+        if (fertig) { clearInterval(st.kiTimer); await kiAnwenden(fertig); return; }
+        const offen = liste.find(a => a.projektId === p._id && ['wartet', 'laeuft'].includes(a.status));
+        const w = $('#ki-wartet .small', v); if (w && offen) w.textContent = offen.status === 'laeuft' ? 'Claude schreibt … (meist 30–90 Sekunden)' : agentOnline() ? 'Der Agent holt die Anfrage gleich ab …' : 'Wartet auf den Agenten – der ist gerade offline.';
+        const s = $('#ki-agent-status', v); if (s) { s.textContent = '● ' + agentText(); s.className = 'small ' + (agentOnline() ? 'gruen' : 'rot'); }
+        if (!offen) clearInterval(st.kiTimer);
+      }, 4000);
+    };
+    $('#ki-agent-los', v)?.addEventListener('click', async e => {
+      const b = e.currentTarget; const text = $('#ki-agent-in', v).value.trim(); if (!text) { $('#ki-agent-in', v).focus(); return; }
+      busy(b, true);
+      try {
+        const verlauf = parseJson(p.ki, []).slice(-12).map(m => ({ rolle: m.rolle, text: m.text }));
+        await kiDb().insert('KiAuftraege', { title: text.slice(0, 80), projektId: p._id, memberId: (st.konto && st.konto.me.id) || me().id, von: (st.konto && st.konto.me.name) || me().name, wunsch: text, verlauf: JSON.stringify(verlauf), skriptVorher: (p.skript || '').slice(0, 6000), overlaysVorher: JSON.stringify(overlays).slice(0, 3000), titel: p.titel, art: p.art || '', datum: p.datum || '', status: 'wartet', antwort: '', skript: '', overlays: '', hinweis: '', fehler: '' });
+        await speichern({ kiWunsch: text });
+        st.kiAuftraege = await kiDb().list('KiAuftraege', { desc: '_createdDate', limit: 30 }).catch(() => st.kiAuftraege);
+        projekt(v, p._id); kiPollen();
+      } catch (err) { $('#ki-agent-msg', v).textContent = 'Nicht abgeschickt: ' + errText(err); busy(b, false); }
+    });
+    { const fertig = st.kiAuftraege.find(a => a.projektId === p._id && ['fertig', 'fehler'].includes(a.status)); if (fertig) kiAnwenden(fertig); else if (st.kiAuftraege.some(a => a.projektId === p._id && ['wartet', 'laeuft'].includes(a.status))) kiPollen(); }
     const mic = $('#ki-mic', v); const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (mic && !SR) mic.hidden = true;
     let rec = null;
     mic?.addEventListener('click', () => {
       if (rec) { rec.stop(); return; }
-      rec = new SR(); rec.lang = 'de-DE'; rec.interimResults = true; rec.continuous = true; const start = $('#ki-wunsch', v).value;
-      rec.onresult = ev => { let t = ''; for (const r of ev.results) t += r[0].transcript; $('#ki-wunsch', v).value = (start ? start + ' ' : '') + t; };
+      const ziel = $('#ki-agent-in', v) || $('#ki-wunsch', v);
+      rec = new SR(); rec.lang = 'de-DE'; rec.interimResults = true; rec.continuous = true; const start = ziel.value;
+      rec.onresult = ev => { let t = ''; for (const r of ev.results) t += r[0].transcript; ziel.value = (start ? start + ' ' : '') + t; };
       rec.onend = () => { rec = null; mic.textContent = '🎤'; mic.classList.remove('aktiv'); };
       rec.onerror = () => { rec = null; mic.textContent = '🎤'; mic.classList.remove('aktiv'); $('#ki-msg', v).textContent = 'Mikrofon nicht verfügbar – bitte tippen.'; };
       rec.start(); mic.textContent = '⏹'; mic.classList.add('aktiv');
@@ -304,7 +326,7 @@ export function makeFilm(ctx) {
   }
 
   async function sec(v) {
-    clearInterval(st.timer);
+    clearInterval(st.timer); clearInterval(st.kiTimer);
     await laden();
     const sub = location.hash.split('/')[1] || '';
     if (sub.startsWith('dreh-')) { const p = st.projekte.find(x => x._id === sub.slice(5)); if (p) return dreh(v, p); }
