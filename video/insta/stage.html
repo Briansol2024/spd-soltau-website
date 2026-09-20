@@ -9,7 +9,7 @@
 @font-face{font-family:'TheSans SPD';font-weight:400;src:url('../fonts/thesans-regular.ttf')}
 @font-face{font-family:'TheSans SPD';font-weight:700;src:url('../fonts/thesans-bold.ttf')}
 @font-face{font-family:'TheSans SPD Versal';font-weight:800;src:url('../fonts/thesans-versal-extrabold.ttf')}
-:root{--rot:#E3000F;--akzent2:#FFD200;--schwarz:#0F0F0F;--weiss:#fff;--display:'TheSans SPD Versal','TheSans SPD',Arial,sans-serif;--body:'TheSans SPD',Arial,sans-serif;--spring:cubic-bezier(.2,.9,.25,1.25);--ease:cubic-bezier(.2,.7,.2,1)}
+:root{--rot:#E3000F;--akzent2:#FFD200;--text:#fff;--schwarz:#0F0F0F;--weiss:#fff;--display:'TheSans SPD Versal','TheSans SPD',Arial,sans-serif;--body:'TheSans SPD',Arial,sans-serif;--spring:cubic-bezier(.2,.9,.25,1.25);--ease:cubic-bezier(.2,.7,.2,1)}
 *{box-sizing:border-box}
 html,body{margin:0;width:1080px;height:1920px;overflow:hidden}
 body{background:transparent;font-family:var(--body);color:#fff;position:relative}
@@ -289,6 +289,10 @@ body.gruen .handy .screen{background:#00B140}
 body.schwarz{background:#000}
 /* Zweitfarbe: ~Wort~ im Text, ~Zeile im Wort-Popper */
 u.a2{color:var(--akzent2);text-decoration:none;font-style:normal}
+/* Textfarbe: alle freien Texte ohne Kasten (Standard Weiß); *Wörter* in Akzentfarbe */
+.riesen .t b,.liste .p b,.liste.fokus .p b,.zahl .unter b,.aufruf .sub b,.schild .karte b b{color:var(--rot)}
+.gross,.wort .z,.riesen .t,.zitat p,.zitat .wer,.zahl .wert,.aufruf .datum,.aufruf .sub,.liste.fokus .p,.liste.fokus .p i,.intro h1 i,.intro .eyebrow,.outro .claim,.outro .insta,.outro .cta{color:var(--text)}
+.wort .z.rot,.riesen .t.rot{color:var(--rot)}.riesen .t.schwarz{color:var(--schwarz)}.wort .z.box{color:#fff}.wort .z.a2{color:var(--akzent2)}
 .wort .z.a2{color:var(--akzent2);text-shadow:none}
 
 /* ---------- Animationsarten (?anim=…): gleiche Zeiten, anderer Weg ins Bild – Block wird aus patch_kit2.py erzeugt ----------
@@ -375,7 +379,7 @@ const bg = q.get('bg') || 'gruen';
 if (bg !== 'keins') document.body.classList.add(bg);
 window.__ticks = [];
 // Farben je Clip: akzent = Farbe der *hervorgehobenen* Wörter, Kästen und Balken (Standard SPD-Rot); akzent2 = Zweitfarbe für ~Wörter~
-for (const [k, v] of [['akzent', '--rot'], ['akzent2', '--akzent2']]) if (/^#[0-9a-f]{6}$/i.test(q.get(k) || '')) document.documentElement.style.setProperty(v, q.get(k));
+for (const [k, v] of [['akzent', '--rot'], ['akzent2', '--akzent2'], ['textfarbe', '--text']]) if (/^#[0-9a-f]{6}$/i.test(q.get(k) || '')) document.documentElement.style.setProperty(v, q.get(k));
 const hervor = t => String(t).replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/~(.+?)~/g, '<u class="a2">$1</u>');
 const anim = ['wisch', 'weich', 'fall', 'zoom', 'hoch', 'dreh', 'mitte', 'federn', 'blitz', 'tipp'].includes(q.get('anim')) ? q.get('anim') : 'pop';
 document.body.dataset.anim = anim;
@@ -405,7 +409,7 @@ if (clip === 'intro') {
 } else if (clip === 'wort') {
   const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
   const zeilen = (q.get('text') || 'Neue|Website').split('|');
-  html = `<div class="wort ${seite}">${zeilen.map((z, i) => { const m = z.match(/^([*#_~-])?(.*)$/); const cls = { '*': 'rot', '#': 'box', '_': 'klein', '-': 'mittel', '~': 'a2' }[m[1]] || ''; return `<span class="z ${cls}" style="animation-delay:${(.1 + i * .16).toFixed(2)}s,2.55s">${esc(m[2])}</span>`; }).join('')}<span class="unter"></span></div>`;
+  html = `<div class="wort ${seite}">${zeilen.map((z, i) => { const m = z.match(/^([*#_~-])?(.*?)[*~]?$/); const cls = { '*': 'rot', '#': 'box', '_': 'klein', '-': 'mittel', '~': 'a2' }[m[1]] || ''; /* *Wort* oder *Wort – beides geht */ return `<span class="z ${cls}" style="animation-delay:${(.1 + i * .16).toFixed(2)}s,2.55s">${esc(m[2])}</span>`; }).join('')}<span class="unter"></span></div>`;
 } else if (clip === 'frage') {
   const [t1, t2] = (q.get('text') || 'Kein Parteibuch?|Der eigenen Partei widersprechen?').split('|');
   html = `<div class="mitte oben"><span class="ey">${esc(q.get('titel') || 'Was ist unabhängiger?')}</span>
@@ -420,16 +424,16 @@ if (clip === 'intro') {
   if (q.get('art') === 'fokus') {
     // Fokus: alle Punkte stehen unscharf da, einer nach dem anderen wird scharf und bekommt den Rahmen; Zeit verteilt sich auf die Clip-Länge
     const dauer = parseFloat(q.get('dauer')) || 5; const schritt = Math.max(.8, (dauer - 1.2) / items.length);
-    html = `<div class="liste fokus">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => { const an = .4 + i * schritt, aus = an + schritt; const letzte = i === items.length - 1; return `<div class="p ${letzte ? 'letzte' : ''}" style="animation-delay:${an.toFixed(2)}s,${aus.toFixed(2)}s"><span class="rahmen" style="animation-delay:${an.toFixed(2)}s,${aus.toFixed(2)}s"></span><i>${i + 1}.</i>${esc(t)}</div>`; }).join('')}</div>`;
+    html = `<div class="liste fokus">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => { const an = .4 + i * schritt, aus = an + schritt; const letzte = i === items.length - 1; return `<div class="p ${letzte ? 'letzte' : ''}" style="animation-delay:${an.toFixed(2)}s,${aus.toFixed(2)}s"><span class="rahmen" style="animation-delay:${an.toFixed(2)}s,${aus.toFixed(2)}s"></span><i>${i + 1}.</i>${hervor(esc(t))}</div>`; }).join('')}</div>`;
   } else
-  html = `<div class="liste">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => `<div class="p ${frage ? 'frage' : ''}" style="animation-delay:${(.5 + i * .75).toFixed(2)}s"><i>${frage ? '?' : i + 1}</i><span>${esc(t)}</span></div>`).join('')}</div>`;
+  html = `<div class="liste">${q.get('titel') ? `<span class="titel">${esc(q.get('titel'))}</span>` : ''}${items.map((t, i) => `<div class="p ${frage ? 'frage' : ''}" style="animation-delay:${(.5 + i * .75).toFixed(2)}s"><i>${frage ? '?' : i + 1}</i><span>${hervor(esc(t))}</span></div>`).join('')}</div>`;
 } else if (clip === 'foto') {
   // Foto-Karte: url = Bild (aus dem Material der App), text = Unterschrift, seite links|rechts, pos oben|mitte, gr gross
   const seite = q.get('seite') === 'rechts' ? 'rechts' : 'links';
   html = `<div class="foto-pos ${seite} ${q.get('pos') === 'mitte' ? 'f-mitte' : ''} ${q.get('gr') === 'gross' ? 'f-gross' : ''} ${q.get('neigung') === 'gerade' ? 'gerade' : ''}"><figure class="foto ${gestalt(q)}" style="${format(q)}">${q.get('url') ? `<img src="${esc(q.get('url'))}" alt="">` : '<div class="platz">Foto</div>'}${q.get('text') ? `<figcaption>${esc(q.get('text'))}</figcaption>` : ''}</figure></div>`;
 } else if (clip === 'riesen') {
   const zeilen = (q.get('text') || 'Heute').split('|'); const farbe = { schwarz: 'schwarz', rot: 'rot' }[q.get('farbe')] || '';
-  html = `<div class="riesen ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="drift"><span class="t ${farbe}">${zeilen.map(esc).join('<br>')}</span></div></div>`;
+  html = `<div class="riesen ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="drift"><span class="t ${farbe}">${zeilen.map(hervor).join('<br>')}</span></div></div>`;
 } else if (clip === 'schild') {
   const zeilen = (q.get('text') || '40 Wohnungen|Baubeginn 2027').split('|').filter(Boolean); const seite = ['rechts', 'oben'].includes(q.get('seite')) ? q.get('seite') : 'links';
   html = `<div class="schild ${seite}"><svg viewBox="0 0 1080 1920"><line x1="0" y1="0" x2="0" y2="0"/></svg><div class="karte">${q.get('titel') ? `<b>${esc(q.get('titel'))}</b>` : ''}${zeilen.map((z, i) => `<span style="animation-delay:${(.9 + i * .18).toFixed(2)}s">${esc(z)}</span>`).join('')}</div><span class="punkt"></span></div>`;
@@ -453,7 +457,7 @@ if (clip === 'intro') {
   // Zahl zählt hoch: von → bis (deutsch geschrieben: 2,4 · 1.250), einheit dahinter, label darüber, text darunter
   const deZahl = v => parseFloat(String(v || '0').replace(/\./g, '').replace(',', '.')) || 0; const dez = (String(q.get('bis') || '').split(',')[1] || '').length;
   const von = deZahl(q.get('von')), bis = deZahl(q.get('bis') || '100'); const fmt = v => v.toLocaleString('de-DE', { minimumFractionDigits: dez, maximumFractionDigits: dez });
-  html = `<div class="zahl ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="box">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<div class="wert"><span class="n">${fmt(von)}</span>${q.get('einheit') ? `<span class="einheit">${esc(q.get('einheit'))}</span>` : ''}</div>${q.get('text') ? `<p class="unter">${esc(q.get('text'))}</p>` : ''}</div></div>`;
+  html = `<div class="zahl ${{ oben: 'oben', unten: 'unten' }[q.get('pos')] || ''}"><div class="box">${q.get('label') ? `<span class="ey">${esc(q.get('label'))}</span>` : ''}<div class="wert"><span class="n">${fmt(von)}</span>${q.get('einheit') ? `<span class="einheit">${esc(q.get('einheit'))}</span>` : ''}</div>${q.get('text') ? `<p class="unter">${hervor(esc(q.get('text')))}</p>` : ''}</div></div>`;
   window.__ticks.push(t => { const p = Math.min(1, Math.max(0, (t - 400) / 1400)); const e = 1 - Math.pow(1 - p, 3); const n = document.querySelector('.zahl .n'); if (n) n.textContent = fmt(von + (bis - von) * e); });
 } else if (clip === 'balken') {
   // Abstimmung: ja/nein/enth wachsen als Balken, Zahlen zählen mit, Ergebnis-Stempel am Ende
@@ -490,7 +494,7 @@ if (clip === 'intro') {
 } else if (clip === 'pin') {
   // Karten-Pin: fällt auf x/y (Prozent) – auf ein Kartenbild oder frei (dann in CapCut per Tracking anheften)
   const x = Math.min(100, Math.max(0, parseFloat(q.get('x')) || 50)), y = Math.min(100, Math.max(0, parseFloat(q.get('y')) || 50));
-  const punkt = `<div class="punkt" style="left:${x}%;top:${y}%"><span class="ring"></span><span class="nadel"><svg viewBox="0 0 68 92"><path d="M34 2C16 2 2 16 2 34c0 24 32 56 32 56s32-32 32-56C66 16 52 2 34 2z" fill="#E3000F" stroke="#fff" stroke-width="4"/><circle cx="34" cy="34" r="12" fill="#fff"/></svg></span>${q.get('text') ? `<span class="label ${x > 62 ? 'links' : ''}">${esc(q.get('text'))}</span>` : ''}</div>`;
+  const punkt = `<div class="punkt" style="left:${x}%;top:${y}%"><span class="ring"></span><span class="nadel"><svg viewBox="0 0 68 92"><path d="M34 2C16 2 2 16 2 34c0 24 32 56 32 56s32-32 32-56C66 16 52 2 34 2z" style="fill:var(--rot)" stroke="#fff" stroke-width="4"/><circle cx="34" cy="34" r="12" fill="#fff"/></svg></span>${q.get('text') ? `<span class="label ${x > 62 ? 'links' : ''}">${esc(q.get('text'))}</span>` : ''}</div>`;
   html = `<div class="pin">${q.get('url') ? `<div class="karte"><img src="${esc(q.get('url'))}" alt="">${punkt}</div>` : punkt}</div>`;
 } else if (clip === 'gross') {
   const zeilen = (q.get('text') || 'So funktionieren|Parteien nicht.').split('|');

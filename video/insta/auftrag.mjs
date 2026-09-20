@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import webpush from 'web-push';
 import { mkdir, rm, readdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { adminClient, queryAll, log } from '../../push/lib.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +49,20 @@ try {
   if (!Array.isArray(manifest.clips) || !manifest.clips.length) throw new Error('Auftrag ohne Clips');
   const name = 'auftrag-' + id.slice(0, 8);
   await mkdir(path.join(__dirname, 'skripte'), { recursive: true });
+  // Interne Fotos (material:<id>) aus den Dateiteilen holen – sie liegen nur für Mitglieder lesbar bei Wix, nie an einer öffentlichen Adresse
+  const bilderDir = path.join(__dirname, 'tmp', 'bilder-' + id.slice(0, 8)); await mkdir(bilderDir, { recursive: true });
+  const feld = /^url|^bilder$/; const geholt = new Map();
+  for (const c of manifest.clips) for (const [k, v] of Object.entries(c.q || {})) if (feld.test(k)) {
+    c.q[k] = (await Promise.all(String(v).split('|').map(async x => {
+      const mid = /^material:(.+)$/.exec(x.trim())?.[1]; if (!mid) return x;
+      if (!geholt.has(mid)) {
+        const teile = (await queryAll(client, 'FilmTeile', q => q.eq('materialId', mid))).sort((a, b) => a.nr - b.nr);
+        if (!teile.length) { log(`  Foto ${mid}: keine Dateiteile – Platzhalter`); geholt.set(mid, ''); }
+        else { const f = path.join(bilderDir, mid + '.jpg'); await writeFile(f, Buffer.concat(teile.map(t => Buffer.from(t.daten || '', 'base64')))); geholt.set(mid, pathToFileURL(f).href); log(`  Foto ${mid}: ${teile.length} Teile geholt`); }
+      }
+      return geholt.get(mid);
+    }))).filter(Boolean).join('|');
+  }
   await writeFile(path.join(__dirname, 'skripte', name + '.json'), JSON.stringify(manifest), 'utf8');
   await rm(OUT, { recursive: true, force: true }); await mkdir(OUT, { recursive: true });
   const n = manifest.clips.length; let fertigClips = 0;
@@ -72,16 +86,16 @@ try {
   const mime = einzeln ? (/\.mov$/i.test(alle[0]) ? 'video/quicktime' : 'video/mp4') : 'application/zip';
   const buf = einzeln ? await readFile(path.join(OUT, alle[0])) : await zipOhneKompression(OUT, alle);
   const groesse = buf.length;
-  log(`${einzeln ? 'Datei' : 'ZIP'}: ${zipName} (${Math.round(groesse / 1048576 * 10) / 10} MB) – Upload zu Wix …`);
-  a = await setzen(a, { fortschritt: 93, schritt: `${einzeln ? 'Clip' : 'ZIP'} (${Math.round(groesse / 1048576 * 10) / 10} MB) wird zu Wix hochgeladen.` });
-  const { uploadUrl } = await client.files.generateFileUploadUrl(mime, { fileName: zipName, sizeInBytes: String(buf.length), parentFolderId: 'media-root' });
-  const res = await fetch(uploadUrl + (uploadUrl.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(zipName), { method: 'PUT', headers: { 'Content-Type': mime }, body: buf });
-  if (!res.ok) throw new Error('Upload fehlgeschlagen (' + res.status + ')');
-  const j = await res.json(); const f = j.file || j;
-  const url = f.url || '';
-  if (!url) throw new Error('Wix hat keine Download-Adresse zurückgegeben');
-  const gemeldet = await melden(einzeln ? 'Baustein fertig – zum Download bereit' : 'Overlays fertig – zum Download bereit', `${a.titel || 'Overlay-Clips'} (${Math.round(groesse / 1048576 * 10) / 10} MB, ${dateien.length + (manifest.drehplan ? 1 : 0)} Dateien). Antippen zum Herunterladen.`, url);
-  await setzen(a, { status: 'fertig', url, dateiName: zipName, dateien: dateien.length + (manifest.drehplan ? 1 : 0), groesse, fertigAm: new Date().toISOString(), fehler: '', fortschritt: 100, schritt: 'Fertig.', benachrichtigt: gemeldet });
+  log(`${einzeln ? 'Datei' : 'ZIP'}: ${zipName} (${Math.round(groesse / 1048576 * 10) / 10} MB) – Ablage im Mitgliederbereich …`);
+  a = await setzen(a, { fortschritt: 93, schritt: `${einzeln ? 'Clip' : 'ZIP'} (${Math.round(groesse / 1048576 * 10) / 10} MB) wird im Mitgliederbereich abgelegt.` });
+  // Datei in Teilen (288 KB) ablegen – nur für angemeldete Mitglieder lesbar, kein öffentlicher Link
+  const TEIL = 288 * 1024; const nTeile = Math.max(1, Math.ceil(buf.length / TEIL));
+  const mat = await client.items.insert('FilmMaterial', { title: a.titel || 'Overlays', projektId: a.projektId || '', art: 'overlays', titel: a.titel || 'Overlays', url: '', name: zipName, mime, groesse: buf.length, teile: nTeile, status: 'fertig', von: a.von || '', memberId: a.memberId || '', auftragId: a._id });
+  for (let i = 0; i < nTeile; i += 20) await Promise.all(Array.from({ length: Math.min(20, nTeile - i) }, (_, j) => client.items.insert('FilmTeile', { title: `${mat._id} ${i + j}`, materialId: mat._id, nr: i + j, daten: buf.subarray((i + j) * TEIL, (i + j + 1) * TEIL).toString('base64') })));
+  const url = 'material:' + mat._id;
+  const appUrl = (process.env.SITE_URL || 'https://spd-soltau.de').replace(/\/$/, '') + '/mitglieder/#filmdreh' + (a.projektId === 'werkstatt' ? '/werkstatt' : a.projektId ? '/p-' + a.projektId : '');
+  const gemeldet = await melden(einzeln ? 'Baustein fertig – zum Download bereit' : 'Overlays fertig – zum Download bereit', `${a.titel || 'Overlay-Clips'} (${Math.round(groesse / 1048576 * 10) / 10} MB, ${dateien.length + (manifest.drehplan ? 1 : 0)} Dateien). Antippen – der Download steht in der App.`, appUrl);
+  await setzen(a, { status: 'fertig', url, dateiName: zipName, dateien: dateien.length + (manifest.drehplan ? 1 : 0), groesse, fertigAm: new Date().toISOString(), fehler: '', fortschritt: 100, schritt: 'Fertig.', benachrichtigt: gemeldet, materialAngelegt: true });
   log(`Auftrag ${id} fertig: ${url}`);
 } catch (e) {
   log('Auftrag fehlgeschlagen:', e.message);

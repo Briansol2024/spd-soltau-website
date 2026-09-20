@@ -3,6 +3,7 @@
 // Haltung, Argumente, Ergebnis – nie aus „intern besprochen“) und Ergebnis-Kacheln als PNG für Post oder Story.
 import { AUFTRAG, antwortLesen } from './lib/film.mjs';
 import { skizzeZeile } from './lib/storyboard.mjs';
+import { teileLaden } from './lib/rat.mjs';
 export function makeRueckblick(ctx) {
   const { db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtDate, BESCHLUSS, beschlussLabel, hatErgebnis, posBadge, beschlussBadge, strokesToPng, me, echtesKonto, DEMO } = ctx;
   const zahlen = t => {
@@ -288,7 +289,7 @@ Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 b
         <label class="check"><input type="checkbox" id="rb-alpha"><span>Zusätzlich mit echter Transparenz (ProRes .mov, für Resolve/Premiere – macht die ZIP deutlich größer)</span></label>
         <div class="mb-actions"><button type="button" class="btn btn-rot btn-sm" id="rb-overlays" ${ent().length ? '' : 'disabled'}>Overlays erzeugen lassen</button><span class="small muted" id="rb-overlays-msg">${ent().length ? `${Math.min(8, ent().length) * 2 + 2} Clips` : 'Erst Ergebnisse eintragen.'}</span></div>
         ${!konto ? '<p class="note note-info">Im Demo läuft der Agent nur, wenn du im Hintergrund echt angemeldet bist – einmal „Demo beenden“, anmelden, dann wieder in den Demo.</p>' : DEMO ? '<p class="small muted">Demo: Die Bestellung läuft trotzdem echt – über dein echtes Konto, der fertige Download landet hier und als Push auf deinem Handy.</p>' : ''}
-        <div class="rb-auftraege">${auftraege.map(a => `<article class="rb-auftrag st-${esc(a.status || 'wartet')}"><div class="rb-auftrag-kopf"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · bestellt ${esc(new Date(a._createdDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))} Uhr${laeuft(a) ? ' · ' + esc(seit(a)) : ''}</span></div>${a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP herunterladen</a>` : laeuft(a) ? '<span class="rb-spinner" aria-hidden="true"></span>' : ''}</div>
+        <div class="rb-auftraege">${auftraege.map(a => `<article class="rb-auftrag st-${esc(a.status || 'wartet')}"><div class="rb-auftrag-kopf"><div><b>${esc(a.titel || 'Overlays')}</b><span class="small muted"> · bestellt ${esc(new Date(a._createdDate || 0).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))} Uhr${laeuft(a) ? ' · ' + esc(seit(a)) : ''}</span></div>${a.status === 'fertig' && /^material:/.test(a.url || '') ? `<button type="button" class="btn btn-rot btn-sm" data-auftrag-laden="${esc(a.url.slice(9))}" data-name="${esc(a.dateiName || 'overlays.zip')}">ZIP herunterladen</button>` : a.status === 'fertig' && a.url ? `<a class="btn btn-rot btn-sm" href="${esc(a.url)}" download="${esc(a.dateiName || 'overlays.zip')}">ZIP herunterladen</a>` : laeuft(a) ? '<span class="rb-spinner" aria-hidden="true"></span>' : ''}</div>
           ${laeuft(a) ? `<div class="rb-balken" role="progressbar" aria-valuenow="${prozent(a)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${prozent(a)}%"></span></div><p class="small muted">${esc(schritt(a))}</p>` : `<p class="small ${a.status === 'fehler' ? 'rot' : 'muted'}">${esc(AUFTRAG_TEXT[a.status] || a.status)}${a.status === 'fehler' && a.fehler ? ' ' + esc(a.fehler) : ''}${a.status === 'fertig' ? ` ${esc(a.dateien || '')} Dateien${a.groesse ? ', ' + mb(a.groesse) : ''}${a.fertigAm && a._createdDate ? ' – Dauer ' + Math.max(1, Math.round((new Date(a.fertigAm) - new Date(a._createdDate)) / 60000)) + ' Min.' : ''}.` : ''}</p>`}
         </article>`).join('')}</div>
       </section>
@@ -342,6 +343,13 @@ Schnitt (CapCut): Takes hintereinander mit hartem Schnitt, A3 unter Take 1, A2 b
         try { await projektAnlegen(ant.skript, ant.overlays && ant.overlays.length ? ant.overlays : overlaysAusSitzung(r, tops), ant.hinweis, ant.drehplan || ''); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); }
       });
       $('#rb-projekt-auto', v)?.addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); try { const r2 = antwortLesen($('#rb-skript', v).value) || {}; await projektAnlegen(r2.skript || $('#rb-skript', v).value, overlaysAusSitzung(r, tops), '', r2.drehplan || ''); } catch (err) { $('#rb-projekt-msg', v).textContent = 'Nicht angelegt: ' + errText(err); busy(b, false); } });
+      // Fertige ZIP aus dem Mitgliederbereich (Dateiteile) laden – kein öffentlicher Link
+      v.addEventListener('click', async e => {
+        const b = e.target.closest('[data-auftrag-laden]'); if (!b) return; const orig = b.textContent; b.disabled = true;
+        try { const blob = await teileLaden(konto?.db || db, b.dataset.auftragLaden, 'application/zip', (i, n) => { b.textContent = `${Math.round(100 * i / n)} %`; }); const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = b.dataset.name || 'overlays.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); }
+        catch (err) { b.textContent = 'Nicht geladen: ' + errText(err); return; }
+        b.disabled = false; b.textContent = orig;
+      });
       $('#rb-kachel', v).addEventListener('click', async e => { const b = e.currentTarget; busy(b, true); const url = await kachelUebersicht(r, tops); bildZeigen(url, `Ratssitzung-${r.sitzung || ''}.png`, `So hat der Rat entschieden – ${r.gremium} ${fmtDate(r.sitzung)}`); busy(b, false); });
       // Story-Serie: alle Entscheidungen als 9:16-Bilder, dazu ZIP
       $('#rb-story', v)?.addEventListener('click', async e => {

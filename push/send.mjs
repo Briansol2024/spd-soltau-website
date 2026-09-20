@@ -804,12 +804,13 @@ async function fotosNachtragen(a) {
   for (const c of m.clips || []) for (const [k, v] of Object.entries(c.q || {})) if (feld.test(k)) for (const x of String(v).split('|')) if (/^material:/.test(x.trim())) refs.add(x.trim().slice(9));
   if (!refs.size) return '';
   const material = await queryAll(client, 'FilmMaterial', q => q.in('_id', [...refs]));
-  const url = id => (material.find(x => x._id === id) || {}).url || '';
-  const fehlen = [...refs].filter(id => !url(id));
-  if (fehlen.length) return `Wartet auf ${fehlen.length === 1 ? 'ein Foto' : fehlen.length + ' Fotos'} – Wix legt ${fehlen.length === 1 ? 'es' : 'sie'} ab (meist unter 5 Minuten), danach startet der Agent von selbst.`;
-  for (const c of m.clips || []) for (const [k, v] of Object.entries(c.q || {})) if (feld.test(k)) c.q[k] = String(v).split('|').map(x => /^material:/.test(x.trim()) ? url(x.trim().slice(9)) : x).filter(Boolean).join('|');
+  const fertig = id => { const x = material.find(y => y._id === id); return !!x && (x.status === 'fertig' || !!x.url); };
+  const fehlen = [...refs].filter(id => !fertig(id));
+  if (fehlen.length) return `Wartet auf ${fehlen.length === 1 ? 'ein Foto' : fehlen.length + ' Fotos'} – ${fehlen.length === 1 ? 'es wird' : 'sie werden'} gerade abgelegt (meist unter 5 Minuten), danach startet der Render-Roboter von selbst.`;
+  // Fotos mit öffentlicher Adresse (ältere Uploads) direkt eintragen; interne Fotos (material:…) holt sich der Agent selbst aus den Dateiteilen
+  for (const c of m.clips || []) for (const [k, v] of Object.entries(c.q || {})) if (feld.test(k)) c.q[k] = String(v).split('|').map(x => { const id = /^material:(.+)$/.exec(x.trim())?.[1]; const mat = id && material.find(y => y._id === id); return mat && mat.url ? mat.url : x; }).filter(Boolean).join('|');
   delete m.wartetAuf; a.manifest = JSON.stringify(m);
-  if (!DRY) await client.items.update('Auftraege', { ...a, manifest: a.manifest, schritt: 'Fotos da – Agent startet.' }).catch(() => {});
+  if (!DRY) await client.items.update('Auftraege', { ...a, manifest: a.manifest, schritt: 'Fotos da – Render-Roboter startet.' }).catch(() => {});
   return '';
 }
 async function auftraege(subs, approved, emails, logKeys) {
@@ -834,7 +835,7 @@ async function auftraege(subs, approved, emails, logKeys) {
         const key = 'auftrag:' + a._id + ':' + a.status;
         const mb = a.groesse ? ` (${Math.round(a.groesse / 1048576 * 10) / 10} MB)` : '';
         await send(byMembers(subs, [wer.memberId]), a.status === 'fertig'
-          ? { title: 'Overlays fertig – zum Download bereit', body: `${a.titel || 'Overlay-Clips'}${mb} – ${a.dateien || ''} Dateien. Antippen zum Herunterladen.`, tag: key, url: a.url || url('/mitglieder/#rat') }
+          ? { title: 'Overlays fertig – zum Download bereit', body: `${a.titel || 'Overlay-Clips'}${mb} – ${a.dateien || ''} Dateien. Antippen zum Herunterladen.`, tag: key, url: /^https?:/.test(a.url || '') ? a.url : url('/mitglieder/#filmdreh' + (a.projektId && a.projektId !== 'werkstatt' ? '/p-' + a.projektId : a.projektId === 'werkstatt' ? '/werkstatt' : '')) }
           : { title: 'Overlays: das hat nicht geklappt', body: (a.fehler || 'Unbekannter Fehler').slice(0, 160), tag: key, url: url('/mitglieder/#rat') }, key, logKeys);
         if (!DRY) await client.items.update('Auftraege', { ...a, benachrichtigt: true }).catch(() => {});
       }
@@ -849,6 +850,13 @@ async function filmUploads(subs, logKeys) {
       const teile = (await queryAll(client, 'FilmTeile', q => q.eq('materialId', m._id))).sort((a, b) => a.nr - b.nr);
       if (teile.length < (m.teile || 1)) { if (NOW - new Date(m._createdDate).getTime() > 40 * 60 * 1000) { if (!DRY) await client.items.update('FilmMaterial', { ...m, status: 'fehler', fehler: 'Upload unvollständig – bitte noch einmal hochladen.' }); } continue; }
       if (DRY) { log(`  Film: würde ${m.name} (${teile.length} Teile) ablegen`); continue; }
+      // Fotos bleiben in den Dateiteilen (nur für angemeldete Mitglieder lesbar) – kein öffentlicher Link im Medienmanager
+      if (/^image\//.test(m.mime || '')) {
+        await client.items.update('FilmMaterial', { ...m, status: 'fertig', art: 'bild', url: '', fehler: '' });
+        log(`  Film: ${m.name} bleibt intern (${teile.length} Teile)`);
+        if (m.memberId) await send(byMembers(subs, [m.memberId]), { title: 'Foto bereit: ' + (m.titel || m.name), body: 'Liegt jetzt im Filmdreh – nur für Mitglieder sichtbar.', tag: 'film:' + m._id, url: url('/mitglieder/#filmdreh' + (m.projektId ? '/p-' + m.projektId : '')) }, 'film:' + m._id, logKeys);
+        continue;
+      }
       try {
         const buf = Buffer.concat(teile.map(t => Buffer.from(t.daten || '', 'base64')));
         const name = (m.name || 'datei').replace(/[^\wäöüÄÖÜß.-]+/g, '-');
@@ -862,9 +870,16 @@ async function filmUploads(subs, logKeys) {
         if (m.memberId) await send(byMembers(subs, [m.memberId]), { title: 'Datei bereit: ' + (m.titel || name), body: 'Liegt jetzt im Filmdreh-Projekt.', tag: 'film:' + m._id, url: url('/mitglieder/#filmdreh' + (m.projektId ? '/p-' + m.projektId : '')) }, 'film:' + m._id, logKeys);
       } catch (e) { log('  Film-Upload:', e.message); await client.items.update('FilmMaterial', { ...m, status: 'fehler', fehler: e.message.slice(0, 160) }).catch(() => {}); }
     }
+    // Dateiteile ohne Material (gelöscht) aufräumen – Fotos und Clips liegen dauerhaft in den Teilen
+    try {
+      const material = new Set((await queryAll(client, 'FilmMaterial')).map(m => m._id));
+      const verwaist = (await queryAll(client, 'FilmTeile', q => q.fields('materialId'))).filter(t => t.materialId && !material.has(t.materialId)).map(t => t._id);
+      for (let i = 0; i < verwaist.length && !DRY; i += 100) await client.items.bulkRemove('FilmTeile', verwaist.slice(i, i + 100)).catch(() => {});
+      if (verwaist.length) log(`  Film: ${verwaist.length} verwaiste Dateiteile entfernt`);
+    } catch (e) { log('  Film-Aufräumen:', e.message); }
     // Fertige Overlay-Aufträge eines Projekts als Material ablegen (dann sehen beide im Team den Download)
     for (const a of await queryAll(client, 'Auftraege', q => q.eq('status', 'fertig'))) {
-      if (!a.projektId || a.materialAngelegt || !a.url) continue;
+      if (!a.projektId || a.materialAngelegt || !a.url || /^material:/.test(a.url)) continue;
       if (DRY) continue;
       await client.items.insert('FilmMaterial', { title: a.titel || 'Overlays', projektId: a.projektId, art: 'overlays', titel: a.titel || 'Overlays', url: a.url, name: a.dateiName || 'overlays.zip', mime: /\.mp4$/i.test(a.dateiName || '') ? 'video/mp4' : /\.mov$/i.test(a.dateiName || '') ? 'video/quicktime' : 'application/zip', groesse: a.groesse || 0, status: 'fertig', von: a.von || '', memberId: a.memberId || '', auftragId: a._id }).catch(e => log('  Film-Material:', e.message));
       await client.items.update('Auftraege', { ...a, materialAngelegt: true }).catch(() => {});

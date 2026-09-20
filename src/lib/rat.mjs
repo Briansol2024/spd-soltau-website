@@ -33,6 +33,13 @@ export function toB64(bytes) {
   return btoa(s);
 }
 export function fromB64(str) { const s = atob(str); const out = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+// Interne Datei (Foto, Clip, ZIP) aus den Dateiteilen zusammensetzen – die liegen nur für angemeldete Mitglieder lesbar bei Wix
+export async function teileLaden(db, materialId, mime = 'application/octet-stream', fortschritt = null) {
+  const teile = (await db.list('FilmTeile', { eq: { materialId }, limit: 500 })).sort((a, b) => a.nr - b.nr);
+  if (!teile.length) throw new Error('Datei nicht (mehr) vorhanden');
+  const stuecke = teile.map((t, i) => { if (fortschritt) fortschritt(i + 1, teile.length); return fromB64(t.daten || ''); });
+  return new Blob(stuecke, { type: mime });
+}
 
 // ---- Fraktionsschlüssel (AES-GCM 256) ----
 export const neuerFraktionsschluessel = () => toB64(globalThis.crypto.getRandomValues(new Uint8Array(32)));
