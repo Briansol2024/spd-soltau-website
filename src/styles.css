@@ -1403,24 +1403,89 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .top-mehr{grid-column:1/-1;font-size:13px}
 .top-mehr summary{cursor:pointer;color:var(--rot);font-weight:700}
 .top-mehr input,.top-mehr textarea{display:block;width:100%;margin-top:6px;font:inherit;font-size:14px;padding:8px 10px;border:2px solid var(--schwarz);box-sizing:border-box}
-.fokus{display:grid;gap:18px}
-.fokus-kopf{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.fokus-kopf b{font:800 20px/1 var(--display);text-transform:uppercase}
-.fokus-zaehler{margin-left:auto;font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fokus{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+/* Sitzungsmodus = Vollbild: Kopf, Menü, Leiste, Fußzeile und Hinweise verschwinden, nur die Sitzung bleibt */
+body.fokus-modus .app-header,body.fokus-modus .mb-head,body.fokus-modus .mb-side,body.fokus-modus .mb-tabbar,body.fokus-modus .mb-sheet,body.fokus-modus .app-footer,body.fokus-modus .demo-note,body.fokus-modus #mb-hub,body.fokus-modus .totop{display:none!important}
+body.fokus-modus.has-tabbar{padding-bottom:0}
+body.fokus-modus .mb-layout{grid-template-columns:minmax(0,1fr)}
+.fokus-bar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:10px 14px;background:var(--schwarz);color:#fff}
+.fokus-bar-tag{margin-right:auto;order:0}
+.fokus-bar-titel{flex-basis:100%;min-width:0;line-height:1.1;order:2}
+.fokus-bar .fokus-hilfe,.fokus-bar .fokus-ende{order:1}
+.fokus-bar-meta{flex-basis:100%;order:3}
+@container site (min-width:600px){
+  .fokus-bar-tag{margin-right:0}
+  .fokus-bar-titel{order:0;flex:1 1 0;flex-basis:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+.fokus-bar-tag{font:800 11px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#fff;background:var(--rot);padding:6px 8px 5px}
+.fokus-bar b{font:800 18px/1 var(--display);text-transform:uppercase}
+.fokus-bar .small{color:#d8d8d8}
+.fokus-hilfe{width:34px;height:34px;border:2px solid #fff;background:transparent;color:#fff;font:800 18px/1 var(--display);cursor:pointer;flex:0 0 auto}
+.fokus-bar .fokus-ende{border-color:#fff;color:#fff;padding:8px 12px}
+.fokus-bar .fokus-ende svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.fokus-bar .fokus-ende:hover{background:#fff;color:var(--schwarz);box-shadow:none}
+.fokus-erklaert{background:#fff;border:2px solid var(--schwarz);padding:0 16px}
+.fokus-erklaert summary{cursor:pointer;padding:12px 0;font:800 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.fokus-erklaert ul{margin:0 0 12px;padding-left:20px;display:grid;gap:8px;font-size:15px;line-height:1.5}
+.fokus-erklaert .pos{margin-left:0}
+.fokus-erklaert .btn{margin-bottom:14px}
+.fokus-zeile{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fokus-zaehler{font:700 13px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fokus-wach{margin-left:auto;color:#1E7B3A}
+.fokus-haltung-zeile{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fokus-block.intern{border-left:4px solid var(--muted);padding-left:12px}
+.fokus-label small{font:400 11px/1 var(--body);letter-spacing:0;text-transform:none;color:var(--muted);margin-left:6px}
+.fokus-doks{display:grid;gap:8px}
+.fokus-dok{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:2px solid var(--schwarz);color:var(--ink);text-decoration:none;font-size:15px;line-height:1.3}
+.fokus-dok svg{width:20px;height:20px;flex:0 0 20px;fill:none;stroke:var(--rot);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fokus-dok span{flex:1;min-width:0;font-weight:700}
+.fokus-dok small{font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.fokus-dok:hover{border-color:var(--rot)}
+.fokus-nachschlagen{display:grid;gap:10px}
+/* Chat im Sitzungsmodus: zugeklappt eine Leiste unten, aufgeklappt Liste + Eingabe */
+.fokus-chat{position:sticky;bottom:0;z-index:35;background:#fff;border:2px solid var(--schwarz);border-bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08)}
+.fokus-chat-kopf{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:0;background:var(--schwarz);color:#fff;cursor:pointer;text-align:left;font:inherit}
+.fokus-chat-titel{font:800 14px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.fokus-chat-titel .mb-badge{position:static;height:18px;min-width:18px;line-height:18px;font-size:11px;padding:0 5px;background:var(--rot);color:#fff;border-radius:9px;text-align:center}
+.fokus-chat-vorschau{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d8d8d8}
+.fokus-chat-pfeil{font-size:16px}
+.fokus-chat-body{display:grid;grid-template-rows:minmax(0,1fr) auto;max-height:min(50vh,420px)}
+.fokus-chat-liste{overflow:auto;padding:12px 14px;display:grid;gap:8px;align-content:start}
+.fokus-chat-liste .note{margin:0}
+.fokus-msg{display:grid;gap:2px;max-width:85%;padding:8px 12px;background:var(--grau);justify-self:start}
+.fokus-msg.meine{justify-self:end;background:var(--schwarz);color:#fff}
+.fokus-msg-kopf{font:700 11px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fokus-msg.meine .fokus-msg-kopf{color:#d8d8d8}
+.fokus-msg-text{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.fokus-chat-form{display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--linie)}
+.fokus-chat-form input{flex:1;min-width:0;font:inherit;font-size:16px;padding:10px 12px;border:2px solid var(--schwarz)}
+.fokus-zeile .chip{font-size:12px;padding:7px 10px}
+.fokus-hinweis{margin:0}
+.dok-row{display:grid;grid-template-columns:64px minmax(0,1.2fr) minmax(0,1.6fr) auto;gap:8px;align-items:center}
+.dok-row .linkbtn{font-size:20px;text-decoration:none;color:var(--muted)}
+#ra-dok-pick{max-width:100%;font:inherit;font-size:14px;padding:8px 10px;border:2px solid var(--schwarz);background:#fff}
+@container site (max-width:600px){
+  .fokus-nav{position:sticky;bottom:46px;z-index:30;background:var(--weiss);padding:10px 0;margin:0}
+  .dok-row{grid-template-columns:56px minmax(0,1fr) auto}
+  .dok-row input:nth-child(3){grid-column:1/3}
+}
 .fokus-top{background:var(--grau);padding:24px;display:grid;gap:14px;border-left:8px solid var(--rot)}
 .fokus-nr{font:800 14px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--rot)}
 .fokus-titel{font:800 clamp(26px,3.6cqw,40px)/1.05 var(--display);text-transform:uppercase;text-wrap:balance}
-.fokus-haltung{justify-self:start;padding:12px 18px;font:800 22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;background:#fff;border:3px solid var(--schwarz)}
-.fokus-haltung.pos-dafür{background:#177A38;border-color:#177A38;color:#fff}
+.fokus-haltung{justify-self:start;padding:12px 18px;font:800 22px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;background:#fff;border:3px solid var(--schwarz);color:var(--ink)}
+.fokus-haltung.pos-dafr,.fokus-haltung.pos-dafür{background:#177A38;border-color:#177A38;color:#fff}
 .fokus-haltung.pos-dagegen{background:var(--rot);border-color:var(--rot);color:#fff}
 .fokus-haltung.pos-nderungsantrag{background:#F28C00;border-color:#F28C00;color:#fff}
+.fokus-haltung.pos-enthaltung{background:var(--grau);color:var(--ink)}
 .fokus-block{display:grid;gap:4px}
 .fokus-block p{font-size:18px;line-height:1.5;margin:0}
 .fokus-block textarea{width:100%;font:inherit;font-size:16px;padding:10px;border:2px solid var(--schwarz);box-sizing:border-box}
 .fokus-label{font:700 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .fokus-nav{display:flex;gap:10px;justify-content:space-between}
 .fokus-nav .btn{flex:1;justify-content:center}
+.fokus-alle{overflow-x:auto;max-width:100%}
 .fokus-alle summary{cursor:pointer;font:800 16px/1 var(--display);text-transform:uppercase;padding:10px 0}
+.fokus-tabelle td:nth-child(2){min-width:140px}
 .fokus-tabelle{width:100%;border-collapse:collapse;font-size:14px}
 .fokus-tabelle th{text-align:left;font:700 11px/1.3 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:2px solid var(--schwarz)}
 .fokus-tabelle td{padding:8px;border-bottom:1px solid var(--linie);vertical-align:top;cursor:pointer}
@@ -1565,3 +1630,26 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .fb-item p{margin:0}
 .fb-status{font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .fb-item.ok .fb-status{color:#1E7B3A}
+/* Notizen im Sitzungsmodus: Vollbild-Panel mit Text oder Zeichenfläche */
+.notiz-panel{position:fixed;inset:0;z-index:90;background:#fff;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;padding-top:env(safe-area-inset-top,0px)}
+.notiz-kopf{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:2px solid var(--schwarz)}
+.notiz-kopf-text{flex:1;min-width:0;display:grid;gap:2px}
+.notiz-kopf b{font:800 20px/1 var(--display);text-transform:uppercase}
+.notiz-kopf .small{color:var(--muted)}
+.notiz-status{color:#1E7B3A}
+.notiz-kopf .mb-sheet-close{flex:0 0 auto}
+.notiz-kopf .mb-sheet-close{width:40px;height:40px;border:0;background:var(--grau);font-size:18px;cursor:pointer}
+.notiz-tabs{display:flex;gap:8px;padding:10px 16px 0}
+.notiz-body{overflow:auto;padding:12px 16px}
+.notiz-text{display:grid;gap:8px;height:100%}
+.notiz-text textarea{width:100%;min-height:50vh;height:calc(100% - 40px);font:inherit;font-size:17px;line-height:1.5;padding:12px;border:2px solid var(--schwarz);box-sizing:border-box;resize:none}
+.notiz-stift{display:grid;gap:10px}
+.notiz-werkzeug{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.nz-farbe{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--linie);cursor:pointer}
+.nz-farbe[aria-pressed="true"]{box-shadow:0 0 0 3px var(--schwarz)}
+.notiz-werkzeug .chip{font-size:12px;padding:7px 10px}
+.notiz-blatt{border:2px solid var(--schwarz);background:#fff repeating-linear-gradient(0deg,transparent 0 39px,#e9e9e9 39px 40px);overflow:hidden}
+.notiz-blatt canvas{display:block;touch-action:none;cursor:crosshair}
+.notiz-fuss{display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--linie);background:#fff}
+.fokus-msg-bild{display:block;max-width:100%;margin-top:6px;border:1px solid var(--linie);background:#fff}
+.fokus-wer{margin:0}

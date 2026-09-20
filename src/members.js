@@ -11,7 +11,9 @@ import { esc, D, WD, MONS, MONL } from './render.mjs';
 import { RIGHTS, BOARD_TOPICS, GROUPS, VISIBILITY, evaluateSettings, canSee, groupLabels } from './lib/rights.mjs';
 import { HELP_TOPICS, PLATFORMS, stepsFor, topicById, videoName, posterName, guessPlatform } from './lib/hilfe.mjs';
 import * as FB from './lib/feedback.mjs';
+import { BEREICHE as RAT_BEREICHE, bereichVon, gremiumVon } from './lib/rat.mjs';
 import { makeDemoClient } from './demo.js';
+import { makeNotizen } from './notizen.js';
 import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
@@ -511,6 +513,7 @@ async function route() {
   if (key === 'demo') { const zurueck = route.lastKey || 'start'; history.replaceState(null, '', location.pathname + location.search + '#' + zurueck); if (istTester()) demoBlatt(); if (route.lastKey) return; key = zurueck; }
   if (!RENDER[key] || !secVisible(key)) key = 'start';
   if (key !== 'ratsarbeit') ratsarbeit.blattZu(false);
+  if (document.body.classList.contains('fokus-modus') && !(key === 'rat' && /^#rat\/fokus-/.test(location.hash))) fokusEnde();
   const navKey = HUB_OF[key] || key;
   document.querySelectorAll('.mb-side a[data-sec],.mb-sheet a[data-sec]').forEach(a => { if (a.dataset.sec === navKey) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   document.querySelectorAll('.mb-tabbar [data-tab]').forEach(a => { if (a.dataset.tab === navKey) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -1174,11 +1177,11 @@ const posBadge = p => `<span class="pos pos-${esc(String(p || 'offen').replace(/
 function ratCard(r) {
   const tops = r.tops || [], entschieden = tops.filter(t => t.ergebnis).length;
   return `<article class="mb-card rat" data-id="${esc(r._id)}">
-    <div class="hl-head"><div><span class="tag ${sitzungTyp(r) === 'Vorstand' ? 'tag-schwarz' : ''}">${esc(sitzungTyp(r))}</span> <span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><h4>${esc(r.gremium || 'Sitzung')}${r.titel ? ' – ' + esc(r.titel) : ''}</h4></div>
+    <div class="hl-head"><div><span class="tag ${sitzungTyp(r) === 'Vorstand' ? 'tag-schwarz' : ''}">${esc(sitzungTyp(r))}</span>${r.b && r.b !== 'rat' ? ` <span class="tag tag-weiss">${esc(bereichVon(r.b).name)}</span>` : ''} <span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><h4>${esc(r.gremium || 'Sitzung')}${r.titel ? ' – ' + esc(r.titel) : ''}</h4></div>
       <div class="mb-actions"><a class="btn btn-rot btn-sm" href="#rat/fokus-${esc(r._id)}">Sitzungsmodus</a>${r.link ? `<a class="btn btn-line btn-sm" href="${esc(r.link)}" target="_blank" rel="noopener">Bürgerinfosystem</a>` : ''}${me.can('rat') ? '<button type="button" class="btn btn-line btn-sm" data-edit-rat>Bearbeiten</button>' : ''}</div></div>
     ${tops.length ? `<div class="tops">${tops.map(t => `<div class="top"><div class="top-nr">TOP ${esc(t.nr || '')}</div><div><b>${esc(t.titel)}</b> ${posBadge(t.position)}${t.ergebnis ? `<p class="small top-ergebnis"><b>Ergebnis:</b> ${esc(t.ergebnis)}</p>` : ''}${t.einordnung ? `<p class="small">${nl2br(t.einordnung)}</p>` : ''}${t.redner ? `<p class="small muted">Spricht: ${esc(t.redner)}</p>` : ''}</div></div>`).join('')}</div><p class="small muted">${tops.length} Punkte · ${tops.filter(t => t.position && t.position !== 'offen').length} mit Haltung · ${entschieden} mit Ergebnis</p>` : '<p class="small muted">Noch keine Tagesordnungspunkte eingetragen.</p>'}
     ${r.hinweis ? `<p class="small"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
-    <p class="small muted">Stand: ${esc(fmtWhen(r._updatedDate || r._createdDate))} · ${esc(r.von || '–')}</p>
+    <p class="small muted">${r.protokoll ? `Ergebnisse trägt ein: <b>${esc(people.find(p => p.memberId === r.protokoll)?.name || '?')}</b> · ` : ''}Stand: ${esc(fmtWhen(r._updatedDate || r._createdDate))} · ${esc(r.von || '–')}</p>
   </article>`;
 }
 function ratForm(r) {
@@ -1186,6 +1189,7 @@ function ratForm(r) {
   return `<form class="form mb-form" id="f-rat" data-id="${esc(r?._id || '')}" novalidate>
     <div class="mb-3">
       <div class="field"><label for="ra-typ">Art</label><select id="ra-typ" name="typ">${opt(SITZUNG_TYPEN, r ? sitzungTyp(r) : 'Rat')}</select></div>
+      <div class="field"><label for="ra-b">Ausschuss / Bereich</label><select id="ra-b" name="b"><option value="">– keiner –</option>${RAT_BEREICHE.map(b => `<option value="${b.id}" ${r?.b === b.id ? 'selected' : ''}>${esc(b.kind === 'Ausschuss' ? 'Ausschuss ' + b.name : b.name)}</option>`).join('')}</select><span class="small muted">Verknüpft die Sitzung mit der Ratsarbeit – die Dokumente des Bereichs stehen im Sitzungsmodus zum Nachschlagen.</span></div>
       <div class="field"><label for="ra-gr">Gremium</label><input id="ra-gr" name="gremium" type="text" list="gremien" required value="${esc(r?.gremium || 'Rat der Stadt Soltau')}"><datalist id="gremien"><option value="Rat der Stadt Soltau"><option value="Verwaltungsausschuss"><option value="Bauausschuss"><option value="Sozialausschuss"><option value="Finanzausschuss"><option value="Schulausschuss"><option value="Kulturausschuss"><option value="Fraktionssitzung"><option value="Vorstandssitzung"><option value="Mitgliederversammlung"></datalist></div>
       <div class="field"><label for="ra-datum">Sitzung am</label><input id="ra-datum" name="sitzung" type="date" required value="${esc(r?.sitzung || '')}"></div>
     </div>
@@ -1194,10 +1198,16 @@ function ratForm(r) {
       <div class="field"><label for="ra-ort">Ort</label><input id="ra-ort" name="ort" type="text" value="${esc(r?.ort || '')}" placeholder="z. B. Alte Reithalle"></div>
       <div class="field"><label for="ra-titel">Titel (optional)</label><input id="ra-titel" name="titel" type="text" value="${esc(r?.titel || '')}" placeholder="z. B. Haushalt 2027"></div>
     </div>
+    <div class="field"><label for="ra-protokoll">Ergebnisse trägt ein (Sitzungsleitung / Protokoll)</label><select id="ra-protokoll" name="protokoll"><option value="">– alle mit dem Recht „Ratsvorbereitung pflegen“ –</option>${people.map(p => `<option value="${esc(p.memberId)}" ${r?.protokoll === p.memberId ? 'selected' : ''}>${esc(p.name)}${p.memberId === me.id ? ' (du)' : ''}</option>`).join('')}</select><span class="small muted">Diese Person kann im Sitzungsmodus Ergebnisse eintragen und „die Sitzung leiten“ – dann folgen alle Geräte ihrem Punkt.</span></div>
     <div class="field"><label for="ra-link">Link (Bürgerinformationssystem, optional)</label><input id="ra-link" name="link" type="url" value="${esc(r?.link || '')}"></div>
     <div class="field"><label>Tagesordnungspunkte – je Punkt: Haltung, Argumente, wer spricht, was intern diskutiert wurde, Ergebnis</label>
       <div id="ra-tops" class="rows">${tops.map(t => topRow(t)).join('')}</div>
       <button type="button" class="linkbtn" id="ra-add">+ Punkt hinzufügen</button>
+    </div>
+    <div class="field"><label>Zum Nachschlagen im Sitzungsmodus – Dokumente &amp; Links (optional)</label>
+      <span class="small muted">Vorlagen, Protokolle, Anträge, Links. Mit TOP-Nummer erscheint das Dokument direkt beim Punkt. Die Dokumente des gewählten Bereichs aus der Ratsarbeit erscheinen von selbst.</span>
+      <div id="ra-doks" class="rows">${(Array.isArray(r?.dokumente) ? r.dokumente : []).map(dokRow).join('')}</div>
+      <div class="mb-actions"><button type="button" class="linkbtn" id="ra-dok-add">+ Link oder Dokument eintragen</button><select id="ra-dok-pick" aria-label="Aus vorhandenen Dokumenten übernehmen"><option value="">aus vorhandenen Dokumenten übernehmen …</option></select></div>
     </div>
     <div class="field"><label for="ra-hinweis">Hinweis für alle (optional)</label><textarea id="ra-hinweis" name="hinweis" rows="2">${esc(r?.hinweis || '')}</textarea></div>
     <p class="note" hidden></p>
@@ -1206,18 +1216,38 @@ function ratForm(r) {
 }
 const topRow = t => `<div class="row top-row"><input type="text" placeholder="Nr." value="${esc(t.nr || '')}" aria-label="TOP-Nummer"><input type="text" placeholder="Titel des Tagesordnungspunkts" value="${esc(t.titel || '')}" aria-label="Titel"><select aria-label="Haltung">${opt(POS, t.position || 'offen')}</select><textarea rows="2" placeholder="Unsere Haltung und Argumente (optional)" aria-label="Argumente">${esc(t.einordnung || '')}</textarea><details class="top-mehr"><summary>Mehr: wer spricht · intern diskutiert · Ergebnis</summary><input type="text" placeholder="Wer spricht dazu?" value="${esc(t.redner || '')}" aria-label="Redner"><textarea rows="2" placeholder="Was wurde bei uns intern besprochen?" aria-label="Diskussion">${esc(t.diskussion || '')}</textarea><textarea rows="2" placeholder="Ergebnis / Beschluss (nach der Sitzung)" aria-label="Ergebnis">${esc(t.ergebnis || '')}</textarea></details><button type="button" class="linkbtn" data-del-top>entfernen</button></div>`;
 const topLesen = r => ({ nr: r.children[0].value.trim(), titel: r.children[1].value.trim(), position: r.children[2].value, einordnung: r.children[3].value.trim(), redner: r.querySelector('[aria-label=Redner]').value.trim(), diskussion: r.querySelector('[aria-label=Diskussion]').value.trim(), ergebnis: r.querySelector('[aria-label=Ergebnis]').value.trim() });
+const dokRow = d => `<div class="row dok-row"><input type="text" placeholder="TOP" value="${esc(d.top || '')}" aria-label="TOP-Nummer"><input type="text" placeholder="Titel, z. B. Vorlage Haushalt 2027" value="${esc(d.titel || '')}" aria-label="Titel"><input type="text" placeholder="Link (https://… oder #ratsarbeit/…)" value="${esc(d.url || '')}" aria-label="Link"><button type="button" class="linkbtn" data-del-dok aria-label="Entfernen">×</button></div>`;
+const dokLesen = r => ({ top: r.children[0].value.trim(), titel: r.children[1].value.trim(), url: r.children[2].value.trim() });
+// Auswahlliste „aus vorhandenen Dokumenten übernehmen“: Dokumente aller Mitglieder, dazu Ratsarbeit-Dokumente und Anträge (entschlüsselt)
+async function dokPickFuellen(sel) {
+  const gruppen = [];
+  try { const docs = await db.list('Dokumente', { desc: '_createdDate', limit: 100 }); if (docs.length) gruppen.push(['Dokumente (alle Mitglieder)', docs.map(d => ({ titel: d.titel || d.title, url: d.url || '#dokumente' }))]); } catch (e) { /* ohne */ }
+  try { const rz = await ratsarbeit.dokumenteListe(); if (rz.length) gruppen.push(['Ratsarbeit – Dokumente', rz.map(d => ({ titel: `${d.titel || 'Dokument'} (${bereichVon(d.b).name})`, url: '#ratsarbeit/d-' + d._id }))]); } catch (e) { /* ohne */ }
+  try { const an = await ratsarbeit.antraegeFuerSuche(); if (an.length) gruppen.push(['Ratsarbeit – Anträge', an.map(a => ({ titel: `Antrag: ${a.titel || 'Antrag'}`, url: '#ratsarbeit/a-' + a._id }))]); } catch (e) { /* ohne */ }
+  if (!sel.isConnected) return;
+  sel.insertAdjacentHTML('beforeend', gruppen.map(([g, items]) => `<optgroup label="${esc(g)}">${items.map(d => `<option value="${esc(d.url)}" data-titel="${esc(d.titel)}">${esc(d.titel)}</option>`).join('')}</optgroup>`).join(''));
+  sel.hidden = !gruppen.length;
+}
 function wireRat(v, all, stadt = []) {
   const f = $('#f-rat');
   if (f) {
     $('#ra-add').addEventListener('click', () => { const d = document.createElement('div'); d.innerHTML = topRow({}); $('#ra-tops').appendChild(d.firstElementChild); });
-    f.addEventListener('click', e => { const b = e.target.closest('button[data-del-top]'); if (b) b.closest('.top-row').remove(); });
+    f.addEventListener('click', e => { const b = e.target.closest('button[data-del-top]'); if (b) b.closest('.top-row').remove(); const d = e.target.closest('button[data-del-dok]'); if (d) d.closest('.dok-row').remove(); });
+    // Ausschuss/Bereich gewählt → Gremium vorschlagen (solange dort noch der Standard oder ein Vorschlag steht) und Art anpassen
+    const vorschlaege = new Set(['', 'Rat der Stadt Soltau', ...RAT_BEREICHE.map(b => gremiumVon(b.id))]);
+    $('#ra-b').addEventListener('change', () => { const bid = $('#ra-b').value; if (!bid) return; if (vorschlaege.has($('#ra-gr').value.trim())) $('#ra-gr').value = gremiumVon(bid); if (bid !== 'rat' && $('#ra-typ').value === 'Rat') $('#ra-typ').value = 'Ausschuss'; if (bid === 'rat' && $('#ra-typ').value === 'Ausschuss') $('#ra-typ').value = 'Rat'; });
+    $('#ra-typ').addEventListener('change', () => { if ($('#ra-typ').value === 'Ausschuss' && !$('#ra-b').value) $('#ra-b').focus(); });
+    $('#ra-dok-add').addEventListener('click', () => { const d = document.createElement('div'); d.innerHTML = dokRow({}); const row = d.firstElementChild; $('#ra-doks').appendChild(row); row.querySelector('input:nth-child(2)').focus(); });
+    const pick = $('#ra-dok-pick'); pick.hidden = true; dokPickFuellen(pick);
+    pick.addEventListener('change', () => { const o = pick.selectedOptions[0]; if (!o || !o.value) return; const d = document.createElement('div'); d.innerHTML = dokRow({ titel: o.dataset.titel, url: o.value }); $('#ra-doks').appendChild(d.firstElementChild); pick.value = ''; });
     $('#ra-cancel')?.addEventListener('click', () => route());
     $('#ra-del')?.addEventListener('click', async () => { if (!confirm('Sitzung wirklich löschen?')) return; try { await db.remove('Ratsvorbereitung', f.dataset.id); route(); } catch (err) { msg(f.querySelector('.note'), errText(err)); } });
     f.addEventListener('submit', async e => {
       e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
       const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
       const tops = $$('#ra-tops .top-row').map(topLesen).filter(t => t.titel);
-      const data = { typ: fd.get('typ'), gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), ort: fd.get('ort').trim(), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, hinweis: fd.get('hinweis').trim(), von: me.name };
+      const dokumente = $$('#ra-doks .dok-row').map(dokLesen).filter(d => d.titel || d.url).map(d => ({ ...d, titel: d.titel || d.url }));
+      const data = { typ: fd.get('typ'), b: fd.get('b') || '', protokoll: fd.get('protokoll') || '', gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), ort: fd.get('ort').trim(), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, dokumente, hinweis: fd.get('hinweis').trim(), von: me.name };
       try {
         const cur = all.find(r => r._id === f.dataset.id);
         if (cur) await db.update('Ratsvorbereitung', { ...cur, ...data }); else await db.insert('Ratsvorbereitung', data);
@@ -1226,47 +1256,180 @@ function wireRat(v, all, stadt = []) {
     });
   }
   v.addEventListener('click', e => {
+    const fo = e.target.closest('a[href^="#rat/fokus-"]');
+    if (fo && matchMedia('(pointer: coarse)').matches && !matchMedia('(display-mode: standalone)').matches && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
     const u = e.target.closest('button[data-uebernehmen]'); if (u) { secRat(v, null, stadt[+u.dataset.uebernehmen]); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const b = e.target.closest('button[data-edit-rat]'); if (!b) return; secRat(v, b.closest('.rat').dataset.id);
   });
 }
-// Sitzungsmodus: ein Punkt groß auf dem Bildschirm – Haltung, Argumente, wer spricht, intern Besprochenes; Ergebnis direkt eintragen.
-// Darunter alle Punkte auf einen Blick (Haltung · Ergebnis).
-function fokusSitzung(v, r) {
-  const tops = r.tops || [];
+// Sitzungsmodus: Vollbild ohne Menü und Kopf – ein Punkt groß auf dem Bildschirm (Haltung, Argumente, wer spricht, intern Besprochenes),
+// Ergebnis direkt eintragen, Dokumente zum Nachschlagen (eigene Liste + Ratsarbeit des Bereichs), Bildschirm bleibt an, Erklärung beim ersten Mal.
+let wakeLock = null;
+async function wachBleiben(an) {
+  try {
+    if (an && !wakeLock && 'wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    if (!an && wakeLock) { const w = wakeLock; wakeLock = null; await w.release(); }
+  } catch (e) { wakeLock = null; }
+  return !!wakeLock;
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && document.body.classList.contains('fokus-modus')) wachBleiben(true); });
+// Live: alle Geräte holen alle 6 s den Stand der Sitzung (Ergebnisse, aktueller Punkt der Sitzungsleitung) und den Chat
+const live = { timer: null, id: null, r: null, msgs: [], folgen: true, leiten: false, chatOffen: false, ungelesen: 0, gruppe: 'fraktion', chatStatus: null, v: null };
+function liveStop() { clearInterval(live.timer); live.timer = null; live.id = null; live.v = null; }
+function fokusEnde() { document.body.classList.remove('fokus-modus'); wachBleiben(false); liveStop(); notizen.beenden(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+const chatZeit = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
+function chatHtml() {
+  const st = live.chatStatus;
+  const letzte = live.msgs[live.msgs.length - 1];
+  return `<div class="fokus-chat${live.chatOffen ? ' offen' : ''}" id="fo-chat">
+    <button type="button" class="fokus-chat-kopf" id="fo-chat-toggle" aria-expanded="${live.chatOffen}"><span class="fokus-chat-titel">💬 ${live.gruppe === 'vorstand' ? 'Vorstands-Chat' : 'Fraktions-Chat'}${live.ungelesen && !live.chatOffen ? ` <b class="mb-badge">${live.ungelesen}</b>` : ''}</span><span class="fokus-chat-vorschau small">${live.chatOffen ? 'nur für uns · verschlüsselt' : letzte ? `${esc(letzte.name.split(' ')[0])}: ${esc(letzte.text.slice(0, 60))}` : 'nur für uns – schnell was klären'}</span><span class="fokus-chat-pfeil">${live.chatOffen ? '▾' : '▴'}</span></button>
+    <div class="fokus-chat-body" ${live.chatOffen ? '' : 'hidden'}>
+      <div class="fokus-chat-liste" id="fo-chat-liste">${st === 'ok' ? (live.msgs.length ? live.msgs.map(m => `<div class="fokus-msg${m.memberId === me.id ? ' meine' : ''}"><span class="fokus-msg-kopf">${esc(m.memberId === me.id ? 'du' : m.name)} · ${chatZeit(m._createdDate)}</span><span class="fokus-msg-text">${esc(m.text)}</span>${m.bild ? `<a href="${m.bild}" target="_blank" rel="noopener"><img class="fokus-msg-bild" src="${m.bild}" alt="Geteilte Skizze"></a>` : ''}</div>`).join('') : '<p class="small muted">Noch nichts geschrieben. Was hier steht, sehen nur die, die den Gruppenschlüssel haben – und es bleibt in der Sitzung.</p>') : st === null ? '<p class="small muted">Chat wird geladen …</p>' : st === 'wartet' ? '<p class="small muted">Chat noch nicht verfügbar: Der Push-Dienst schaltet den Schlüssel dieses Geräts in den nächsten Minuten frei.</p>' : '<p class="small muted">Chat nicht verfügbar – dafür braucht es den Gruppenschlüssel (Ratsarbeit/Vorstand).</p>'}</div>
+      <form class="fokus-chat-form" id="fo-chat-form"><input type="text" id="fo-chat-in" maxlength="500" placeholder="Kurz an alle …" autocomplete="off" ${st === 'ok' ? '' : 'disabled'}><button class="btn btn-rot btn-sm" type="submit" ${st === 'ok' ? '' : 'disabled'}>Senden</button></form>
+    </div>
+  </div>`;
+}
+function chatRender(v) {
+  const alt = $('#fo-chat', v); if (!alt) return;
+  const tippte = $('#fo-chat-in', alt)?.value || '', hatteFokus = document.activeElement?.id === 'fo-chat-in';
+  const d = document.createElement('div'); d.innerHTML = chatHtml(); const neu = d.firstElementChild; alt.replaceWith(neu); chatWire(v);
+  const inp = $('#fo-chat-in', neu); if (inp) { inp.value = tippte; if (hatteFokus) inp.focus(); }
+  const l = $('#fo-chat-liste', neu); if (l) l.scrollTop = l.scrollHeight;
+}
+function chatWire(v) {
+  $('#fo-chat-toggle', v)?.addEventListener('click', () => { live.chatOffen = !live.chatOffen; if (live.chatOffen) live.ungelesen = 0; chatRender(v); if (live.chatOffen) $('#fo-chat-in', v)?.focus(); });
+  $('#fo-chat-form', v)?.addEventListener('submit', async e => {
+    e.preventDefault(); const inp = $('#fo-chat-in', v); const text = inp.value.trim(); if (!text || live.chatStatus !== 'ok') return;
+    inp.value = ''; const btn = e.target.querySelector('button'); busy(btn, true);
+    try { await db.insert('SitzungChat', { sitzungId: live.id, memberId: me.id, name: me.name, title: `${me.name} – Chat`, daten: await schluessel.encJson(live.gruppe, { text }) }); await livePoll(true); }
+    catch (err) { inp.value = text; msg($('#fo-chat-liste', v), 'Nicht gesendet: ' + errText(err)); }
+    busy(btn, false);
+  });
+}
+async function livePoll(sofort = false) {
+  const v = live.v; if (!v || !live.id || (!sofort && document.visibilityState !== 'visible')) return;
+  const id = live.id;
+  // Stand der Sitzung: Ergebnisse, aktueller Punkt der Sitzungsleitung
+  try {
+    const [neu] = await db.list('Ratsvorbereitung', { eq: { _id: id }, limit: 1 });
+    if (neu && live.id === id && neu._updatedDate !== live.r._updatedDate) {
+      live.r = neu;
+      const folgt = live.folgen && !live.leiten && Number.isInteger(neu.aktuell) && neu.aktuell !== fokus.i;
+      if (folgt) fokus.i = neu.aktuell;
+      // Wer gerade ein Ergebnis tippt, wird nicht unterbrochen – der neue Stand kommt beim nächsten Wechsel
+      if (document.activeElement?.id !== 'fo-ergebnis') fokusSitzung(v, neu, true);
+    }
+  } catch (e) { /* nächster Versuch in 6 s */ }
+  // Chat (verschlüsselt mit dem Gruppenschlüssel)
+  if (live.chatStatus === null) { try { live.chatStatus = await schluessel.laden(live.gruppe); } catch (e) { live.chatStatus = 'fehler'; } if (live.id === id) chatRender(v); }
+  if (live.chatStatus !== 'ok') return;
+  try {
+    const rows = await db.list('SitzungChat', { eq: { sitzungId: id }, desc: '_createdDate', limit: 80 });
+    if (live.id !== id) return;
+    const bekannt = new Set(live.msgs.map(m => m._id));
+    const frisch = rows.filter(m => !bekannt.has(m._id));
+    if (!frisch.length) return;
+    const dec = await Promise.all(frisch.map(async m => { const d = await schluessel.decJson(live.gruppe, m.daten); return { ...m, text: d.text || (d.bild ? '' : '(nicht lesbar)'), bild: /^data:image\//.test(d.bild || '') ? d.bild : '' }; }));
+    live.msgs = [...live.msgs, ...dec].sort((a, b) => String(a._createdDate).localeCompare(String(b._createdDate))).slice(-80);
+    if (!live.chatOffen) live.ungelesen += dec.filter(m => m.memberId !== me.id).length;
+    chatRender(v);
+  } catch (e) { /* nächster Versuch */ }
+}
+const POS_TEXT = { offen: 'noch nicht festgelegt', 'dafür': 'wir stimmen dafür', dagegen: 'wir stimmen dagegen', Enthaltung: 'wir enthalten uns', 'Änderungsantrag': 'wir stellen einen Änderungsantrag' };
+function fokusSitzung(v, r, vomPoll = false) {
+  const chatTipp = $('#fo-chat-in', v)?.value || '';
+  const tops = r.tops || [], docs = Array.isArray(r.dokumente) ? r.dokumente : [];
+  const kann = me.can('rat') || (!!r.protokoll && r.protokoll === me.id);
+  if (live.id !== r._id) {
+    liveStop();
+    Object.assign(live, { id: r._id, r, v, msgs: [], folgen: !kann, leiten: false, chatOffen: false, ungelesen: 0, chatStatus: null, gruppe: ['Vorstand', 'Versammlung'].includes(sitzungTyp(r)) ? 'vorstand' : 'fraktion' });
+    if (live.folgen && Number.isInteger(r.aktuell)) fokus.i = r.aktuell;
+    live.timer = setInterval(() => livePoll(), 6000);
+    setTimeout(() => livePoll(true), 50);
+  }
+  live.r = r; live.v = v;
   fokus.i = Math.min(Math.max(fokus.i, 0), Math.max(tops.length - 1, 0));
   const t = tops[fokus.i] || {};
-  const kann = me.can('rat');
+  const protokollName = r.protokoll ? (people.find(p => p.memberId === r.protokoll)?.name || '') : '';
+  const erklaert = !!store.get('spd-fokus-erklaert');
+  document.body.classList.add('fokus-modus');
+  const dokLink = d => { const extern = /^https?:/i.test(d.url || ''); return `<a class="fokus-dok" href="${esc(d.url || '#')}" ${extern ? 'target="_blank" rel="noopener"' : ''}>${extern ? ICON.link : ICON.doc}<span>${esc(d.titel || d.url)}</span>${d.top ? `<small>TOP ${esc(d.top)}</small>` : ''}${d.kat ? `<small>${esc(d.kat)}</small>` : ''}</a>`; };
+  const nrVon = (x, i) => String(x.nr || i + 1);
+  const dazu = docs.filter(d => d.top && String(d.top) === nrVon(t, fokus.i));
+  const bereichName = r.b ? bereichVon(r.b).name : '';
   v.innerHTML = `<div class="fokus">
-    <p class="small rz-zurueck"><a href="#rat">← Sitzungen</a></p>
-    <div class="fokus-kopf"><span class="tag ${sitzungTyp(r) === 'Vorstand' ? 'tag-schwarz' : ''}">${esc(sitzungTyp(r))}</span><b>${esc(r.gremium || 'Sitzung')}</b><span class="small muted">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}</span><span class="fokus-zaehler">${tops.length ? `Punkt ${fokus.i + 1} von ${tops.length}` : 'keine Punkte'}</span></div>
-    ${tops.length ? `<div class="fokus-top">
-      <div class="fokus-nr">TOP ${esc(t.nr || fokus.i + 1)}</div>
+    <div class="fokus-bar"><span class="fokus-bar-tag">Sitzungsmodus</span><b class="fokus-bar-titel">${esc(r.gremium || 'Sitzung')}</b><button type="button" class="fokus-hilfe" id="fo-hilfe" aria-label="So funktioniert der Sitzungsmodus" title="So funktioniert der Sitzungsmodus">?</button><a class="btn btn-line btn-sm fokus-ende" href="#rat">${ICON.close}Beenden</a><span class="small fokus-bar-meta">${esc(fmtDate(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''}${r.titel ? ' · ' + esc(r.titel) : ''}</span></div>
+    <details class="fokus-erklaert" id="fo-erklaert" ${erklaert ? '' : 'open'}><summary>So funktioniert der Sitzungsmodus</summary>
+      <ul>
+        <li><b>Ein Tagesordnungspunkt pro Bildschirm.</b> Weiter mit „Nächster“, Wischen nach links/rechts oder den Pfeiltasten. Unten stehen alle Punkte – antippen springt hin.</li>
+        <li><b>Haltung</b> = so will die Fraktion abstimmen: <span class="pos pos-dafr">dafür</span> <span class="pos pos-dagegen">dagegen</span> <span class="pos pos-enthaltung">Enthaltung</span> <span class="pos pos-nderungsantrag">Änderungsantrag</span> <span class="pos">offen</span></li>
+        <li><b>Unsere Haltung &amp; Argumente</b> darfst du laut sagen. <b>Intern besprochen</b> bleibt in der Fraktion.</li>
+        <li><b>Es spricht</b> = wer für uns redet. <b>Ergebnis</b> = wie entschieden wurde – ${kann ? 'du trägst es direkt hier ein, alle anderen Geräte zeigen es innerhalb weniger Sekunden.' : `trägt ${protokollName ? esc(protokollName) : 'die Sitzungsleitung'} ein; dein Gerät zeigt es innerhalb weniger Sekunden.`}</li>
+        <li><b>Live:</b> Wer leitet, tippt „Ich leite“ – dann springen alle Geräte, die „folgen“, mit zum aktuellen Punkt. Blättern darfst du trotzdem jederzeit selbst.</li>
+        <li><b>Chat</b> unten: schnell etwas an die ${live.gruppe === 'vorstand' ? 'Vorstandsrunde' : 'Fraktion'} – verschlüsselt, nur für die mit Gruppenschlüssel.</li>
+        <li><b>Zum Nachschlagen:</b> Vorlagen, Protokolle und Links zu dieser Sitzung stehen beim Punkt und ganz unten${bereichName ? `, dazu die Dokumente aus der Ratsarbeit (${esc(bereichName)})` : ''}.</li>
+        <li>Menü und Kopf sind ausgeblendet, der Bildschirm bleibt an. Zurück über <b>Beenden</b> oben rechts.</li>
+      </ul>
+      <button type="button" class="btn btn-schwarz btn-sm" id="fo-verstanden">Verstanden</button>
+    </details>
+    <div class="fokus-zeile"><span class="fokus-zaehler">${tops.length ? `Punkt ${fokus.i + 1} von ${tops.length}` : 'keine Punkte'}</span>${kann ? `<button type="button" class="chip" id="fo-leiten" aria-pressed="${live.leiten}" title="Alle Geräte, die folgen, springen mit zu deinem Punkt">${live.leiten ? '✓ Ich leite – alle folgen' : 'Ich leite die Sitzung'}</button>` : `<button type="button" class="chip" id="fo-folgen" aria-pressed="${live.folgen}" title="Zum Punkt der Sitzungsleitung springen">${live.folgen ? '✓ Ich folge der Sitzungsleitung' : 'Der Sitzungsleitung folgen'}</button>`}<button type="button" class="chip" id="fo-notizen" title="Meine Notizen zu dieser Sitzung – Text oder mit dem Stift">✎ Notizen</button><span class="fokus-wach small" id="fo-wach" hidden>● Bildschirm bleibt an</span></div>
+    ${protokollName ? `<p class="small muted fokus-wer">Ergebnisse trägt ein: <b>${esc(protokollName)}</b>${kann && r.protokoll !== me.id ? ' – du darfst es ebenfalls (Recht „Ratsvorbereitung pflegen“).' : ''}</p>` : kann ? '<p class="small muted fokus-wer">Noch niemand festgelegt, der die Ergebnisse einträgt – beim Bearbeiten der Sitzung unter „Ergebnisse trägt ein“ auswählen. Bis dahin dürfen es alle mit dem Recht „Ratsvorbereitung pflegen“.</p>' : ''}
+    ${tops.length ? `<div class="fokus-top" id="fo-top">
+      <div class="fokus-nr">TOP ${esc(nrVon(t, fokus.i))}</div>
       <h2 class="fokus-titel">${esc(t.titel || '')}</h2>
-      <div class="fokus-haltung pos-${esc(String(t.position || 'offen').replace(/[^a-zä]/gi, '').toLowerCase())}">${esc(t.position || 'offen')}</div>
-      ${t.einordnung ? `<div class="fokus-block"><span class="fokus-label">Unsere Haltung &amp; Argumente</span><p>${nl2br(t.einordnung)}</p></div>` : ''}
-      ${t.redner ? `<div class="fokus-block"><span class="fokus-label">Es spricht</span><p>${esc(t.redner)}</p></div>` : ''}
-      ${t.diskussion ? `<div class="fokus-block"><span class="fokus-label">Intern besprochen</span><p>${nl2br(t.diskussion)}</p></div>` : ''}
-      <div class="fokus-block"><span class="fokus-label">Ergebnis</span>${kann ? `<textarea id="fo-ergebnis" rows="2" placeholder="Wie wurde entschieden? (wird sofort gespeichert)">${esc(t.ergebnis || '')}</textarea><div class="mb-actions"><button class="btn btn-schwarz btn-sm" type="button" id="fo-save">Ergebnis speichern</button><span class="small muted" id="fo-msg"></span></div>` : `<p>${t.ergebnis ? nl2br(t.ergebnis) : '<span class="muted">noch offen</span>'}</p>`}</div>
+      <div class="fokus-haltung-zeile"><div class="fokus-haltung pos-${esc(String(t.position || 'offen').replace(/[^a-zä]/gi, '').toLowerCase())}">${esc(t.position || 'offen')}</div><span class="small muted">${esc(POS_TEXT[t.position] || POS_TEXT.offen)}</span></div>
+      ${t.einordnung ? `<div class="fokus-block"><span class="fokus-label">Unsere Haltung &amp; Argumente <small>darf öffentlich gesagt werden</small></span><p>${nl2br(t.einordnung)}</p></div>` : ''}
+      ${t.redner ? `<div class="fokus-block"><span class="fokus-label">Es spricht <small>für die Fraktion</small></span><p>${esc(t.redner)}</p></div>` : ''}
+      ${t.diskussion ? `<div class="fokus-block intern"><span class="fokus-label">Intern besprochen <small>bleibt in der Fraktion</small></span><p>${nl2br(t.diskussion)}</p></div>` : ''}
+      ${dazu.length ? `<div class="fokus-block"><span class="fokus-label">Dazu nachschlagen</span><div class="fokus-doks">${dazu.map(dokLink).join('')}</div></div>` : ''}
+      <div class="fokus-block"><span class="fokus-label">Ergebnis <small>wie entschieden wurde</small></span>${kann ? `<textarea id="fo-ergebnis" rows="2" placeholder="z. B. angenommen 17:12 – mit unserem Änderungsantrag">${esc(t.ergebnis || '')}</textarea><div class="mb-actions"><button class="btn btn-schwarz btn-sm" type="button" id="fo-save">Ergebnis speichern</button><span class="small muted" id="fo-msg"></span></div>` : `<p>${t.ergebnis ? nl2br(t.ergebnis) : '<span class="muted">noch offen</span>'}</p>`}</div>
     </div>
     <div class="fokus-nav"><button class="btn btn-line" type="button" id="fo-prev" ${fokus.i === 0 ? 'disabled' : ''}>‹ Vorheriger</button><button class="btn btn-rot" type="button" id="fo-next" ${fokus.i >= tops.length - 1 ? 'disabled' : ''}>Nächster ›</button></div>` : '<p class="muted">Diese Sitzung hat noch keine Tagesordnungspunkte.</p>'}
     <details class="fokus-alle" ${tops.length > 1 ? 'open' : ''}><summary>Alle Punkte auf einen Blick</summary>
-      <table class="fokus-tabelle"><thead><tr><th>TOP</th><th>Punkt</th><th>Haltung</th><th>Ergebnis</th></tr></thead><tbody>${tops.map((x, i) => `<tr class="${i === fokus.i ? 'aktiv' : ''}" data-i="${i}"><td>${esc(x.nr || i + 1)}</td><td>${esc(x.titel)}${x.redner ? `<br><small class="muted">${esc(x.redner)}</small>` : ''}</td><td>${posBadge(x.position)}</td><td>${x.ergebnis ? esc(x.ergebnis) : '<span class="muted">–</span>'}</td></tr>`).join('')}</tbody></table>
+      <table class="fokus-tabelle"><thead><tr><th>TOP</th><th>Punkt</th><th>Haltung</th><th>Ergebnis</th></tr></thead><tbody>${tops.map((x, i) => `<tr class="${i === fokus.i ? 'aktiv' : ''}" data-i="${i}"><td>${esc(nrVon(x, i))}</td><td>${esc(x.titel)}${x.redner ? `<br><small class="muted">${esc(x.redner)}</small>` : ''}</td><td>${posBadge(x.position)}</td><td>${x.ergebnis ? esc(x.ergebnis) : '<span class="muted">–</span>'}</td></tr>`).join('')}</tbody></table>
     </details>
-    ${r.hinweis ? `<p class="small"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
+    <section class="fokus-nachschlagen"><h4 class="doc-cat">Zum Nachschlagen</h4>
+      <div class="fokus-doks">${r.link ? dokLink({ titel: 'Bürgerinformationssystem – Vorlagen der Stadt', url: r.link }) : ''}${docs.map(dokLink).join('')}</div>
+      ${!r.link && !docs.length ? `<p class="small muted">Für diese Sitzung ist noch nichts hinterlegt.${kann ? ' Beim Bearbeiten der Sitzung kannst du Dokumente und Links eintragen.' : ''}</p>` : ''}
+      <div id="fo-rz" hidden><h4 class="doc-cat">Aus der Ratsarbeit${bereichName ? ` <span class="small muted">${esc(bereichName)}</span>` : ''}</h4><div class="fokus-doks" id="fo-rz-doks"></div></div>
+    </section>
+    ${r.hinweis ? `<p class="small fokus-hinweis"><b>Hinweis:</b> ${nl2br(r.hinweis)}</p>` : ''}
+    ${chatHtml()}
   </div>`;
-  const go = i => { fokus.i = i; fokusSitzung(v, r); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  chatWire(v);
+  if (chatTipp) { const inp = $('#fo-chat-in', v); if (inp) inp.value = chatTipp; }
+  // Blättern: wer leitet, setzt den aktuellen Punkt für alle; wer selbst blättert, folgt nicht mehr automatisch
+  const go = async i => {
+    fokus.i = i; if (!kann) live.folgen = false;
+    fokusSitzung(v, live.r); window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (kann && live.leiten) { try { live.r = await db.update('Ratsvorbereitung', { ...live.r, aktuell: i }); } catch (e) { /* beim nächsten Wechsel */ } }
+  };
+  $('#fo-leiten', v)?.addEventListener('click', async () => { live.leiten = !live.leiten; if (live.leiten) { try { live.r = await db.update('Ratsvorbereitung', { ...live.r, aktuell: fokus.i }); } catch (e) { /* egal */ } } fokusSitzung(v, live.r); });
+  $('#fo-notizen', v)?.addEventListener('click', () => notizen.oeffnen(live.r, t));
+  $('#fo-folgen', v)?.addEventListener('click', () => { live.folgen = !live.folgen; if (live.folgen && Number.isInteger(live.r.aktuell)) fokus.i = live.r.aktuell; fokusSitzung(v, live.r); });
   $('#fo-prev', v)?.addEventListener('click', () => go(fokus.i - 1));
   $('#fo-next', v)?.addEventListener('click', () => go(fokus.i + 1));
   $$('.fokus-tabelle tbody tr', v).forEach(tr => tr.addEventListener('click', () => go(+tr.dataset.i)));
+  $('#fo-verstanden', v).addEventListener('click', () => { store.set('spd-fokus-erklaert', 1); $('#fo-erklaert', v).open = false; });
+  $('#fo-hilfe', v).addEventListener('click', () => { const d = $('#fo-erklaert', v); d.open = !d.open; if (d.open) d.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#fo-save', v)?.addEventListener('click', async () => {
     const btn = $('#fo-save', v); busy(btn, true);
-    try { const neu = tops.map((x, i) => i === fokus.i ? { ...x, ergebnis: $('#fo-ergebnis', v).value.trim() } : x); r = await db.update('Ratsvorbereitung', { ...r, tops: neu }); $('#fo-msg', v).textContent = 'Gespeichert.'; }
+    try { const neu = (live.r.tops || tops).map((x, i) => i === fokus.i ? { ...x, ergebnis: $('#fo-ergebnis', v).value.trim() } : x); live.r = r = await db.update('Ratsvorbereitung', { ...live.r, tops: neu }); $('#fo-msg', v).textContent = 'Gespeichert – alle Geräte zeigen es gleich.'; }
     catch (err) { $('#fo-msg', v).textContent = 'Nicht gespeichert: ' + errText(err); }
     busy(btn, false);
   });
+  // Wischen auf dem Punkt: nach links = nächster, nach rechts = vorheriger
+  const top = $('#fo-top', v); let sx = null, sy = null;
+  top?.addEventListener('touchstart', e => { if (e.target.tagName === 'TEXTAREA') return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  top?.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null; if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return; if (dx < 0 && fokus.i < tops.length - 1) go(fokus.i + 1); if (dx > 0 && fokus.i > 0) go(fokus.i - 1); }, { passive: true });
   v.onkeydown = e => { if (e.target.tagName === 'TEXTAREA') return; if (e.key === 'ArrowRight' && fokus.i < tops.length - 1) go(fokus.i + 1); if (e.key === 'ArrowLeft' && fokus.i > 0) go(fokus.i - 1); };
-  v.tabIndex = -1; v.focus({ preventScroll: true });
+  v.tabIndex = -1; if (!vomPoll) v.focus({ preventScroll: true });
+  wachBleiben(true).then(ok => { const el = $('#fo-wach', v); if (el) el.hidden = !ok; });
+  // Dokumente des Bereichs aus der Ratsarbeit (entschlüsselt, nur für Fraktionsmitglieder mit Schlüssel)
+  if (r.b) ratsarbeit.dokumenteListe().then(list => {
+    const ds = list.filter(d => d.b === r.b).slice(0, 12); const box = $('#fo-rz', v); if (!box || !ds.length) return;
+    $('#fo-rz-doks', box).innerHTML = ds.map(d => dokLink({ titel: d.titel || 'Dokument', url: '#ratsarbeit/d-' + d._id, kat: d.kat })).join(''); box.hidden = false;
+  }).catch(() => {});
 }
 
 // ---------- Beiträge für „Aktuelles“ (Wix Blog) ----------
@@ -1631,6 +1794,13 @@ function blattZu() { document.getElementById('mb-blatt')?.remove(); if (!documen
 const bereiche = makeBereiche({ db, DEMO, store, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
 const statistikMod = makeStatistik({ db, esc, $, $$, store, ICON, SPD, sectionHead, todayIso });
 const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: { ...vorstandMehr, ...statistikMod }, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
+// Notizen im Sitzungsmodus – teilen in den Chat läuft über den Live-Chat der Sitzung
+const chatSenden = async ({ text, bild }) => {
+  if (live.chatStatus !== 'ok' || !live.id) throw new Error('Chat nicht verfügbar');
+  await db.insert('SitzungChat', { sitzungId: live.id, memberId: me.id, name: me.name, title: `${me.name} – Chat`, daten: await schluessel.encJson(live.gruppe, { text, bild: bild || '' }) });
+  await livePoll(true);
+};
+const notizen = makeNotizen({ db, store, esc, $, $$, msg, busy, errText, shareText, chatSenden, me: () => me });
 const ratsarbeit = makeRatsarbeit({ db, store, DEMO, esc, $, $$, msg, busy, waHref, appLink, ICON, WA_ICON, SHARE_ICON, shareText, schluessel, route, sectionHead, nl2br, errText, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 
 // ===== Start =====

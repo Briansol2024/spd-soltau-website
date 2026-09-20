@@ -32,7 +32,11 @@ export function makeRatsarbeit(ctx) {
     state.tasks = await Promise.all(tasks.map(async t => ({ ...t, wer: t.wer || [], ...(await decJson(t.daten)) })));
     state.docs = await Promise.all(docs.map(async d => ({ ...d, ...(await decJson(d.daten)) })));
     state.antraege = await Promise.all(antraege.map(async a => ({ ...a, zustimmung: a.zustimmung || [], ...(await decJson(a.daten)) })));
+    state.sitzungen = (await db.list('Ratsvorbereitung', { desc: 'sitzung', limit: 200 }).catch(() => [])).filter(r => r.b);
   }
+  // Kommende Sitzungen eines Bereichs/Ausschusses – mit Sprung in den Sitzungsmodus
+  const fmtKurz = s => { if (!s) return ''; const d = new Date(s + 'T12:00:00'); return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }); };
+  const sitzungZeile = r => `<a class="rz-dok" href="#rat/fokus-${esc(r._id)}"><span class="rz-ico">${ICON.rat}</span><span class="rz-txt"><b>${esc(r.gremium || 'Sitzung')}${r.titel ? ' – ' + esc(r.titel) : ''}</b><small>${esc(fmtKurz(r.sitzung))}${r.zeit ? ' · ' + esc(r.zeit) + ' Uhr' : ''}${r.ort ? ' · ' + esc(r.ort) : ''} · ${(r.tops || []).length} Punkte · Sitzungsmodus</small></span></a>`;
 
   // ---- Bausteine ----
   const zeile = (t, mitBereich) => {
@@ -58,7 +62,7 @@ export function makeRatsarbeit(ctx) {
         <a class="btn btn-line rz-breit" href="#ratsarbeit/antraege">${ICON.edit}Alle Anträge (${state.antraege.length})</a>
       </div>
       <div class="rz-block">
-        <h4 class="rz-h">Bereiche</h4>
+        <h4 class="rz-h">Bereiche / Ausschüsse</h4>
         ${BEREICHE.map(b => `<a class="rz-bereich${b.id === 'rat' ? ' rat' : ''}" href="#ratsarbeit/b-${b.id}"><span class="rz-kachel">${b.kachel}</span><span class="rz-txt"><b>${esc(b.name)}</b><small>${offen(b.id)} offene Aufgabe${offen(b.id) === 1 ? '' : 'n'} · ${state.docs.filter(d => d.b === b.id).length} Dokumente</small></span>${ICON.chev}</a>`).join('')}
       </div>
       <p class="small muted">Gesprochen wird weiter in WhatsApp – hier stehen nur Aufgaben und Dokumente. Alles liegt verschlüsselt bei Wix; lesen können es nur Geräte von Fraktionsmitgliedern.</p>
@@ -90,6 +94,11 @@ export function makeRatsarbeit(ctx) {
         <button class="btn btn-rot rz-breit" type="button" data-neu="aufgabe">${ICON.plus}Neue Aufgabe</button>
         ${erl.length ? `<button class="linkbtn" type="button" data-erl>${state.sicht.erlZeigen ? 'Erledigte ausblenden' : `${erl.length} erledigte anzeigen`}</button>${state.sicht.erlZeigen ? `<div class="rz-liste">${erl.slice(0, 30).map(t => zeile(t, false)).join('')}</div>` : ''}` : ''}
       </div>
+      ${(() => { const kommend = (state.sitzungen || []).filter(r => r.b === b.id && (r.sitzung || '') >= heute()).sort((x, y) => x.sitzung.localeCompare(y.sitzung)).slice(0, 3); return `<div class="rz-block">
+        <h4 class="rz-h">Sitzungen <span>${kommend.length ? 'nächste ' + kommend.length : 'keine geplant'}</span></h4>
+        <div class="rz-liste">${kommend.map(sitzungZeile).join('') || `<div class="rz-leer">Keine kommende Sitzung für ${esc(b.name)} eingetragen – unter „Sitzungen“ anlegen (Art: Ausschuss).</div>`}</div>
+        <a class="btn btn-line rz-breit" href="#rat">${ICON.rat}Alle Sitzungen</a>
+      </div>`; })()}
       <div class="rz-block">
         <h4 class="rz-h">Dokumente <span>${ds.length}</span></h4>
         <div class="rz-liste">${ds.map(dokZeile).join('') || '<div class="rz-leer">Noch keine Dokumente.</div>'}</div>
@@ -362,5 +371,11 @@ export function makeRatsarbeit(ctx) {
     if ((await schluessel.laden('fraktion')) !== 'ok') throw new Error('Fraktionsschlüssel auf diesem Gerät noch nicht freigeschaltet');
     await db.insert('RatAntraege', { title: 'Antrag', b: 'rat', gremium: GREMIEN[0], sitzung: '', status: 'entwurf', von: me().id, vonName: me().name, zustimmung: [], daten: await encJson({ titel: i.titel, beschluss: '', begruendung: `${i.text || ''}\n\n(Idee von ${i.vonName || 'einem Mitglied'})`.trim() }) });
   }
-  return { sec, badge, startKarte, inFraktion, blattZu, antraegeFuerSuche, ideeZuAntrag };
+  // Alle Dokumente der Ratsarbeit mit entschlüsseltem Titel – für das Sitzungsformular (Auswahl) und den Sitzungsmodus (Nachschlagen)
+  async function dokumenteListe() {
+    if (!inFraktion() || (await schluessel.laden('fraktion')) !== 'ok') return [];
+    const rows = await db.list('RatDokumente', { desc: '_createdDate', limit: 300 }).catch(() => []);
+    return Promise.all(rows.map(async d => ({ ...d, ...(await decJson(d.daten)) })));
+  }
+  return { sec, badge, startKarte, inFraktion, blattZu, antraegeFuerSuche, ideeZuAntrag, dokumenteListe };
 }

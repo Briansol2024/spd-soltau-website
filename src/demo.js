@@ -103,11 +103,16 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(40), titel: 'Satzung des Ortsvereins', kategorie: 'Sonstiges', datum: '2024-03-01', url: 'https://www.spd-soltau.de/', beschreibung: '', von: VON, title: 'Satzung des Ortsvereins' },
     ],
     Ratsvorbereitung: [
-      { _id: uid(), _owner: ids[1], _createdDate: daysAgo(1), sitzung: inDays(12), gremium: 'Rat der Stadt Soltau', titel: 'Konstituierende Sitzung', link: 'https://www.soltau.de/', tops: [
+      { _id: 'demo-r-rat', _owner: ids[1], _createdDate: daysAgo(1), sitzung: inDays(12), gremium: 'Rat der Stadt Soltau', titel: 'Konstituierende Sitzung', protokoll: ids[1], link: 'https://www.soltau.de/', tops: [
         { nr: '3', titel: 'Wahl der stellvertretenden Bürgermeister*innen', position: 'dafür', einordnung: 'Wir schlagen Birhat Kaçar vor.' },
         { nr: '5', titel: 'Besetzung der Ausschüsse', position: 'offen', einordnung: 'Verteilung nach Hare/Niemeyer – Details in der Fraktionssitzung.' },
         { nr: '7', titel: 'Haushaltssatzung 2027 – Einbringung', position: 'offen', einordnung: 'Erst Einbringung, Beschluss im Dezember.', redner: people[5].name, diskussion: 'Kämmerei fragt nach Prioritäten – wir nennen Kita, Radwege, Marktstraße.' },
-      ], von: people[1].name, title: 'Konstituierende Sitzung', typ: 'Rat', ort: 'Alte Reithalle' },
+      ], von: people[1].name, title: 'Konstituierende Sitzung', typ: 'Rat', ort: 'Alte Reithalle', b: 'rat', dokumente: [{ top: '7', titel: 'Vorlage Haushalt 2027 (Bürgerinfosystem)', url: 'https://www.soltau.de/' }, { top: '5', titel: 'Sitzverteilung nach Hare/Niemeyer (PDF)', url: 'https://www.soltau.de/' }, { top: '', titel: 'Geschäftsordnung des Rates', url: '#ratsarbeit/d-demo-d4' }] },
+      { _id: 'demo-r-stadt', _owner: ids[1], _createdDate: daysAgo(2), sitzung: inDays(9), typ: 'Ausschuss', b: 'stadt', gremium: 'Ausschuss Stadtentwicklung', titel: 'Marktstraße und Radwege', link: 'https://www.soltau.de/', ort: 'Rathaus, Sitzungssaal', zeit: '17:00', tops: [
+        { nr: '4', titel: 'Sanierung Marktstraße – Bauabschnitt 2', position: 'dafür', einordnung: 'Zwölf zusätzliche Bäume sind zugesagt – wir stimmen zu, wenn die Radspur bleibt.', redner: people[7].name, diskussion: 'Falls die Radspur gestrichen wird: Vertagung beantragen.' },
+        { nr: '5', titel: 'Radweg Harber – Ausbauvariante', position: 'Änderungsantrag', einordnung: 'Variante B (Asphalt, 2,50 m breit) statt Variante A.', redner: people[5].name, diskussion: '' },
+        { nr: '6', titel: 'Bebauungsplan „Am Bahnhof Ost“ – Aufstellungsbeschluss', position: 'offen', einordnung: 'Erst die Verkehrsuntersuchung abwarten.', redner: '' },
+      ], von: people[1].name, title: 'Ausschuss Stadtentwicklung', dokumente: [{ top: '4', titel: 'Vorlage Marktstraße BA 2 (Bürgerinfosystem)', url: 'https://www.soltau.de/' }, { top: '5', titel: 'Bericht Ausschuss Stadtentwicklung', url: '#ratsarbeit/d-demo-d2' }] },
       { _id: uid(), _owner: ids[1], _createdDate: daysAgo(3), sitzung: inDays(5), typ: 'Vorstand', gremium: 'Vorstandssitzung', titel: 'Sommerfest und Website', ort: 'Roter Bahnhof', zeit: '19:00', tops: [
         { nr: '1', titel: 'Sommerfest 2027 – Termin', position: 'offen', einordnung: 'Vorschlag: 19. Juni, Rote-Bahnhof-Wiese.', redner: 'Max', diskussion: '', ergebnis: '' },
         { nr: '2', titel: 'Website: neue Bereiche im Mitgliederbereich', position: 'dafür', einordnung: 'Jahresplan und Ideen freischalten.', redner: 'Brian', diskussion: 'Alle wollen die Sitzungsmodus-Ansicht ausprobieren.', ergebnis: '' },
@@ -115,7 +120,7 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: uid(), _owner: ids[1], _createdDate: daysAgo(40), sitzung: daysAgo(10).slice(0, 10), typ: 'Rat', gremium: 'Rat der Stadt Soltau', titel: 'Marktstraße', ort: 'Alte Reithalle', zeit: '18:00', tops: [
         { nr: '9', titel: 'Sanierung Marktstraße – Bauabschnitt 1', position: 'dafür', einordnung: 'Mit unserem Änderungsantrag: zwölf zusätzliche Bäume.', redner: people[5].name, diskussion: 'Fraktion einstimmig dafür, Bäume als Bedingung.', ergebnis: 'Beschlossen 21:8 – Änderungsantrag angenommen.' },
         { nr: '10', titel: 'Vergnügungssteuer – Änderung', position: 'dagegen', einordnung: 'Belastet kleine Vereine.', redner: people[6].name, diskussion: '', ergebnis: 'Abgelehnt mit 14:15.' },
-      ], von: people[1].name, title: 'Rat der Stadt Soltau' },
+      ], von: people[1].name, title: 'Rat der Stadt Soltau', b: 'rat' },
     ],
     Profile: [
       { _id: uid(), _owner: ME, memberId: ME, name: 'Max Mustermann', verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'weber.soltau@gmail.com', geburtstag: '', geburtstagSichtbar: false, eintritt: 2019, fahreAb: 'Kernstadt' },
@@ -169,6 +174,14 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: 'demo-vs0', _owner: OWNER, _createdDate: daysAgo(14), titel: 'Außerordentliche Mitgliederversammlung', datum: inDays(0), zeit: '19:00', ort: 'Roter Bahnhof, Am Bahnhof 1t', status: 'laeuft', tops: JSON.stringify(['Begrüßung', 'Sommerfest 2027', 'Stammtisch', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'z1', titel: 'Sommerfest 2027 am 19. Juni', text: 'Der Ortsverein richtet am 19. Juni 2027 ein Sommerfest auf der Wiese am Roten Bahnhof aus. Der Vorstand wird beauftragt, ein Programm vorzubereiten.', status: 'abstimmung' }, { id: 'z2', titel: 'Stammtisch: erstes Getränk geht auf den Ortsverein', text: 'Für neue Mitglieder beim ersten Besuch.', status: 'offen' }]), anwesend: ids.slice(1, 10), protokoll: '', von: VON },
       { _id: 'demo-vs1', _owner: OWNER, _createdDate: daysAgo(10), titel: 'Mitgliederversammlung 2026', datum: inDays(21), zeit: '19:00', ort: 'Roter Bahnhof, Am Bahnhof 1t', status: 'geplant', tops: JSON.stringify(['Begrüßung', 'Bericht des Vorstands', 'Kassenbericht und Entlastung', 'Anträge', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'x1', titel: 'Roter Bahnhof: neue Bestuhlung', text: 'Der Ortsverein stellt 1.500 € für neue Stühle bereit.', status: 'offen' }, { id: 'x2', titel: 'Stammtisch monatlich', text: 'Der Stammtisch findet künftig jeden dritten Freitag statt.', status: 'offen' }]), anwesend: [], protokoll: '', von: VON },
       { _id: 'demo-vs2', _owner: OWNER, _createdDate: daysAgo(200), titel: 'Mitgliederversammlung 2025', datum: daysAgo(190).slice(0, 10), zeit: '19:00', ort: 'Roter Bahnhof', status: 'beendet', tops: JSON.stringify(['Begrüßung', 'Bericht des Vorstands', 'Wahlen', 'Verschiedenes']), antraege: JSON.stringify([{ id: 'y1', titel: 'Website neu aufsetzen', text: 'Die Website wird bis zur Kommunalwahl neu gebaut.', status: 'angenommen', ergebnis: { ja: 18, nein: 1, enth: 2, n: 21 } }]), anwesend: ids.slice(0, 12), protokoll: 'Protokoll: Mitgliederversammlung 2025\nAnwesend: 21 Mitglieder\nBeschlüsse: Website neu aufsetzen – angenommen (18 Ja, 1 Nein, 2 Enthaltungen)', von: VON },
+    ],
+    SitzungNotizen: [
+      { _id: uid(), _owner: ME, _createdDate: daysAgo(0.05), _updatedDate: daysAgo(0.05), sitzungId: 'demo-r-stadt', memberId: ME, name: 'Max Mustermann', title: 'Max Mustermann – Notizen', text: 'TOP 4 – Marktstraße\nNachfragen: Wann kommen die Bäume? Kosten Radspur?\n\nTOP 5\nVariante B – 2,50 m, Asphalt. Beleuchtung?', skizze: '' },
+    ],
+    SitzungChat: [
+      { _id: uid(), _owner: ids[7], _createdDate: daysAgo(0.02), sitzungId: 'demo-r-stadt', memberId: ids[7], name: people[7].name, title: 'Chat', daten: JSON.stringify({ text: 'Bin 5 Minuten später – fangt ohne mich an.' }) },
+      { _id: uid(), _owner: ids[5], _createdDate: daysAgo(0.015), sitzungId: 'demo-r-stadt', memberId: ids[5], name: people[5].name, title: 'Chat', daten: JSON.stringify({ text: 'TOP 4: Verwaltung hat die Radspur eben bestätigt 👍' }) },
+      { _id: uid(), _owner: ids[1], _createdDate: daysAgo(0.01), sitzungId: 'demo-r-stadt', memberId: ids[1], name: people[1].name, title: 'Chat', daten: JSON.stringify({ text: 'Dann bleiben wir bei dafür.' }) },
     ],
     Abstimmungen: ids.slice(1, 7).map((id, i) => ({ _id: uid(), _owner: id, versammlungId: 'demo-vs0', antragId: 'z1', memberId: id, name: people[i + 1].name, stimme: i === 4 ? 'nein' : 'ja', title: `${people[i + 1].name} – Sommerfest 2027 am 19. Juni`, _createdDate: daysAgo(0) })),
     WkStrassen: [

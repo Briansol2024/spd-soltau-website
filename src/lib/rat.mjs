@@ -15,6 +15,9 @@ export const BEREICHE = [
   { id: 'wirtschaft', name: 'Wirtschaft', kind: 'Ausschuss', kachel: 'WI' },
 ];
 export const bereichVon = id => BEREICHE.find(b => b.id === id) || BEREICHE[0];
+export const AUSSCHUESSE = BEREICHE.filter(b => b.kind === 'Ausschuss');
+// Gremiumsname für Sitzungen: „Ausschuss Stadtentwicklung“ – für Rat/Fraktion der Rat selbst
+export const gremiumVon = id => id === 'rat' ? 'Rat der Stadt Soltau' : 'Ausschuss ' + bereichVon(id).name;
 export const DOK_ARTEN = ['Protokoll', 'Bericht', 'Vorlage', 'Antrag', 'Sonstiges'];
 export const TEIL_BYTES = 288 * 1024;        // Rohbytes je Dateiteil (Base64 ≈ 393 KB; ein Wix-Element darf 512 KB haben)
 export const MAX_DATEI = 10 * 1024 * 1024;   // größte Datei
