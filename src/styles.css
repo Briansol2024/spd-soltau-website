@@ -1935,7 +1935,7 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .abstimmung.vorbei{border-color:var(--linie)}
 .karte{position:relative;overflow:auto;border:2px solid var(--schwarz);background:#EEEAE3;margin-bottom:16px;-webkit-overflow-scrolling:touch}
 .karte-flaeche{position:relative}
-.karte-flaeche img{position:absolute;display:block}
+.karte-flaeche img{position:absolute;display:block;width:257px;height:257px} /* 1 px Überlappung – sonst Ritzen bei Browser-Zoom */
 .karte-pin{position:absolute;transform:translate(-50%,-100%);width:34px;height:42px;border:0;background:none;padding:0;cursor:pointer}
 .karte-pin span{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pf,var(--rot));border:3px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35)}
 .karte-pin b{position:absolute;left:0;top:0;width:34px;height:34px;display:grid;place-items:center;color:#fff;font:800 14px/1 var(--display)}

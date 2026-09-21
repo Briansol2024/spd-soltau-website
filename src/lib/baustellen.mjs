@@ -8,10 +8,13 @@ const STRASSEN = JSON.parse(readFileSync(path.join(path.dirname(fileURLToPath(im
 const NAMEN = Object.keys(STRASSEN).sort((a, b) => b.length - a.length); // längste zuerst („Winsener Straße“ vor „Straße“)
 const norm = s => String(s || '').replace(/\bstr\./gi, 'straße').replace(/straße/gi, 'straße').toLowerCase();
 
-// Erste Straße, die im Text vorkommt → [lat, lng]
+// Erste Straße, die im Text vorkommt → { name, lat, lng }: erst echte Straßennamen (…straße, …weg, …), dann Ortsnamen (z. B. „Gemarkung Wiedingen“ → die Gegend)
+const STRASSENARTIG = /(straße|weg|allee|platz|damm|ring|chaussee|gasse|stieg|kamp|twiete|markt|hof|redder|koppel)$/i;
 export function strasseFinden(text) {
   const t = norm(text);
-  for (const n of NAMEN) { const k = norm(n); if (k.length >= 4 && t.includes(k)) return { name: n, lat: STRASSEN[n][0], lng: STRASSEN[n][1] }; }
+  for (const pass of [n => STRASSENARTIG.test(n), n => !STRASSENARTIG.test(n)]) {
+    for (const n of NAMEN) { if (!pass(n)) continue; const k = norm(n); if (k.length >= 4 && t.includes(k)) return { name: n, lat: STRASSEN[n][0], lng: STRASSEN[n][1] }; }
+  }
   return null;
 }
 const fmt = s => { const m = String(s || '').match(/^(\d{4})-(\d\d)-(\d\d)$/); return m ? `${+m[3]}.${+m[2]}.${m[1]}` : ''; };
