@@ -232,8 +232,11 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: uid(), _owner: ME, _createdDate: daysAgo(6), projektId: '', art: 'overlays', titel: 'Overlays „Neue Website“ (Mitglieder + Instagram)', url: 'https://spd-soltau.de/', name: 'website-videos-overlays.zip', mime: 'application/zip', groesse: 7700000, status: 'fertig', von: 'Brian Weber', memberId: ME },
       { _id: uid(), _owner: ids[1], _createdDate: daysAgo(2), projektId: 'demo-fp1', art: 'link', titel: 'CapCut-Projekt (Cloud)', url: 'https://www.capcut.com/', name: '', mime: '', groesse: 0, status: 'fertig', von: people[1].name, memberId: ids[1] },
       { _id: uid(), _owner: ME, _createdDate: daysAgo(1), projektId: 'demo-fp1', art: 'datei', titel: 'Hintergrundmusik (ruhig)', url: 'https://spd-soltau.de/', name: 'musik-ruhig.mp3', mime: 'audio/mpeg', groesse: 2400000, status: 'fertig', von: 'Max Mustermann', memberId: ME },
+      // internes Foto (nur in Teilen, keine öffentliche Adresse) – so liegen Fotos seit dem 20.09.
+      { _id: 'demo-bild-intern', _owner: ME, _createdDate: daysAgo(1), projektId: 'demo-fp1', art: 'bild', titel: 'Marktstraße heute', url: '', name: 'marktstrasse.png', mime: 'image/png', groesse: 95, teile: 1, status: 'fertig', von: 'Max Mustermann', memberId: ME, title: 'Marktstraße heute' },
     ],
-    FilmTeile: [],
+    // 1×1-Pixel-PNG als Dateiteil des internen Fotos
+    FilmTeile: [{ _id: 'demo-teil-1', materialId: 'demo-bild-intern', nr: 0, daten: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' }],
     Feedback: [
       { _id: uid(), _owner: ME, _createdDate: daysAgo(5), memberId: ME, name: 'Max Mustermann', email: 'max.mustermann@example.de', wo: 'app', was: 'fehlt', bereich: 'Termine & Kalender', prio: 'nett', text: 'Im Kalender die Farben der Termintypen stärker unterscheiden – Rot und Schwarz sehe ich auf dem Handy schlecht auseinander.', status: 'zugestellt', title: 'Funktion fehlt – Max Mustermann' },
     ],

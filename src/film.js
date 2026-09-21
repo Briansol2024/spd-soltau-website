@@ -39,7 +39,7 @@ export function makeFilm(ctx) {
   const ladend = new Set();
   function internLaden(mat, dann) {
     if (ladend.has(mat._id)) return; ladend.add(mat._id);
-    teileLaden(db, mat._id, mat.mime || 'image/jpeg').then(blob => { st.blobs[mat._id] = URL.createObjectURL(blob); if (dann) dann(blob); else if (/^#filmdreh\//.test(location.hash)) { const v = document.querySelector('#view, main') || document.body; const id = location.hash.split('/')[1] || ''; if (id.startsWith('p-')) projekt(v, id.slice(2)); else if (id === 'werkstatt') projekt(v, WERKSTATT); } }).catch(() => {}).finally(() => ladend.delete(mat._id));
+    teileLaden(db, mat._id, mat.mime || 'image/jpeg').then(blob => { st.blobs[mat._id] = URL.createObjectURL(blob); if (dann) dann(blob); else if (st.view && st.view.isConnected && /^#filmdreh\//.test(location.hash)) { const id = location.hash.split('/')[1] || ''; if (id.startsWith('p-')) projekt(st.view, id.slice(2)); else if (id === 'werkstatt') projekt(st.view, WERKSTATT); } }).catch(() => {}).finally(() => ladend.delete(mat._id));
   }
   // Datei (Clip, ZIP, Foto) aus dem Mitgliederbereich herunterladen oder teilen
   async function internHerunterladen(mat, knopf) {
@@ -122,6 +122,8 @@ export function makeFilm(ctx) {
   // ---------- Projekt: drei Schritte ----------
   async function projekt(v, id) {
     const werkstatt = id === WERKSTATT; if (werkstatt) st.tab = 'overlays';
+    st.view = v; // Zielbereich fürs Nachzeichnen (z. B. wenn ein internes Foto geladen ist)
+    const bauenOffen = !!$('#ow-bauen', v)?.open; // Werkstatt bleibt beim Nachzeichnen offen
     const p = werkstatt ? werkstattProjekt() : st.projekte.find(x => x._id === id); if (!p) { v.innerHTML = '<p class="muted">Video nicht gefunden.</p>'; return; }
     const overlays = parseJson(p.overlays, []); const takes = takesAus(p.skript); const jobs = st.auftraege.filter(a => a.projektId === id);
     const schritt = (k, nr, titel, text, ok) => `<button type="button" class="fp-schritt${st.tab === k ? ' aktiv' : ''}${ok ? ' ok' : ''}" data-tab="${k}"><span class="fp-schritt-nr">${nr}</span><b>${titel}</b><small>${text}</small></button>`;
@@ -136,6 +138,7 @@ export function makeFilm(ctx) {
     </div>
     <div class="fp-inhalt">${st.tab === 'overlays' ? tabOverlays(p, overlays, jobs) : st.tab === 'material' ? tabMaterial(p) : tabSkript(p, takes)}</div>
     <p class="small muted fp-mehr" ${werkstatt ? 'hidden' : ''}><button type="button" class="linkbtn" data-tab="material">Material, Links &amp; Notizen</button> · Stand: ${FILM_STATUS.map(([k, l]) => `<button type="button" class="linkbtn${(p.status || 'idee') === k ? ' fett' : ''}" data-status="${k}">${l}</button>`).join(' ')}</p>`;
+    if (bauenOffen && $('#ow-bauen', v)) $('#ow-bauen', v).open = true;
     wireProjekt(v, p, overlays);
   }
   function tabSkript(p, takes) {
