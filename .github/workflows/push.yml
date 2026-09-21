@@ -32,6 +32,7 @@ jobs:
       VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
       PUSH_SITE_URL: ${{ vars.PUSH_SITE_URL }}
       SITE_URL: ${{ vars.SITE_URL }}
+      LAUNCH_AT: ${{ vars.LAUNCH_AT }}
       WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
       VORSTAND_EMAILS: ${{ vars.VORSTAND_EMAILS }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

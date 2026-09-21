@@ -71,7 +71,7 @@ ${path.startsWith('/mitglieder/') ? '' : pageEnd()}
 </main>
 
 ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new Date().getFullYear()} SPD Ortsverein Soltau</span><span><a href="${url('/impressum/')}" data-website>Impressum</a> · <a href="${url('/datenschutz/')}" data-website>Datenschutz</a></span></footer>` : `<footer class="footer">
-  <div class="ticker ticker-claim" aria-hidden="true"><div class="ticker-track">${'<span>Aus Liebe zu Soltau</span><span>Stärkste Kraft im Rat</span><span>Danke, Soltau</span><span>Jetzt beginnt die Arbeit</span>'.repeat(4)}</div></div>
+  <div class="ticker ticker-claim" aria-hidden="true">${laufband(['<span>Aus Liebe zu Soltau</span>', '<span>Stärkste Kraft im Rat</span>', '<span>Danke, Soltau</span>', '<span>Jetzt beginnt die Arbeit</span>'], 8)}</div>
   <div class="wrap">
     <div class="claim">Aus Liebe<br>zu Soltau.</div>
     <div class="grid">
@@ -208,10 +208,20 @@ const heroMedia = (site) => site.heroVideoId
   ? `<div class="hero-media" aria-hidden="true"${site.heroPoster ? ` style="background-image:url('${esc(site.heroPoster)}')"` : ''}><video id="hero-video" muted loop playsinline preload="none"${site.heroPoster ? ` poster="${esc(site.heroPoster)}"` : ''}></video></div>`
   : '';
 
+// Laufband ohne Lücke: die Bahn besteht aus zwei identischen Hälften (die Animation schiebt um genau eine Hälfte);
+// jede Hälfte wird so oft wiederholt, dass sie breiter ist als jeder Bildschirm – sonst reißt es auf dem PC ab.
+// Tempo bleibt gleich, egal wie lang die Bahn ist (Sekunden je Element).
+export function laufband(spans, sekProElement = 6, extraKlasse = '') {
+  const teile = spans.filter(Boolean); if (!teile.length) return '';
+  const jeHaelfte = Math.ceil(20 / teile.length) * teile.length; const haelfte = Array.from({ length: jeHaelfte }, (_, i) => teile[i % teile.length]).join('');
+  return `<div class="ticker-track" style="animation-duration:${jeHaelfte * sekProElement}s">${haelfte}${haelfte}</div>`;
+}
 export function startPage(d) {
   const upcoming = d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat').slice(0, 4); // Website: nur öffentliche Termine
-  // Laufband: bis zur Stichwahl der Wahlaufruf, danach die nächsten Termine
-  const band = d.stichwahl ? `<span>Am 27.09. Zinke zum Landrat wählen!</span>`.repeat(6) : (tickerItems(d.events).repeat(2) || '<span>Termine folgen</span><span>Termine folgen</span>');
+  // Laufband: bis zur Stichwahl der Wahlaufruf; in der Woche danach ein Dankeschön zwischen den Terminen; sonst die nächsten Termine
+  const termine = tickerItems(d.events).split('</span>').filter(Boolean).map(x => x + '</span>');
+  const band = d.stichwahl ? laufband(['<span>Am 27.09. Zinke zum Landrat wählen!</span>'], 12)
+    : laufband(d.nachStichwahl ? termine.flatMap((t, i) => i % 2 ? [t] : ['<span>Danke für Ihre Stimme bei der Stichwahl!</span>', t]).concat(termine.length ? [] : ['<span>Danke für Ihre Stimme bei der Stichwahl!</span>']) : (termine.length ? termine : ['<span>Termine folgen</span>']), 10);
   return `
 <section>
   <div class="hero${d.site.heroVideoId ? ' has-video' : ''}">
@@ -227,7 +237,7 @@ export function startPage(d) {
       ${heroPhoto(d.site)}
     </div>
   </div>
-  <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}"><div class="ticker-track" id="ticker">${band}</div></div>
+  <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}" id="ticker">${band}</div>
 
   ${d.stichwahl ? `<div class="band-schwarz zinke-band foto">${motiv('heide')}<div class="wrap section zinke">
     <a class="zinke-banner" href="${esc(d.stichwahl.website)}" target="_blank" rel="noopener"><img src="${url('/assets/images/zinke-banner.jpg')}" alt="Keine halben Sachen. Ein Landkreis, ein Landrat – Zinke, Heidekreis" width="1536" height="768" loading="lazy" decoding="async"></a>

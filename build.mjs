@@ -138,6 +138,7 @@ async function loadData() {
   // Stichwahl-Aufruf nur bis zum Wahltag anzeigen
   const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
   d.stichwahl = heute <= STICHWAHL.datum ? STICHWAHL : null;
+  d.nachStichwahl = heute > STICHWAHL.datum && heute <= '2026-10-04'; // Woche danach: Dankeschön im Laufband
   // Aus Rat & Rathaus: öffentliche Quellen der Stadt Soltau (ohne Wix); bei Ausfall bleibt der Block weg
   try {
     const { fetchStadt } = await import('./src/lib/stadt.mjs');

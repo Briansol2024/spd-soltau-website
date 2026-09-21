@@ -796,6 +796,22 @@ async function workflowStarten(datei, inputs = {}) {
   const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${datei}/dispatches`, { method: 'POST', headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, body: JSON.stringify({ ref: 'main', inputs }) });
   if (res.status !== 204) throw new Error(`${datei}: ${res.status} ${(await res.text()).slice(0, 120)}`);
 }
+// ---------- Meilensteine: Website neu bauen, sobald ein Zeitpunkt überschritten ist (Start der Website, Tag nach der Stichwahl) ----------
+// Der halbstündliche Zeitplan-Bau kommt bei GitHub oft Stunden zu spät – hier läuft es zuverlässig alle 5 Minuten.
+async function meilensteine() {
+  const token = env.GITHUB_TOKEN, repo = env.GITHUB_REPOSITORY || 'Briansol2024/spd-soltau-website'; if (!token) return;
+  const punkte = [['Start der Website', env.LAUNCH_AT], ['Tag nach der Stichwahl', '2026-09-28T00:05:00+02:00']].map(([n, t]) => [n, Date.parse(t || '')]).filter(([, t]) => t && NOW >= t && NOW - t < 6 * 3600 * 1000);
+  if (!punkte.length) return;
+  try {
+    const r = await (await fetch(`https://api.github.com/repos/${repo}/actions/workflows/deploy.yml/runs?per_page=1`, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } })).json();
+    const letzter = Date.parse(r.workflow_runs?.[0]?.created_at || 0);
+    for (const [name, t] of punkte) {
+      if (letzter >= t) continue;
+      if (DRY) { log(`  Meilenstein „${name}“: würde die Website neu bauen`); continue; }
+      await workflowStarten('deploy.yml'); log(`  Meilenstein „${name}“ erreicht – Website wird neu gebaut`); break;
+    }
+  } catch (e) { log('  Meilensteine:', e.message); }
+}
 // ---------- Overlay-Agent: wartende Aufträge starten, fertige melden ----------
 // Verweise material:<id> im Manifest durch die Wix-Adresse ersetzen; gibt einen Wartetext zurück, solange Fotos fehlen
 async function fotosNachtragen(a) {
@@ -964,6 +980,7 @@ const st = await loadSettings(approved);
   await filmUploads(subs, logKeys); // erst Fotos ablegen – dann können Aufträge, die darauf warten, sofort starten
   await auftraege(subs, approved, emails, logKeys);
   await ratsberichte();
+  await meilensteine();
   await abonnenten();
   await statistik();
   log('fertig', stats);
