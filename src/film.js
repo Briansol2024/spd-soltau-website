@@ -2,14 +2,14 @@
 //   1 Skript (Take für Take – selbst oder mit Claude), 2 Overlays (Werkstatt → Agent rendert), 3 Drehen (Drehmodus:
 //   ein Take groß auf dem Bildschirm, Kamera, Satz, Overlay). Dazu Material (Dateien/Links) und die Vorlagen.
 // Claude: über das eigene Claude-Abo – Auftrag kopieren, in Claude einfügen (oder dort sprechen), Antwort zurück einfügen. Kein Server, kein Schlüssel, keine Kosten.
-import { FILM_ARTEN, FILM_STATUS, OVERLAY_TYPEN, ANIMATIONEN, FARBEN, TEMPI, overlayTyp, overlayClip, AUFTRAG, antwortLesen } from './lib/film.mjs';
+import { FILM_ARTEN, FILM_STATUS, OVERLAY_TYPEN, ANIMATIONEN, FARBEN, TEMPI, overlayTyp, overlayClip, AUFTRAG, antwortLesen, skriptNormalisieren } from './lib/film.mjs';
 import { TEIL_BYTES, toB64, teileLaden } from './lib/rat.mjs';
 import { skizzeLesen, skizzeSvg, skizzeText, overlayKurz } from './lib/storyboard.mjs';
 
 const MAX_UPLOAD = 40 * 1024 * 1024;
 // Takes aus dem Skript lesen – Take-Format, sonst Absätze
 export function takesAus(skript) {
-  let text = String(skript || '').replace(/\r/g, '');
+  let text = skriptNormalisieren(skript);
   const dp = text.match(/^\s*(?:\*\*)?DREHPLAN(?:\*\*)?\s*:?\s*$/im); if (dp) text = text.slice(0, dp.index); // Drehplan gehört nicht zu den Takes
   const bloecke = text.split(/\n(?=\s*TAKE\s*\d+)/i).map(b => b.trim()).filter(b => /^TAKE\s*\d+/i.test(b));
   if (bloecke.length) return bloecke.map((b, i) => {
@@ -153,7 +153,7 @@ export function makeFilm(ctx) {
         <div class="ki-schritt"><span class="fp-schritt-nr">2</span><div>
           <b>Claudes Antwort hier einfügen</b> <span class="small muted">– einfach alles, was Claude geantwortet hat.</span>
           <textarea id="ki-antwort" rows="4" placeholder="Antwort einfügen …"></textarea>
-          <div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="ki-uebernehmen">Übernehmen</button><span class="small muted">Skript landet unten, der Drehplan darunter, die Overlays in Schritt 2.</span></div>
+          <div class="mb-actions"><button type="button" class="btn btn-schwarz btn-sm" id="ki-uebernehmen">Übernehmen</button><span class="small muted" id="ki-msg2">Skript landet unten, der Drehplan darunter, die Overlays in Schritt 2. Geht mit jeder KI – Claude, ChatGPT, Gemini.</span></div>
         </div></div>
       </details>
       <div class="field"><label for="fp-skript">Skript <span class="muted">– Take für Take, speichert von selbst</span></label><textarea id="fp-skript" rows="14" placeholder="TAKE 1 · Bild: du in die Kamera&#10;Du sagst: „Moin Soltau! …“&#10;Overlay: Großer Text „…“ (4 s)">${esc(p.skript || '')}</textarea></div>
@@ -217,7 +217,13 @@ export function makeFilm(ctx) {
     // ---- Claude: Auftrag kopieren, Antwort einfügen ----
     const wunsch = () => $('#ki-wunsch', v)?.value.trim() || '';
     const uebernehmen = async text => {
-      const r = antwortLesen(text); if (!r || !r.skript) { $('#ki-msg', v).textContent = 'In der Antwort war kein Skript im Take-Format – bitte Claude um „Take für Take“ bitten.'; return; }
+      const m2 = $('#ki-msg2', v);
+      if (!String(text || '').trim()) { if (m2) { m2.textContent = 'Das Feld ist leer – erst die Antwort der KI einfügen.'; m2.classList.add('rot'); } return; }
+      const r = antwortLesen(text);
+      if (!r || !r.skript) {
+        if (m2) { m2.classList.add('rot'); m2.innerHTML = `Kein Skript im Take-Format erkannt (Zeilen wie „TAKE 1 · Bild: …“, „Du sagst: …“, „Overlay: …“). Bitte die KI um „Take für Take, genau im Format des Auftrags“ – oder <button type="button" class="linkbtn" id="ki-roh">den Text trotzdem als Skript übernehmen</button> und unten von Hand gliedern.`; $('#ki-roh', v)?.addEventListener('click', async () => { await speichern({ skript: skriptNormalisieren(text), kiWunsch: wunsch() }); st.tab = 'skript'; projekt(v, p._id); }); }
+        return;
+      }
       const patch = { skript: r.skript, kiWunsch: wunsch() };
       if (r.overlays?.length) patch.overlays = JSON.stringify(r.overlays);
       if (r.drehplan) patch.drehplan = r.drehplan;

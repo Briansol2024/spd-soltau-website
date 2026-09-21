@@ -98,9 +98,25 @@ PROJEKT: „${p.titel}“ (${art}${p.datum ? ', Termin ' + p.datum : ''}).
 ${p.skript ? 'BISHERIGES SKRIPT:\n' + String(p.skript).slice(0, 4000) + '\n' : ''}${overlays && overlays.length ? 'BISHERIGE OVERLAYS: ' + JSON.stringify(overlays).slice(0, 1500) + '\n' : ''}${gespraech}
 WUNSCH: ${wunsch || 'Bitte ein Skript vorschlagen.'}`;
 }
+// Antworten von Claude, ChatGPT, Gemini & Co. auf unser Take-Format glattziehen: Markdown weg, Überschriften-Varianten vereinheitlichen
+export function skriptNormalisieren(text) {
+  return String(text || '').replace(/\r/g, '')
+    .replace(/```[a-z]*\n?/gi, '')                                   // Codeblöcke
+    .replace(/^[ 	]*#{1,6}\s*/gm, '')                                  // Markdown-Überschriften
+    .replace(/\*\*|__/g, '')                                         // fett (unser *rot* ist ein einzelnes Sternchen und bleibt)
+    .replace(/^[ 	]*(?:[>\-•]\s*)+(?=(?:TAKE|Take)\s*\d)/gm, '')       // Aufzählungszeichen vor TAKE
+    .replace(/^[ 	]*(?:TAKE|Take|Szene|Einstellung|Shot)\s*(\d+)\s*[:.)\]–\-·|]*\s*/gm, (m, n) => `TAKE ${n} · `) // „Take 1:“, „Szene 2 –“ → „TAKE 1 · “
+    .replace(/^TAKE (\d+) · \s*(?:Bild|Kamera|Einstellung)\s*:\s*/gm, 'TAKE $1 · Bild: ')
+    .replace(/^[ 	]*(?:Sprecher(?:in)?|Sprechtext|Sprecher sagt|Text|Du|Brian|Birhat|Ton|O-Ton|Gesprochen)\s*(?:sagt)?\s*:\s*/gim, 'Du sagst: ')
+    .replace(/^[ 	]*(?:Einblendung|Overlay-Text|Grafik|Text-Overlay|Overlays?)\s*:\s*/gim, 'Overlay: ')
+    .replace(/^[ 	]*(?:Skizze|Storyboard|Bildaufbau|Kadrierung)\s*:\s*/gim, 'Skizze: ')
+    .replace(/^[ 	]*(?:DREHPLAN|Drehplan|Dreh-Plan|Shotlist|Produktionsplan)\s*:?\s*$/gm, 'DREHPLAN')
+    .replace(/^[ 	]*OVERLAYS?[ -]?JSON\s*:?\s*$/gim, 'OVERLAYS-JSON')
+    .trim();
+}
 // Antwort → { skript (nur Takes), drehplan, overlays, hinweis (Rückfrage) }
 export function antwortLesen(text) {
-  const t = String(text || '').replace(/\r/g, '').replace(/```[a-z]*\n?/gi, '').trim(); if (!t) return null;
+  const t = skriptNormalisieren(text); if (!t) return null;
   let overlays = null; let skript = t;
   const m = t.match(/OVERLAYS-JSON\s*\n?\s*(\[[\s\S]*?\])/i);
   if (m) { try { overlays = JSON.parse(m[1]).filter(o => overlayTyp(o.typ)).map(o => ({ typ: o.typ, dauer: +o.dauer || overlayTyp(o.typ).dauer, werte: o.werte || {} })); } catch (e) { overlays = null; } skript = (t.slice(0, m.index) + t.slice(m.index + m[0].length)).trim(); }
