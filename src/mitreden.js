@@ -43,6 +43,7 @@ export function makeMitreden(ctx) {
         <label class="mr-wahl ${v === 'klassisch' ? 'aktiv' : ''}"><input type="radio" name="variante" value="klassisch" ${v === 'klassisch' ? 'checked' : ''}><span><b>1 · Klassisch</b><small>Wie bisher: „Was können wir für Sie tun?“ mit Anliegen, Mitmachen und Rathaus-Kachel.</small></span></label>
         <label class="mr-wahl ${v === 'mitreden' ? 'aktiv' : ''}"><input type="radio" name="variante" value="mitreden" ${v === 'mitreden' ? 'checked' : ''}><span><b>2 · Mitreden</b><small>Video mit Anschluss, Kacheln „Mitreden“ mit lebenden Zahlen, Menüpunkt „Mitreden“, Rathaus-Kachel bleibt.</small></span></label>
       </div><p class="small muted" id="mr-schalter-msg">Umschalten dauert bis zu fünf Minuten – dann ist die Website neu gebaut. Du kannst jederzeit zurück.</p>` : `<p class="small muted">Aktiv: <b>${v === 'mitreden' ? '2 · Mitreden' : '1 · Klassisch'}</b>. Umschalten kann nur Brian.</p>`}
+      <p class="small"><a href="${esc(BASE)}/demo/" target="_blank" rel="noopener">Demo-Fassung der Website öffnen</a> <span class="muted">– Fassung 2 mit Beispielinhalten, zum Zeigen; Klicks dort gehen nirgendwohin.</span></p>
     </section>
     <section class="mb-sub"><h4 class="doc-cat">Video mit Anschluss <span class="small muted">oben auf der Startseite (Fassung 2) und unter /mitreden/</span></h4>
       <form class="form mb-form" id="mr-video" novalidate>
@@ -85,7 +86,7 @@ export function makeMitreden(ctx) {
         <div class="mb-actions"><button class="btn btn-rot btn-sm" type="submit">${id ? 'Speichern' : 'Veröffentlichen'}</button>${id ? '<button class="btn btn-line btn-sm" type="button" data-weg>Löschen</button>' : ''}</div>
       </form>`;
     p.innerHTML = `
-    <p class="small muted">Anliegen erscheinen unter „Was Soltau bewegt“, sortiert nach „Betrifft mich auch“. Veröffentliche nur, was die Absenderin oder der Absender erlaubt hat (Häkchen im Kontaktformular) – ohne Namen und Adresse. Die drei meistunterstützten gehören jeden Monat in die Fraktionssitzung; trag hier ein, was ihr erreicht habt.</p>
+    <p class="small muted">Anliegen erscheinen unter „Was Soltau bewegt“, sortiert nach „Betrifft mich auch“. Veröffentliche nur, was die Absenderin oder der Absender erlaubt hat (Häkchen im Kontaktformular) – ohne Namen und Adresse. Die Website verspricht nichts Konkretes: Ihr lest, antwortet und seid da. Was ihr erreicht, trägst du hier ein.</p>
     <details class="mb-details" id="mr-neu" ${neu ? 'open' : ''}><summary>Neues Anliegen veröffentlichen</summary>${formular(neu || {}, '')}</details>
     <div class="mr-liste">${liste.map((a, i) => `<details class="mb-details mr-eintrag ${a.sichtbar === false ? 'aus' : ''}"><summary><span class="rang">${i + 1}</span> ${esc(a.titel || '')} <span class="small muted">· ${+a.zaehler || 0} × betrifft mich auch · ${esc((STAENDE.find(x => x[0] === a.stand) || STAENDE[0])[1])}${a.sichtbar === false ? ' · unsichtbar' : ''}</span></summary>${formular(a, a._id)}</details>`).join('') || '<p class="muted">Noch nichts veröffentlicht.</p>'}</div>`;
     $$('form.mr-form', p).forEach(f => {
@@ -117,7 +118,7 @@ export function makeMitreden(ctx) {
         <div class="mb-actions"><button class="btn btn-rot btn-sm" type="submit">${o ? 'Speichern' : 'Antwort veröffentlichen'}</button>${f && !o ? '<button class="btn btn-line btn-sm" type="button" data-verwerfen>Nicht veröffentlichen</button>' : ''}${o ? '<button class="btn btn-line btn-sm" type="button" data-weg>Löschen</button>' : ''}</div>
       </form>`;
     p.innerHTML = `
-    <section class="mb-sub"><h4 class="doc-cat">Eingang <span class="small muted">${offen.length} offen – jede Frage bekommt eine Antwort, spätestens am Monatsende</span></h4>
+    <section class="mb-sub"><h4 class="doc-cat">Eingang <span class="small muted">${offen.length} offen – lesen, antworten, ausgewählte veröffentlichen</span></h4>
       ${offen.map(f => `<details class="mb-details mr-eintrag"><summary>${esc(f.frage || '')} <span class="small muted">· ${esc(f.anonym ? 'anonym' : f.name || 'ohne Namen')}${f.email ? ' · ' + esc(f.email) : ''} · ${esc(fmtWhen(f._createdDate))}${f.quelle && f.quelle !== 'Website' ? ' · zu „' + esc(f.quelle) + '“' : ''}</span></summary>${antwortForm(f, null)}</details>`).join('') || '<p class="muted">Keine offenen Fragen.</p>'}
     </section>
     <section class="mb-sub"><h4 class="doc-cat">Beantwortet <span class="small muted">${oeff.length} auf der Website</span></h4>
@@ -143,7 +144,7 @@ export function makeMitreden(ctx) {
   async function abstimmungen(p) {
     const liste = (await db.list('UmfragenOeffentlich', { desc: '_createdDate', limit: 100 }).catch(() => [])).filter(u => u.mitreden);
     p.innerHTML = `
-    <p class="small muted">Neue Abstimmungen legst du unter <a href="#umfragen">Umfragen</a> an – mit dem Häkchen „Auf der Website unter Mitreden“. Hier trägst du hinterher ein, was daraus wurde, und schließt die Abstimmung. Ergebnisse zählt der Push-Dienst alle fünf Minuten.</p>
+    <p class="small muted">Neue Abstimmungen legst du unter <a href="#umfragen">Umfragen</a> an – mit dem Häkchen „Auf der Website unter Mitreden“. Hier trägst du hinterher ein, was daraus wurde, und schließt die Abstimmung. Die Abstimmung verspricht nichts – sie soll euch inspirieren; was ihr daraus macht, steht dann hier.</p>
     ${liste.map(u => { let erg = []; try { erg = JSON.parse(u.ergebnis || '[]'); } catch (e) { erg = []; } return `<details class="mb-details mr-eintrag" ${u.offen ? 'open' : ''}><summary>${esc(u.frage)} <span class="small muted">· ${u.offen ? 'läuft' : 'beendet'}${u.endetAm ? ' · bis ' + esc(datum(u.endetAm)) : ''} · ${+u.stimmen || 0} Stimmen</span></summary>
       <div class="mr-ergebnis">${(u.optionen || []).map((o, i) => `<div class="small"><b>${esc(o)}</b>: ${Number(erg[i]) || 0}</div>`).join('')}</div>
       <form class="form mb-form mr-form" data-id="${esc(u._id)}" novalidate>

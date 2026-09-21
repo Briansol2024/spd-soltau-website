@@ -260,7 +260,7 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   if (f.dataset.collection === 'Fragen') { data.title = 'Frage: ' + String(data.frage || '').slice(0, 60); data.anonym = data.anonym === 'ja'; delete data.typ; }
   if (data.oeffentlichOk !== undefined) data.oeffentlichOk = data.oeffentlichOk === 'ja';
   try {
-    await wixInsert(f.dataset.collection, data);
+    if (SPD.demo) await new Promise(r => setTimeout(r, 400)); else await wixInsert(f.dataset.collection, data);
     zaehlen('ereignis', 'formular:' + f.dataset.collection);
     f.querySelector('.form-fields').hidden = true; f.querySelector('.form-ok').hidden = false;
   } catch (err) {
@@ -395,7 +395,7 @@ if (zaList) {
 
 // ---------- Mitreden: „Betrifft mich auch“ / „Interessiert mich auch“ – ein Klick je Gerät, Zähler live ----------
 (() => {
-  const liste = $('[data-typ="anliegen"], [data-typ="frage"]'); if (!liste || !SPD.app?.clientId) return;
+  const liste = $('[data-typ="anliegen"], [data-typ="frage"]'); if (!liste || (!SPD.app?.clientId && !SPD.demo)) return;
   const typ = liste.dataset.typ; const key = 'spd-mit-' + typ;
   let meine = []; try { meine = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { meine = []; }
   let geraet = ''; try { geraet = localStorage.getItem('spd-geraet') || ''; if (!geraet) { geraet = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('spd-geraet', geraet); } } catch (e) { geraet = 'ohne'; }
@@ -403,6 +403,7 @@ if (zaList) {
   markieren();
   // Zähler frisch aus den Rohdaten (der Bau-Stand kann ein paar Minuten alt sein)
   (async () => {
+    if (SPD.demo) return;
     try {
       const rohe = await wixQuery('Unterstuetzung', { filter: { typ }, paging: { limit: 1000 } });
       const n = {}; for (const r of rohe) n[r.zielId] = (n[r.zielId] || 0) + 1;
@@ -415,7 +416,7 @@ if (zaList) {
     const id = b.dataset.unterstuetzen; if (meine.includes(id)) return;
     b.disabled = true;
     try {
-      await wixInsert('Unterstuetzung', { zielId: id, typ, geraet, title: typ + ' ' + id });
+      if (!SPD.demo) await wixInsert('Unterstuetzung', { zielId: id, typ, geraet, title: typ + ' ' + id });
       meine.push(id); try { localStorage.setItem(key, JSON.stringify(meine)); } catch (err) { /* ohne Speicher */ }
       const z = $(`[data-zaehler="${id}"]`, liste); if (z) z.textContent = (parseInt(z.textContent, 10) || 0) + 1;
       zaehlen('ereignis', 'mitreden:' + typ);
@@ -459,7 +460,7 @@ $$('.abstimmung[data-id]').forEach(art => {
   knopf.addEventListener('click', async () => {
     if (!gewaehlt.length) return; knopf.disabled = true;
     try {
-      await wixInsert('Stimmen', { umfrageId: id, auswahl: gewaehlt.map(String), memberId: '', name: 'Besucher', title: 'Besucher – ' + ($('.title', art)?.textContent || '').slice(0, 60) });
+      if (!SPD.demo) await wixInsert('Stimmen', { umfrageId: id, auswahl: gewaehlt.map(String), memberId: '', name: 'Besucher', title: 'Besucher – ' + ($('.title', art)?.textContent || '').slice(0, 60) });
       zaehlen('ereignis', 'mitreden:abstimmung');
       try { localStorage.setItem(key, JSON.stringify(gewaehlt)); } catch (e) { /* ohne Speicher */ }
       zeigeErgebnis(gewaehlt);

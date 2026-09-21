@@ -99,6 +99,32 @@ export async function fetchBaustellen() {
   const html = await get(STADT + 'home/aktuelles/baustellen.aspx');
   return parseNewsItems(html, STADT).sort((a, b) => b.datum.localeCompare(a.datum));
 }
+// Baustellen mit Detailseite: Text, Zeitraum („vom 7. September bis 27. November 2026“), Grund („Aufgrund einer Leitungsverlegung“)
+export async function fetchBaustellenDetails(items) {
+  const MON = { januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6, juli: 7, august: 8, september: 9, oktober: 10, november: 11, dezember: 12 };
+  const iso = (t, m, j) => `${j}-${String(MON[m.toLowerCase()] || +m || 0).padStart(2, '0')}-${String(+t).padStart(2, '0')}`;
+  const out = [];
+  for (const it of items.slice(0, 15)) {
+    let body = '';
+    try {
+      const h = await get(it.url, 12000);
+      const m = h.match(/class="ArticleCreate-content">([\s\S]*?)<\/div>\s*<\/div>/) || h.match(/class="DetailView-description">([\s\S]*?)<\/div>\s*<\/div>/);
+      body = text((m ? m[1] : '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')).replace(/^\s*\d{2}\.\d{2}\.\d{4},?\s*/, '').trim().slice(0, 1200) || it.teaser || '';
+    } catch (e) { body = it.teaser || ''; }
+    const voll = `${it.titel} ${body}`;
+    // Zeitraum
+    let von = '', bis = '';
+    const z1 = voll.match(/vom\s+(\d{1,2})\.\s*(\w+)?\.?\s*(\d{4})?\s+bis\s+(?:zum\s+)?(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/i);
+    const z2 = voll.match(/bis\s+(?:zum\s+|voraussichtlich\s+)?(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/i);
+    const z3 = voll.match(/ab\s+(?:dem\s+)?(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/i);
+    if (z1) { von = iso(z1[1], z1[2] || z1[5], z1[3] || z1[6]); bis = iso(z1[4], z1[5], z1[6]); }
+    else if (z2) bis = iso(z2[1], z2[2], z2[3]);
+    if (!von && z3) von = iso(z3[1], z3[2], z3[3]);
+    const grund = (voll.match(/(?:Aufgrund|Wegen)\s+(.+?)(?=\s+(?:ist|wird|werden|sind|muss|müssen|kommt|kann)\b|,|\.)/i) || voll.match(/Grund:\s*([^.]{5,120})/i) || [])[1] || '';
+    out.push({ ...it, text: body, von, bis, grund: grund.trim() });
+  }
+  return out;
+}
 // ---- Amtsblatt: Datum, Nummer, Themen, PDF ----
 export async function fetchAmtsblatt() {
   const html = await get(STADT + 'home/aktuelles/bekanntmachungen_der_stadt_soltau.aspx');

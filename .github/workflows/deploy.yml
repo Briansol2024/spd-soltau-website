@@ -46,6 +46,22 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           ICS_TOKEN: ${{ vars.ICS_TOKEN }}
           LAUNCH_AT: ${{ vars.LAUNCH_AT }}
+      # Demo-Fassung unter /demo/: Beispielinhalte für „Mitreden“, nichts geht an Wix – zum Zeigen (Video, Vorstand)
+      - name: Demo-Fassung bauen
+        run: node build.mjs
+        env:
+          OUT_DIR: dist/demo
+          BASE_PATH: /demo
+          DEMO_SITE: "1"
+          START_VARIANTE: mitreden
+          NOINDEX: "1"
+          WIX_CLIENT_ID: ${{ vars.WIX_CLIENT_ID }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          HERO_IMAGE: ${{ vars.HERO_IMAGE }}
+          SITE_EMAIL: ${{ vars.SITE_EMAIL }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          ICS_TOKEN: ${{ vars.ICS_TOKEN }}
+          LAUNCH_AT: ${{ vars.LAUNCH_AT }}
       - name: Passwortschutz (Testphase)
         run: node protect.mjs
         env:

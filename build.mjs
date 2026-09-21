@@ -26,7 +26,8 @@ import esbuild from 'esbuild';
 import { createHash } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT = path.join(__dirname, 'dist');
+const OUT = process.env.OUT_DIR ? path.resolve(__dirname, process.env.OUT_DIR) : path.join(__dirname, 'dist');
+const DEMO_SITE = process.env.DEMO_SITE === '1'; // Demo-Fassung der Website (/demo/): Beispielinhalte, nichts geht an Wix
 // .env einlesen (gesetzte Umgebungsvariablen haben Vorrang)
 if (existsSync(path.join(__dirname, '.env'))) {
   for (const line of (await readFile(path.join(__dirname, '.env'), 'utf8')).split(/\r?\n/)) {
@@ -64,7 +65,7 @@ const LAUNCH_AT = env.LAUNCH_AT || '2026-09-22T18:00:00+02:00';
 const launchTs = Date.parse(LAUNCH_AT);
 const launched = !!env.LAUNCH_AT && launchTs <= Date.now();
 const welcomeEnd = launchTs + Number(env.WELCOME_HOURS || 24) * 3600000;
-const noindex = env.NOINDEX === '1' && !launched;
+const noindex = DEMO_SITE || (env.NOINDEX === '1' && !launched);
 // Geheimnis im Dateinamen des internen Kalender-Abos (ICS_TOKEN in .env, sonst abgeleitet)
 const icsToken = env.ICS_TOKEN || createHash('sha256').update('spd-ics-' + (env.WIX_CLIENT_ID || '')).digest('hex').slice(0, 20);
 
@@ -290,15 +291,24 @@ async function main() {
     news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
-    app: { clientId: env.WIX_CLIENT_ID || '', vapid: env.VAPID_PUBLIC_KEY || '', blogCats: d.blogCats || [], ics: { public: `${BASE}/assets/termine.ics`, intern: `${BASE}/assets/termine-intern-${icsToken}.ics` } },
+    demo: DEMO_SITE,
+    app: { clientId: DEMO_SITE ? '' : (env.WIX_CLIENT_ID || ''), vapid: env.VAPID_PUBLIC_KEY || '', blogCats: d.blogCats || [], ics: { public: `${BASE}/assets/termine.ics`, intern: `${BASE}/assets/termine-intern-${icsToken}.ics` } },
   };
   // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
   await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat'), 'SPD Soltau – Termine'), 'utf8');
   await writeFile(path.join(OUT, 'assets', `termine-intern-${icsToken}.ics`), icsFeed(d.events, 'SPD Soltau – alle Termine (Mitglieder)'), 'utf8');
   d.mitreden = d.mitreden || { start: {}, anliegen: [], fragen: [], baustellen: [], umfragen: [] };
-  if (env.MITREDEN_BEISPIEL) { const { beispielMitreden } = await import('./src/lib/mitreden-beispiel.mjs'); d.mitreden = beispielMitreden(); } // nur lokal zum Ansehen
+  if (env.MITREDEN_BEISPIEL || DEMO_SITE) { const { beispielMitreden } = await import('./src/lib/mitreden-beispiel.mjs'); d.mitreden = beispielMitreden(); } // Beispielinhalte: lokal zum Ansehen und in der Demo-Fassung
+  // Baustellen der Stadt (soltau.de → Aktuelles → Baustellen) automatisch dazu – eigene Einträge gehen vor
+  try {
+    const { fetchBaustellenDetails } = await import('./src/lib/stadt.mjs'); const { autoBaustellen, baustellenZusammen } = await import('./src/lib/baustellen.mjs');
+    const roh = d.stadt?.baustellen || []; const auto = roh.length ? autoBaustellen(await fetchBaustellenDetails(roh)) : [];
+    d.mitreden.baustellen = baustellenZusammen(d.mitreden.baustellen, auto);
+    if (auto.length) console.log(`[build] Baustellen der Stadt: ${auto.length} (${auto.filter(a => a.lat).length} auf der Karte)`);
+  } catch (e) { console.log('[build] Baustellen der Stadt: ' + e.message); }
   d.startVariante = (env.START_VARIANTE || d.mitreden.start.variante) === 'mitreden' ? 'mitreden' : 'klassisch';
   site.mitreden = d.startVariante === 'mitreden';
+  site.demo = DEMO_SITE;
   console.log(`[build] Startseite: Variante „${d.startVariante}“ – Mitreden: ${d.mitreden.anliegen.length} Anliegen, ${d.mitreden.fragen.length} Fragen, ${d.mitreden.baustellen.length} Baustellen, ${d.mitreden.umfragen.length} Abstimmungen`);
   const page = (rel, pth, title, description, content, extra = {}) =>
     write(rel, T.layout({ site, path: pth, title, description, content, clientData, noindex, ...extra }));
@@ -316,7 +326,7 @@ async function main() {
     ['roter-bahnhof/index.html', '/roter-bahnhof/', 'Roter Bahnhof', 'Den Roten Bahnhof in Soltau für Treffen, Vorträge und kleine Veranstaltungen anfragen.', T.roterBahnhofPage(d)],
     ['newsletter/index.html', '/newsletter/', 'Newsletter', 'Newsletter der SPD Soltau: anmelden, bestätigen, abmelden.', T.newsletterPage(d)],
     ['ratsbericht/index.html', '/ratsbericht/', 'So hat der Rat entschieden', 'Ratsberichte der SPD-Fraktion Soltau: die Entscheidungen der Ratssitzungen, wie abgestimmt wurde und wo die SPD stand – kurz und verständlich.', T.ratsberichtPage(d)],
-    ['mitreden/index.html', '/mitreden/', 'Mitreden', 'Mitreden in Soltau: Anliegen unterstützen, Fragen stellen, abstimmen, Baustellen verstehen – die SPD Soltau hört zu.', M.mitredenPage(d)],
+    ['mitreden/index.html', '/mitreden/', 'Informieren & Mitreden', 'Mitreden in Soltau: Anliegen unterstützen, Fragen stellen, abstimmen, Baustellen verstehen – die SPD Soltau hört zu.', M.mitredenPage(d)],
     ['mitreden/anliegen/index.html', '/mitreden/anliegen/', 'Was Soltau bewegt', 'Anliegen aus Soltau, sortiert danach, wie viele sagen: Das betrifft mich auch – und was die SPD-Fraktion daraus macht.', M.anliegenPage(d)],
     ['mitreden/fragen/index.html', '/mitreden/fragen/', 'Fragen Sie uns', 'Fragen an die SPD Soltau – jede bekommt eine Antwort, auch anonym. Beantwortete Fragen mit Video.', M.fragenPage(d)],
     ['mitreden/abstimmung/index.html', '/mitreden/abstimmung/', 'Sie entscheiden mit', 'Kleine Abstimmungen der SPD Soltau: Ihre Stimme geht in den Ausschuss – und hier steht, was daraus wurde.', M.abstimmungPage(d)],

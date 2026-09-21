@@ -43,6 +43,7 @@ ${path === '/' ? `<script>(function(){try{if((matchMedia('(display-mode: standal
 </head>
 <body>
 <div id="site">
+${site.demo ? `<div class="demo-band"><b>Demo</b> – so kann spd-soltau.de mit „Mitreden“ aussehen. Alle Inhalte sind Beispiele, nichts davon ist echt; Klicks werden nur auf diesem Gerät gezählt. <a href="https://spd-soltau.de/">Zur echten Website</a></div>` : ''}
 ${path.startsWith('/mitglieder/') ? `<header class="app-header">
   <div class="wrap">
     <a class="app-logo" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Start">SPD</a>
@@ -61,7 +62,7 @@ ${path.startsWith('/mitglieder/') ? `<header class="app-header">
       ${navFuer(site).map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
     </nav>
     <a class="btn btn-schwarz cta" href="${url('/mitmachen/')}">Mitglied werden</a>
-    <a class="member-link" id="member-link" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Anmelden" title="Mitgliederbereich"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
+    <a class="member-link" id="member-link" href="${site.demo ? 'https://spd-soltau.de/mitglieder/' : url('/mitglieder/')}" aria-label="Mitgliederbereich – Anmelden" title="Mitgliederbereich"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
     <button class="burger" id="burger" aria-expanded="false" aria-controls="nav" aria-label="Menü öffnen">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
     </button>

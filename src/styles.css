@@ -39,7 +39,7 @@ button{font:inherit;cursor:pointer}
 
 /* Header */
 .header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--rot);color:#fff}
-.header .wrap{display:flex;align-items:center;gap:20px;min-height:72px;position:relative}
+.header .wrap{display:flex;align-items:center;gap:20px;min-height:72px;position:relative;max-width:1480px}
 .logo{display:inline-flex;flex-direction:column;align-items:flex-start;text-decoration:none;line-height:1}
 .logo-box{background:#fff;color:var(--rot);font:800 24px/1 var(--display);padding:6px 7px 4px}
 .logo-ort{color:#fff;font:700 11px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;margin-top:4px;padding-left:1px}
@@ -1874,6 +1874,9 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .rb-auftrag-weg{font-size:20px;line-height:1;padding:2px 8px;color:var(--muted)}
 .rb-auftrag-weg:hover{color:var(--rot)}
 
+/* Demo-Fassung der Website */
+.demo-band{background:#FFD200;color:#141414;padding:10px 24px;font-size:15px;text-align:center}
+.demo-band a{color:#141414;font-weight:700}
 /* ---------- Mitreden (öffentliche Angebote) ---------- */
 .section-sm{padding-block:32px}
 .quick-mitreden{grid-template-columns:repeat(3,minmax(0,1fr))}

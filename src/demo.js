@@ -79,7 +79,7 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: 'demo-u2', _owner: ids[1], _createdDate: daysAgo(20), frage: 'Welche Themen sollen wir 2027 in den Vordergrund stellen?', beschreibung: '', optionen: ['Kita & Schule', 'Verkehr & Bahn', 'Wohnen', 'Ortschaften'], mehrfach: true, offen: false, endetAm: daysAgo(5).slice(0, 10), von: people[1].name, title: 'Themen 2027' },
     ],
     UmfragenOeffentlich: [
-      { _id: 'demo-u9', _owner: OWNER, _createdDate: daysAgo(3), frage: 'Welche drei Spielplätze sollen 2027 zuerst saniert werden?', beschreibung: 'Der Ausschuss Stadtentwicklung entscheidet am 12. November über die Reihenfolge.', optionen: ['Brockmannsweg', 'Böhmepark', 'Wiesenweg', 'Schulstraße', 'Ahlften, Dorfplatz'], mehrfach: true, maxWahl: 3, offen: true, endetAm: inDays(30), von: 'Max Mustermann', vonId: ME, mitreden: true, folge: '', ergebnis: '[188,241,97,154,63]', stimmen: 316, title: 'Spielplätze' },
+      { _id: 'demo-u9', _owner: OWNER, _createdDate: daysAgo(3), frage: 'Welche drei Spielplätze sollen 2027 zuerst saniert werden?', beschreibung: 'Ihre Kreuze zeigen uns, was Ihnen wichtig ist.', optionen: ['Brockmannsweg', 'Böhmepark', 'Wiesenweg', 'Schulstraße', 'Ahlften, Dorfplatz'], mehrfach: true, maxWahl: 3, offen: true, endetAm: inDays(30), von: 'Max Mustermann', vonId: ME, mitreden: true, folge: '', ergebnis: '[188,241,97,154,63]', stimmen: 316, title: 'Spielplätze' },
       { _id: 'demo-u3', _owner: OWNER, _createdDate: daysAgo(1), frage: 'Was soll die neue Ratsmehrheit zuerst anpacken?', optionen: ['Kita-Plätze', 'Radwege', 'Bahnhofsumfeld', 'Ortschaften stärken'], mehrfach: false, offen: true, endetAm: inDays(10), von: VON, title: 'Umfrage der Woche' },
     ],
     Stimmen: [
@@ -252,8 +252,8 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: 'demo-fo1', _createdDate: daysAgo(4), frageId: 'demo-fr2', frage: 'Warum gibt es zu wenig Kita-Plätze am Nachmittag?', wer: 'Anonym', datum: daysAgo(5).slice(0, 10), antwort: 'Es fehlen Erzieherinnen, nicht Räume. Die Stadt zahlt seit August eine Zulage – zwei Gruppen öffnen im Januar nachmittags.', antwortVon: 'Brian Weber', videoUrl: '', zaehler: 27, sichtbar: true },
     ],
     Baustellen: [
-      { _id: 'demo-ba1', _createdDate: daysAgo(3), titel: 'Marktstraße', art: 'Sperrung', bis: 'Vollsperrung ab März, bis November 2027', was: 'Neues Pflaster, breitere Gehwege, zwölf Bäume.', warum: 'Ratsbeschluss vom 2. Oktober (19 : 10).', umleitung: 'Über Poststraße und Celler Straße.', spd: 'Unser Antrag: die zwölf Bäume.', lat: 52.9868, lng: 9.8425, aktiv: true, quelle: 'Bekanntmachung der Stadt' },
-      { _id: 'demo-ba2', _createdDate: daysAgo(8), titel: 'Winsener Straße', art: 'Baustelle', bis: 'Halbseitig, bis 30. Oktober', was: '180 Meter Abwasserkanal.', warum: 'Kanal von 1961.', umleitung: 'Bus 104 über Celler Straße.', spd: '', lat: 52.9905, lng: 9.8395, aktiv: true, quelle: '' },
+      { _id: 'demo-ba1', _createdDate: daysAgo(3), titel: 'Marktstraße', art: 'Sperrung', bis: 'Vollsperrung ab März, bis November 2027', was: 'Neues Pflaster, breitere Gehwege, zwölf Bäume.', warum: 'Ratsbeschluss vom 2. Oktober (19 : 10).', umleitung: 'Über Poststraße und Celler Straße.', spd: 'Unser Antrag: die zwölf Bäume.', lat: 52.98493, lng: 9.83954, aktiv: true, quelle: 'Bekanntmachung der Stadt' },
+      { _id: 'demo-ba2', _createdDate: daysAgo(8), titel: 'Winsener Straße', art: 'Baustelle', bis: 'Halbseitig, bis 30. Oktober', was: '180 Meter Abwasserkanal.', warum: 'Kanal von 1961.', umleitung: 'Bus 104 über Celler Straße.', spd: '', lat: 52.99814, lng: 9.85753, aktiv: true, quelle: '' },
     ],
     FilmTeile: [{ _id: 'demo-teil-1', materialId: 'demo-bild-intern', nr: 0, daten: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' }],
     Feedback: [
