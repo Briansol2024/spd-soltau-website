@@ -125,6 +125,6 @@ export function antwortLesen(text) {
   const dp = skript.match(/^\s*(?:\*\*)?DREHPLAN(?:\*\*)?\s*:?\s*$/im);
   if (dp) { drehplan = skript.slice(dp.index + dp[0].length).trim(); skript = skript.slice(0, dp.index).trim(); }
   const erst = skript.search(/TAKE\s*\d+/i);
-  if (erst >= 0) { const bloecke = skript.slice(erst).split(/\n\s*\n/); const vorher = skript.slice(0, erst).trim(); const frage = bloecke.filter(b => !/^\s*TAKE\s*\d+/i.test(b)); return { skript: bloecke.filter(b => /^\s*TAKE\s*\d+/i.test(b)).join('\n\n'), drehplan, overlays, hinweis: [vorher, frage.join(' ')].filter(Boolean).join(' ').trim() }; }
+  if (erst >= 0) { const bloecke = skript.slice(erst).split(/\n\s*\n/); const vorher = skript.slice(0, erst).trim(); const frage = bloecke.filter(b => !/^\s*TAKE\s*\d+/i.test(b)); return { skript: bloecke.filter(b => /^\s*TAKE\s*\d+/i.test(b)).join('\n\n'), drehplan, overlays, hinweis: (h => /\?/.test(h) || (h.length > 25 && !/^hier ist/i.test(h)) ? h : '')([vorher, frage.join(' ')].filter(Boolean).join(' ').trim()) }; }
   return { skript: '', drehplan, overlays, hinweis: skript };
 }
