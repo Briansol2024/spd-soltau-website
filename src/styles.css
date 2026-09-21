@@ -1873,3 +1873,91 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .rb-auftrag-kopf{position:relative}
 .rb-auftrag-weg{font-size:20px;line-height:1;padding:2px 8px;color:var(--muted)}
 .rb-auftrag-weg:hover{color:var(--rot)}
+
+/* ---------- Mitreden (öffentliche Angebote) ---------- */
+.section-sm{padding-block:32px}
+.quick-mitreden{grid-template-columns:repeat(3,minmax(0,1fr))}
+.quick-zahl{display:flex;align-items:baseline;gap:8px;margin-top:auto}
+.quick-zahl b{font:800 34px/1 var(--display);color:var(--rot)}
+.quick-zahl small{font:700 12px/1.2 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-zeit{font-size:12px;color:var(--rot);margin-right:6px}
+.chip-rot{border-color:var(--rot);color:var(--rot)}
+.filter-chips{margin-bottom:20px}
+.video-block{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:28px;align-items:center;background:var(--schwarz);color:#fff;padding:24px}
+.video-karte{position:relative;display:block;aspect-ratio:16/9;background:#1c1b1b;overflow:hidden;color:#fff}
+.video-karte img{width:100%;height:100%;object-fit:cover;display:block;opacity:.8}
+.video-karte .tag{position:absolute;left:14px;top:12px}
+.video-play{position:absolute;inset:0;display:grid;place-items:center}
+.video-play svg{width:72px;height:72px;stroke:#fff;fill:none;stroke-width:1.5;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
+.video-text{display:grid;gap:14px}
+.video-text .title{color:#fff;font-size:34px}
+.video-text p{margin:0;color:#D8D2D0}
+.video-text .chip{background:transparent;color:#fff;border-color:#fff}
+.video-text .chip-rot{border-color:var(--rot);background:var(--rot)}
+.video-anschluss{display:grid;gap:10px;border-top:1px solid #444;padding-top:14px}
+.video-anschluss b{font:800 20px/1 var(--display);text-transform:uppercase}
+.anliegen-liste,.fragen-liste,.baustellen-liste{display:grid;gap:14px}
+.anliegen,.frage-karte,.baustelle,.abstimmung{background:#fff;border:2px solid var(--schwarz);padding:18px 20px;display:grid;gap:12px}
+.anliegen[hidden],.baustelle[hidden]{display:none}
+.anliegen-kopf,.baustelle-kopf,.frage-kopf{display:flex;gap:14px;align-items:flex-start}
+.anliegen-kopf h3,.baustelle-kopf h3,.frage-kopf h3{margin:0 0 4px;font:800 24px/1.05 var(--display);text-transform:uppercase}
+.rang{flex:none;width:40px;height:40px;display:grid;place-items:center;background:var(--schwarz);color:#fff;font:800 20px/1 var(--display)}
+.baustelle .rang{background:var(--pf,var(--rot))}
+.baustelle.aktiv{border-color:var(--pf,var(--rot));box-shadow:6px 6px 0 var(--pf,var(--rot))}
+.anliegen-zeile{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.btn.mit[aria-pressed="true"]{background:var(--rot);color:#fff;border-color:var(--rot)}
+.stand{font:700 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:#fff;padding:6px 9px 5px;background:var(--muted)}
+.st-nachgefragt{background:#B7791F}.st-antwort{background:#177A38}
+.anliegen-mehr summary{cursor:pointer;font-weight:700;color:var(--rot)}
+.anliegen-mehr p{margin:10px 0 0}
+.spd-antwort{background:var(--grau);padding:12px 14px;margin:10px 0 0}
+.avatar{flex:none;width:40px;height:40px;border-radius:50%;background:var(--rot);color:#fff;display:grid;place-items:center;font:800 18px/1 var(--display)}
+.video-antwort{display:inline-flex;align-items:center;gap:10px;background:var(--schwarz);color:#fff;text-decoration:none;padding:12px 16px;font:700 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;justify-self:start}
+.video-antwort svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:1.8}
+.frage-form .form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px}
+.abst-opts{display:grid;gap:8px}
+.abst-opt{display:flex;align-items:center;gap:12px;text-align:left;min-height:52px;padding:10px 14px;border:2px solid var(--linie);background:#fff;font:700 16px/1.2 var(--body);cursor:pointer}
+.abst-opt .kreuz{flex:none;width:22px;height:22px;border:2px solid var(--schwarz);display:grid;place-items:center;color:#fff;font-weight:700}
+.abst-opt[aria-pressed="true"]{border-color:var(--rot);background:#FFF3F3}
+.abst-opt[aria-pressed="true"] .kreuz{background:var(--rot);border-color:var(--rot)}
+.abst-opt[aria-pressed="true"] .kreuz::after{content:"✓"}
+.abst-opt[disabled]{cursor:default;opacity:.85}
+.balken-liste{display:grid;gap:8px}
+.balken-zeile{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) 52px;gap:12px;align-items:center;font-size:15px}
+.balken{height:10px;background:var(--grau);overflow:hidden}
+.balken i{display:block;height:100%;background:var(--rot)}
+.balken-zeile b{text-align:right;font-variant-numeric:tabular-nums}
+.abstimmung.vorbei{border-color:var(--linie)}
+.karte{position:relative;overflow:auto;border:2px solid var(--schwarz);background:#EEEAE3;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.karte-flaeche{position:relative}
+.karte-flaeche img{position:absolute;display:block}
+.karte-pin{position:absolute;transform:translate(-50%,-100%);width:34px;height:42px;border:0;background:none;padding:0;cursor:pointer}
+.karte-pin span{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--pf,var(--rot));border:3px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.karte-pin b{position:absolute;left:0;top:0;width:34px;height:34px;display:grid;place-items:center;color:#fff;font:800 14px/1 var(--display)}
+.karte-pin::after{content:attr(aria-label);position:absolute;left:50%;top:-4px;transform:translate(-50%,-100%);background:var(--schwarz);color:#fff;padding:4px 8px;font:700 12px/1 var(--display);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
+.karte-pin:hover::after,.karte-pin.aktiv::after,.karte-pin:focus-visible::after{opacity:1}
+.karte-pin.aktiv span{transform:rotate(-45deg) scale(1.2)}
+.karte-quelle{position:sticky;left:0;bottom:0;display:inline-block;background:rgba(255,255,255,.85);font-size:11px;padding:2px 6px;color:#555}
+@container site (max-width:900px){
+  .quick-mitreden{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .video-block{grid-template-columns:1fr}
+}
+@container site (max-width:600px){
+  .quick-mitreden{grid-template-columns:1fr}
+  .frage-form .form-row{grid-template-columns:1fr}
+  .balken-zeile{grid-template-columns:minmax(0,1fr) 44px;}
+  .balken-zeile .balken{grid-column:1/-1}
+}
+/* Vorstand → Mitreden */
+.mr-schalter{display:grid;gap:10px}
+.mr-wahl{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:2px solid var(--linie);cursor:pointer}
+.mr-wahl.aktiv{border-color:var(--rot);background:#FFF3F3}
+.mr-wahl input{margin-top:4px}
+.mr-wahl span{display:grid;gap:4px}.mr-wahl b{font:800 18px/1 var(--display);text-transform:uppercase}.mr-wahl small{color:var(--muted);line-height:1.35}
+.mr-liste{display:grid;gap:8px;margin-top:12px}
+.mr-eintrag summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mr-eintrag.aus summary{opacity:.6}
+.mr-eintrag .rang{width:28px;height:28px;font-size:14px}
+.mr-ergebnis{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0}

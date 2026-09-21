@@ -22,6 +22,7 @@ import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
 import { makeVorstandMehr } from './vorstand-mehr.js';
 import { makeStatistik } from './statistik.js';
+import { makeMitreden, standSetzen } from './mitreden.js';
 import { makeBereiche } from './bereiche.js';
 import { stammtischConfig, istStammtisch, STAMMTISCH_DEFAULT } from './lib/stammtisch.mjs';
 
@@ -1077,6 +1078,8 @@ async function secUmfragen(v) {
       <div class="field"><label for="u-ende">Läuft bis</label><input id="u-ende" name="endetAm" type="date" required value="${new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)}"></div>
       <label class="check"><input type="checkbox" name="mehrfach"> <span>Mehrfachauswahl erlauben</span></label>
       <label class="check"><input type="checkbox" name="oeffentlich"> <span>Öffentlich auf der Startseite („Umfrage der Woche“) – die Auswertung bleibt intern</span></label>
+      <label class="check"><input type="checkbox" name="mitreden"> <span>Auf der Website unter <b>Mitreden → „Sie entscheiden mit“</b> – mit sichtbarem Ergebnis und dem Feld „Was daraus wurde“</span></label>
+      <div class="field"><label for="u-max">Höchstens so viele Kreuze je Person <span class="muted">(1 = eine Antwort)</span></label><input id="u-max" name="maxWahl" type="number" min="1" max="10" value="1"></div>
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Umfrage starten</button></div>
     </form></details></div>` : ''}
@@ -1131,8 +1134,10 @@ function wirePolls(v, all, stimmen) {
     if (optionen.length < 2) { msg(f.querySelector('.note'), 'Bitte mindestens zwei Antwortmöglichkeiten.'); return; }
     const btn = f.querySelector('[type=submit]'); busy(btn, true);
     try {
-      const col = fd.get('oeffentlich') ? 'UmfragenOeffentlich' : 'Umfragen';
-      await db.insert(col, { frage: fd.get('frage').trim(), title: fd.get('frage').trim(), beschreibung: fd.get('beschreibung').trim(), optionen, mehrfach: !!fd.get('mehrfach'), offen: true, endetAm: fd.get('endetAm'), von: me.name, vonId: me.id });
+      const col = fd.get('oeffentlich') || fd.get('mitreden') ? 'UmfragenOeffentlich' : 'Umfragen';
+      const maxWahl = Math.max(1, Math.min(10, +fd.get('maxWahl') || 1));
+      await db.insert(col, { frage: fd.get('frage').trim(), title: fd.get('frage').trim(), beschreibung: fd.get('beschreibung').trim(), optionen, mehrfach: !!fd.get('mehrfach') || maxWahl > 1, offen: true, endetAm: fd.get('endetAm'), von: me.name, vonId: me.id, ...(fd.get('mitreden') ? { mitreden: true, maxWahl, folge: '', ergebnis: '[]', stimmen: 0 } : {}) });
+      if (fd.get('mitreden')) await standSetzen(db);
       route();
     } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
   });
@@ -1843,7 +1848,10 @@ function blatt(titel, inner, wire) {
 function blattZu() { document.getElementById('mb-blatt')?.remove(); if (!document.getElementById('rz-blatt')) document.body.classList.remove('sheet-open'); }
 const bereiche = makeBereiche({ db, DEMO, store, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
 const statistikMod = makeStatistik({ db, esc, $, $$, store, ICON, SPD, sectionHead, todayIso });
-const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: { ...vorstandMehr, ...statistikMod }, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
+// Mitreden (Website): der Startseiten-Schalter ist allein Brians Sache – nicht Tester, nicht Vorstand
+const nurBrian = () => DEMO || String(me?.email || '').toLowerCase() === 'weber.soltau@gmail.com';
+const mitredenMod = makeMitreden({ db, esc, $, $$, msg, busy, errText, sectionHead, ICON, DEMO, BASE, istBrian: nurBrian, fmtWhen, get me() { return me; } });
+const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: { ...vorstandMehr, ...statistikMod }, mitreden: mitredenMod, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 // Notizen im Sitzungsmodus – teilen in den Chat läuft über den Live-Chat der Sitzung
 const chatSenden = async ({ text, bild }) => {
   if (live.chatStatus !== 'ok' || !live.id) throw new Error('Chat nicht verfügbar');

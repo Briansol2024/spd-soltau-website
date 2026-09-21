@@ -256,3 +256,21 @@ export async function fetchInstagram(client, collectionId = '@vanyadoing/instagr
       comments: d.metrics?.comments ?? null,
     }));
 }
+
+// ---------- Mitreden (öffentliche Angebote): Startseiten-Schalter, Anliegen-Ranking, beantwortete Fragen, Baustellen, Abstimmungen ----------
+export async function fetchMitreden(client) {
+  const q = async (col, tune) => { try { return (await tune(client.items.query(col)).find()).items || []; } catch (e) { log(col + ': ' + e.message); return []; } };
+  const [start] = await q('Startseite', x => x.limit(1));
+  const anliegen = await q('AnliegenOeffentlich', x => x.eq('sichtbar', true).limit(100));
+  const fragen = await q('FragenOeffentlich', x => x.eq('sichtbar', true).descending('_createdDate').limit(100));
+  const baustellen = await q('Baustellen', x => x.eq('aktiv', true).descending('_createdDate').limit(100));
+  const umfragen = await q('UmfragenOeffentlich', x => x.eq('mitreden', true).descending('_createdDate').limit(30));
+  const n = v => Number(v) || 0;
+  return {
+    start: start || {},
+    anliegen: anliegen.map(a => ({ id: a._id, titel: a.titel || '', kategorie: a.kategorie || 'Sonstiges', ort: a.ort || '', text: a.text || '', stand: a.stand || 'neu', spd: a.spd || '', zaehler: n(a.zaehler), datum: a.datum || String(a._createdDate || '').slice(0, 10) })).sort((x, y) => y.zaehler - x.zaehler),
+    fragen: fragen.map(f => ({ id: f._id, frage: f.frage || '', wer: f.wer || 'Anonym', datum: f.datum || String(f._createdDate || '').slice(0, 10), antwort: f.antwort || '', antwortVon: f.antwortVon || '', videoUrl: f.videoUrl || '', zaehler: n(f.zaehler) })),
+    baustellen: baustellen.map(b => ({ id: b._id, titel: b.titel || '', art: b.art || 'Baustelle', bis: b.bis || '', was: b.was || '', warum: b.warum || '', umleitung: b.umleitung || '', spd: b.spd || '', lat: n(b.lat), lng: n(b.lng), quelle: b.quelle || '' })),
+    umfragen: umfragen.map(u => { let ergebnis = []; try { ergebnis = JSON.parse(u.ergebnis || '[]'); } catch (e) { ergebnis = []; } return { id: u._id, frage: u.frage || '', beschreibung: u.beschreibung || '', optionen: Array.isArray(u.optionen) ? u.optionen : [], maxWahl: Math.max(1, n(u.maxWahl) || 1), offen: !!u.offen, endetAm: u.endetAm || '', folge: u.folge || '', ergebnis, stimmen: n(u.stimmen) || Math.max(0, ...ergebnis.map(x => Number(x) || 0)), erstellt: String(u._createdDate || '').slice(0, 10) }; }),
+  };
+}

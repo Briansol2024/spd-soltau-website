@@ -257,6 +257,8 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   const data = { status: f.dataset.collection === 'Abonnenten' ? 'neu' : 'offen' };
   new FormData(f).forEach((v, k) => { data[k] = String(v).trim(); });
   data.title = f.dataset.collection === 'Abonnenten' ? `Anmeldung ${data.email || ''}` : [data.typ ? { kontakt: 'Kontakt', mitglied: 'Mitgliedsanfrage' }[data.typ] || data.typ : '', data.name || '', data.datum || '', data.von || ''].filter(Boolean).join(' – ');
+  if (f.dataset.collection === 'Fragen') { data.title = 'Frage: ' + String(data.frage || '').slice(0, 60); data.anonym = data.anonym === 'ja'; delete data.typ; }
+  if (data.oeffentlichOk !== undefined) data.oeffentlichOk = data.oeffentlichOk === 'ja';
   try {
     await wixInsert(f.dataset.collection, data);
     zaehlen('ereignis', 'formular:' + f.dataset.collection);
@@ -381,3 +383,96 @@ if (zaList) {
   addEventListener('hashchange', fromHash); fromHash();
   document.addEventListener('click', e => { const a = e.target.closest('.zj a'); if (!a) return; e.preventDefault(); history.replaceState(null, '', a.getAttribute('href')); fromHash(); });
 }
+
+// ---------- Mitreden: Thema aus der Adresse (?thema=…) in Kontakt- und Fragen-Formular übernehmen ----------
+(() => {
+  const thema = new URLSearchParams(location.search).get('thema'); if (!thema) return;
+  const kt = $('#k-topics'), th = $('#k-thema');
+  if (th) { th.value = thema; $$('.chip', kt || document).forEach(c => c.setAttribute('aria-pressed', String(c.textContent.trim() === thema))); const msg = $('#k-msg'); if (msg && !msg.value) msg.value = `Zu „${thema}“: `; }
+  const fq = $('#frage-quelle'); if (fq) fq.value = thema;
+  const ff = $('#f-frage'); if (ff && !ff.value) ff.placeholder = `Ihre Frage zu „${thema}“ …`;
+})();
+
+// ---------- Mitreden: „Betrifft mich auch“ / „Interessiert mich auch“ – ein Klick je Gerät, Zähler live ----------
+(() => {
+  const liste = $('[data-typ="anliegen"], [data-typ="frage"]'); if (!liste || !SPD.app?.clientId) return;
+  const typ = liste.dataset.typ; const key = 'spd-mit-' + typ;
+  let meine = []; try { meine = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { meine = []; }
+  let geraet = ''; try { geraet = localStorage.getItem('spd-geraet') || ''; if (!geraet) { geraet = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('spd-geraet', geraet); } } catch (e) { geraet = 'ohne'; }
+  const markieren = () => $$('[data-unterstuetzen]', liste).forEach(b => b.setAttribute('aria-pressed', String(meine.includes(b.dataset.unterstuetzen))));
+  markieren();
+  // Zähler frisch aus den Rohdaten (der Bau-Stand kann ein paar Minuten alt sein)
+  (async () => {
+    try {
+      const rohe = await wixQuery('Unterstuetzung', { filter: { typ }, paging: { limit: 1000 } });
+      const n = {}; for (const r of rohe) n[r.zielId] = (n[r.zielId] || 0) + 1;
+      $$('[data-zaehler]', liste).forEach(el => { if (n[el.dataset.zaehler] !== undefined) el.textContent = n[el.dataset.zaehler]; });
+      if (typ === 'anliegen') { const box = $('#anliegen-liste'); const karten = $$('.anliegen', box).sort((a, b) => (n[b.dataset.id] || 0) - (n[a.dataset.id] || 0)); karten.forEach((k, i) => { box.append(k); const r = $('.rang', k); if (r) r.textContent = i + 1; }); }
+    } catch (e) { /* Zähler bleiben wie gebaut */ }
+  })();
+  liste.addEventListener('click', async e => {
+    const b = e.target.closest('[data-unterstuetzen]'); if (!b) return;
+    const id = b.dataset.unterstuetzen; if (meine.includes(id)) return;
+    b.disabled = true;
+    try {
+      await wixInsert('Unterstuetzung', { zielId: id, typ, geraet, title: typ + ' ' + id });
+      meine.push(id); try { localStorage.setItem(key, JSON.stringify(meine)); } catch (err) { /* ohne Speicher */ }
+      const z = $(`[data-zaehler="${id}"]`, liste); if (z) z.textContent = (parseInt(z.textContent, 10) || 0) + 1;
+      zaehlen('ereignis', 'mitreden:' + typ);
+      markieren();
+    } catch (err) { /* nichts – Knopf bleibt */ }
+    b.disabled = false;
+  });
+})();
+
+// ---------- Mitreden: Filter-Chips (Anliegen nach Kategorie, Baustellen nach Art) ----------
+$$('.filter-chips').forEach(box => box.addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('.chip', box).forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+  const attr = c.dataset.kat !== undefined ? 'kat' : 'art'; const wert = c.dataset[attr];
+  $$(`[data-${attr}]`, box.parentElement).forEach(el => { if (el.classList.contains('chip')) return; el.hidden = !!wert && el.dataset[attr] !== wert; });
+  const pins = $$('.karte-pin'); if (pins.length) { const sichtbar = new Set($$('.baustelle:not([hidden])').map(x => x.dataset.id)); pins.forEach(p => { p.hidden = !sichtbar.has(p.dataset.pin); }); }
+}));
+
+// ---------- Mitreden: Abstimmung mit bis zu N Kreuzen, Ergebnis nach der Stimme ----------
+$$('.abstimmung[data-id]').forEach(art => {
+  const id = art.dataset.id, max = Math.max(1, +art.dataset.max || 1), key = 'spd-abst-' + id;
+  const opts = $$('.abst-opt', art), knopf = $('[data-abstimmen]', art), erg = $('.abst-ergebnis', art), hinweis = $('[data-hinweis]', art);
+  let gewaehlt = []; let fertig = null; try { fertig = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { fertig = null; }
+  const zeigeErgebnis = wahl => {
+    opts.forEach(o => { o.disabled = true; o.setAttribute('aria-pressed', String(wahl.includes(+o.dataset.i))); });
+    knopf.hidden = true; if (hinweis) hinweis.textContent = 'Danke – Ihre Kreuze sind gezählt.';
+    // eigene Stimme in den Zwischenstand einrechnen
+    let e = []; try { e = JSON.parse(art.dataset.ergebnis || '[]'); } catch (err) { e = []; }
+    const n = opts.map((_, i) => (Number(e[i]) || 0) + (wahl.includes(i) ? 1 : 0)); const sum = (+art.dataset.stimmen || 0) + 1;
+    $$('.balken-zeile', erg).forEach((z, i) => { const p = sum ? Math.round(100 * n[i] / sum) : 0; $('.balken i', z).style.width = p + '%'; $('b', z).textContent = p + ' %'; });
+    const st = $('.small', erg); if (st) st.textContent = `${sum} ${sum === 1 ? 'Stimme' : 'Stimmen'}${max > 1 ? ' · Prozent = Anteil der Abstimmenden, die das angekreuzt haben' : ''} · Zwischenstand, wird alle 30 Minuten aktualisiert`;
+    erg.hidden = false;
+  };
+  if (Array.isArray(fertig)) { zeigeErgebnis(fertig); return; }
+  opts.forEach(o => o.addEventListener('click', () => {
+    const i = +o.dataset.i;
+    if (gewaehlt.includes(i)) gewaehlt = gewaehlt.filter(x => x !== i); else if (max === 1) gewaehlt = [i]; else if (gewaehlt.length < max) gewaehlt.push(i);
+    opts.forEach(x => x.setAttribute('aria-pressed', String(gewaehlt.includes(+x.dataset.i))));
+    knopf.disabled = !gewaehlt.length; if (hinweis) hinweis.textContent = max > 1 ? `${gewaehlt.length} von ${max} gewählt` : 'Eine Antwort antippen.';
+  }));
+  knopf.addEventListener('click', async () => {
+    if (!gewaehlt.length) return; knopf.disabled = true;
+    try {
+      await wixInsert('Stimmen', { umfrageId: id, auswahl: gewaehlt.map(String), memberId: '', name: 'Besucher', title: 'Besucher – ' + ($('.title', art)?.textContent || '').slice(0, 60) });
+      zaehlen('ereignis', 'mitreden:abstimmung');
+      try { localStorage.setItem(key, JSON.stringify(gewaehlt)); } catch (e) { /* ohne Speicher */ }
+      zeigeErgebnis(gewaehlt);
+    } catch (e) { knopf.disabled = false; if (hinweis) hinweis.textContent = 'Das hat gerade nicht geklappt – bitte noch einmal.'; }
+  });
+});
+
+// ---------- Mitreden: Baustellen – Pin und Karte zeigen aufeinander ----------
+(() => {
+  const karte = $('#baustellen-karte'), liste = $('#baustellen-liste'); if (!karte || !liste) return;
+  const aktiv = id => { $$('.karte-pin', karte).forEach(p => p.classList.toggle('aktiv', p.dataset.pin === id)); $$('.baustelle', liste).forEach(k => { k.classList.toggle('aktiv', k.dataset.id === id); if (k.dataset.id === id) { $('details', k)?.setAttribute('open', ''); } }); };
+  karte.addEventListener('click', e => { const p = e.target.closest('.karte-pin'); if (!p) return; aktiv(p.dataset.pin); $(`.baustelle[data-id="${p.dataset.pin}"]`, liste)?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' }); });
+  liste.addEventListener('click', e => { const k = e.target.closest('.baustelle'); if (!k || e.target.closest('a')) return; aktiv(k.dataset.id); const p = $(`.karte-pin[data-pin="${k.dataset.id}"]`, karte); if (p) karte.scrollTo({ left: Math.max(0, p.offsetLeft - karte.clientWidth / 2), top: Math.max(0, p.offsetTop - karte.clientHeight / 2), behavior: REDUCED ? 'auto' : 'smooth' }); });
+  // Karte anfangs auf den ersten Pin (oder die Mitte) stellen
+  const erst = $('.karte-pin', karte); karte.scrollTo({ left: erst ? Math.max(0, erst.offsetLeft - karte.clientWidth / 2) : (karte.scrollWidth - karte.clientWidth) / 2, top: erst ? Math.max(0, erst.offsetTop - karte.clientHeight / 2) : (karte.scrollHeight - karte.clientHeight) / 2 });
+})();

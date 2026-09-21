@@ -2,10 +2,13 @@
 import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards, zielBlocks, zielJump, zielAccordionFotos } from './render.mjs';
 import { stadtKacheln } from './lib/stadt.mjs';
 
+import { videoBlock, mitredenBlock } from './templates-mitreden.mjs';
 const NAV = [
   ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'],
   ['/ziele/', 'Ziele'], ['/mitmachen/', 'Mitmachen'], ['/kontakt/', 'Kontakt'],
 ];
+// Variante „Mitreden“ der Startseite (Schalter im Mitgliederbereich): eigener Menüpunkt zwischen Termine und Fraktion
+const navFuer = site => site.mitreden ? [NAV[0], NAV[1], ['/mitreden/', 'Mitreden'], ...NAV.slice(2)] : NAV;
 
 export function layout({ site, path, title, description, content, clientData = {}, noindex = false, ogImage = null, welcome = null }) {
   const fullTitle = path === '/' ? `${site.name} – ${site.claim}` : `${title} – ${site.name}`;
@@ -55,7 +58,7 @@ ${path.startsWith('/mitglieder/') ? `<header class="app-header">
     <a class="logo" href="${url('/index.html')}" aria-label="SPD Soltau – Startseite"><img src="${url('/assets/images/logo-spd-soltau-weiss.png')}" alt="SPD Soltau" width="88" height="60" decoding="async"></a>
     <span class="slogan">Aus Liebe<br>zu Soltau</span>
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
-      ${NAV.map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
+      ${navFuer(site).map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
     </nav>
     <a class="btn btn-schwarz cta" href="${url('/mitmachen/')}">Mitglied werden</a>
     <a class="member-link" id="member-link" href="${url('/mitglieder/')}" aria-label="Mitgliederbereich – Anmelden" title="Mitgliederbereich"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
@@ -191,8 +194,8 @@ const MOTIV_CREDITS = [
   ['allee', 'Allee bei Timmerloh, Naturpark Lüneburger Heide', '2dorland', 'https://commons.wikimedia.org/wiki/File:Niedersachsen,_Soltau,_Allee_bei_Timmerloh,_Naturpark_L%C3%BCneburger_Heide_1.jpg'],
 ];
 // Gemeinfrei (CC0), nur zur Vollständigkeit genannt: Zeitungsstapel – Hochschulbibliothek Wildau, https://commons.wikimedia.org/wiki/File:StapelZeitschriften.jpg
-const motiv = (name, eager = false) => `<img class="foto-bg" src="${url(name === 'bahnhof' ? '/assets/images/luftbild-roter-bahnhof.jpg' : `/assets/images/motiv-${MOTIVE.includes(name) ? name : 'drohne'}.jpg`)}" alt="" width="1600" height="900" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
-const pageHead = (tag, h1, lead, foto = 'drohne') => `
+export const motiv = (name, eager = false) => `<img class="foto-bg" src="${url(name === 'bahnhof' ? '/assets/images/luftbild-roter-bahnhof.jpg' : `/assets/images/motiv-${MOTIVE.includes(name) ? name : 'drohne'}.jpg`)}" alt="" width="1600" height="900" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
+export const pageHead = (tag, h1, lead, foto = 'drohne') => `
   <div class="page-head foto">${motiv(foto, true)}<div class="wrap">
     <span class="tag">${esc(tag)}</span>
     <h1 class="title">${h1}</h1>
@@ -231,7 +234,7 @@ export function startPage(d) {
         <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span></h1>
         <div class="hero-box">
           <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
-          <a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>
+          ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Mitreden</a><a class="btn btn-weiss" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a></div>` : `<a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>`}
         </div>
       </div>
       ${heroPhoto(d.site)}
@@ -253,7 +256,7 @@ export function startPage(d) {
     </div>
   </div></div>` : ''}
 
-  <div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px">
+  ${d.startVariante === 'mitreden' ? videoBlock(d) + mitredenBlock(d) : `<div class="wrap${d.stichwahl ? '' : ' section'}" style="padding-block:56px">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Was können wir<br>für Sie tun?</h2></div>
     <div class="quick ${d.stadt ? 'quick-3' : 'quick-2'}">
       <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – schreiben Sie uns. Wir antworten in der Regel innerhalb einer Woche.</small></a>
@@ -261,7 +264,7 @@ export function startPage(d) {
       ${rathausKachel(d)}
     </div>
     ${d.stadt ? `<p class="quick-stand">Aus Rat &amp; Rathaus: automatisch aus den öffentlichen Seiten der Stadt Soltau · Stand ${esc(standText(d.stadt.stand))}</p>` : ''}
-  </div>
+  </div>`}
 
   <div class="band-rot foto foto-rot">${motiv('drohne')}
     <div class="wrap" style="padding-block:40px">
@@ -594,6 +597,7 @@ export function kontaktPage(d) {
         <div class="field"><label for="k-ort">Straße / Ortschaft (optional)</label><input id="k-ort" name="ort" type="text" placeholder="z. B. Walsroder Straße"></div>
         <div class="field"><label for="k-msg">Ihr Anliegen</label><textarea id="k-msg" name="nachricht" required></textarea></div>
         <label class="check"><input type="checkbox" id="k-ds" required> <span>Ich habe die <a href="${url('/datenschutz/')}">Datenschutzhinweise</a> gelesen.</span></label>
+        ${d.startVariante === 'mitreden' ? `<label class="check"><input type="checkbox" name="oeffentlichOk" value="ja"> <span>Mein Anliegen darf – ohne Namen und Adresse – unter <a href="${url('/mitreden/anliegen/')}">„Was Soltau bewegt“</a> erscheinen, damit andere es unterstützen können.</span></label>` : ''}
         <p class="note" hidden></p>
         <button class="btn btn-rot" type="submit" style="justify-self:start">Anliegen senden</button>
       </div>

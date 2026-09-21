@@ -79,6 +79,7 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: 'demo-u2', _owner: ids[1], _createdDate: daysAgo(20), frage: 'Welche Themen sollen wir 2027 in den Vordergrund stellen?', beschreibung: '', optionen: ['Kita & Schule', 'Verkehr & Bahn', 'Wohnen', 'Ortschaften'], mehrfach: true, offen: false, endetAm: daysAgo(5).slice(0, 10), von: people[1].name, title: 'Themen 2027' },
     ],
     UmfragenOeffentlich: [
+      { _id: 'demo-u9', _owner: OWNER, _createdDate: daysAgo(3), frage: 'Welche drei Spielplätze sollen 2027 zuerst saniert werden?', beschreibung: 'Der Ausschuss Stadtentwicklung entscheidet am 12. November über die Reihenfolge.', optionen: ['Brockmannsweg', 'Böhmepark', 'Wiesenweg', 'Schulstraße', 'Ahlften, Dorfplatz'], mehrfach: true, maxWahl: 3, offen: true, endetAm: inDays(30), von: 'Max Mustermann', vonId: ME, mitreden: true, folge: '', ergebnis: '[188,241,97,154,63]', stimmen: 316, title: 'Spielplätze' },
       { _id: 'demo-u3', _owner: OWNER, _createdDate: daysAgo(1), frage: 'Was soll die neue Ratsmehrheit zuerst anpacken?', optionen: ['Kita-Plätze', 'Radwege', 'Bahnhofsumfeld', 'Ortschaften stärken'], mehrfach: false, offen: true, endetAm: inDays(10), von: VON, title: 'Umfrage der Woche' },
     ],
     Stimmen: [
@@ -236,6 +237,24 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: 'demo-bild-intern', _owner: ME, _createdDate: daysAgo(1), projektId: 'demo-fp1', art: 'bild', titel: 'Marktstraße heute', url: '', name: 'marktstrasse.png', mime: 'image/png', groesse: 95, teile: 1, status: 'fertig', von: 'Max Mustermann', memberId: ME, title: 'Marktstraße heute' },
     ],
     // 1×1-Pixel-PNG als Dateiteil des internen Fotos
+    // Mitreden (Website): Startseiten-Schalter, Anliegen-Ranking, Fragen, Baustellen
+    Startseite: [{ _id: 'demo-start', variante: 'mitreden', videoTitel: 'Drei Entscheidungen, die Soltau verändern', videoUrl: 'https://www.instagram.com/spd_soltau/', videoText: 'Ratsbericht vom 2. Oktober – 45 Sekunden mit Brian Weber.', videoKapitel: '0:04 Marktstraße\n0:19 Radweg Bundeswehr\n0:31 Haushalt 2027', videoDatum: daysAgo(1).slice(0, 10), stand: daysAgo(1) }],
+    AnliegenOeffentlich: [
+      { _id: 'demo-an1', _createdDate: daysAgo(9), titel: 'Zebrastreifen Poststraße, Ecke Grundschule', kategorie: 'Straßen & Verkehr', ort: 'Poststraße', text: 'Morgens queren rund 60 Kinder die Poststraße – ohne Übergang, bei Tempo 50.', stand: 'nachgefragt', spd: 'Verkehrszählung angefragt, Thema für den Ausschuss Stadtentwicklung angemeldet.', zaehler: 37, sichtbar: true, datum: daysAgo(9).slice(0, 10), anfrageId: '' },
+      { _id: 'demo-an2', _createdDate: daysAgo(19), titel: 'Kaputte Schaukel am Brockmannsweg', kategorie: 'Kita & Schule', ort: 'Brockmannsweg', text: 'Ein Sitz fehlt, die Kette ist gerissen.', stand: 'antwort', spd: 'Bauhof hat die Schaukel gesperrt, die neue kam nach zwölf Tagen.', zaehler: 21, sichtbar: true, datum: daysAgo(19).slice(0, 10), anfrageId: '' },
+      { _id: 'demo-an3', _createdDate: daysAgo(1), titel: 'Beleuchtung im Bahnhofstunnel flackert', kategorie: 'Sonstiges', ort: 'Bahnhof', text: 'Abends ist der Tunnel zur Hälfte dunkel.', stand: 'neu', spd: '', zaehler: 5, sichtbar: true, datum: daysAgo(1).slice(0, 10), anfrageId: '' },
+    ],
+    Fragen: [
+      { _id: 'demo-fr1', _createdDate: daysAgo(2), frage: 'Wann kommt endlich der Radweg zur Bundeswehr?', name: 'Anna Schulz', email: 'anna@example.org', anonym: false, status: 'offen', quelle: 'Drei Entscheidungen, die Soltau verändern' },
+      { _id: 'demo-fr2', _createdDate: daysAgo(5), frage: 'Warum gibt es zu wenig Kita-Plätze am Nachmittag?', name: '', email: '', anonym: true, status: 'beantwortet', quelle: 'Website' },
+    ],
+    FragenOeffentlich: [
+      { _id: 'demo-fo1', _createdDate: daysAgo(4), frageId: 'demo-fr2', frage: 'Warum gibt es zu wenig Kita-Plätze am Nachmittag?', wer: 'Anonym', datum: daysAgo(5).slice(0, 10), antwort: 'Es fehlen Erzieherinnen, nicht Räume. Die Stadt zahlt seit August eine Zulage – zwei Gruppen öffnen im Januar nachmittags.', antwortVon: 'Brian Weber', videoUrl: '', zaehler: 27, sichtbar: true },
+    ],
+    Baustellen: [
+      { _id: 'demo-ba1', _createdDate: daysAgo(3), titel: 'Marktstraße', art: 'Sperrung', bis: 'Vollsperrung ab März, bis November 2027', was: 'Neues Pflaster, breitere Gehwege, zwölf Bäume.', warum: 'Ratsbeschluss vom 2. Oktober (19 : 10).', umleitung: 'Über Poststraße und Celler Straße.', spd: 'Unser Antrag: die zwölf Bäume.', lat: 52.9868, lng: 9.8425, aktiv: true, quelle: 'Bekanntmachung der Stadt' },
+      { _id: 'demo-ba2', _createdDate: daysAgo(8), titel: 'Winsener Straße', art: 'Baustelle', bis: 'Halbseitig, bis 30. Oktober', was: '180 Meter Abwasserkanal.', warum: 'Kanal von 1961.', umleitung: 'Bus 104 über Celler Straße.', spd: '', lat: 52.9905, lng: 9.8395, aktiv: true, quelle: '' },
+    ],
     FilmTeile: [{ _id: 'demo-teil-1', materialId: 'demo-bild-intern', nr: 0, daten: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' }],
     Feedback: [
       { _id: uid(), _owner: ME, _createdDate: daysAgo(5), memberId: ME, name: 'Max Mustermann', email: 'max.mustermann@example.de', wo: 'app', was: 'fehlt', bereich: 'Termine & Kalender', prio: 'nett', text: 'Im Kalender die Farben der Termintypen stärker unterscheiden – Rot und Schwarz sehe ich auf dem Handy schlecht auseinander.', status: 'zugestellt', title: 'Funktion fehlt – Max Mustermann' },

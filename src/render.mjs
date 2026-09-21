@@ -181,3 +181,24 @@ export function zielAccordionFotos(ziele) {
     </article>`;
   }).join('');
 }
+
+// ---------- Karte (Soltau, selbst gehostete OpenStreetMap-Kacheln, Zoom 15) ----------
+// Die Kacheln liegen unter assets/images/karte/ – kein Abruf von fremden Servern beim Besuch. © OpenStreetMap-Mitwirkende (ODbL).
+export const KARTE = { z: 15, x0: 17276, y0: 10673, w: 6, h: 6, tile: 256 };
+export function kartePx(lat, lng) {
+  const n = 2 ** KARTE.z, r = lat * Math.PI / 180;
+  const x = (lng + 180) / 360 * n, y = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n;
+  return { px: (x - KARTE.x0) * KARTE.tile, py: (y - KARTE.y0) * KARTE.tile };
+}
+export function karteLatLng(px, py) {
+  const n = 2 ** KARTE.z, x = KARTE.x0 + px / KARTE.tile, y = KARTE.y0 + py / KARTE.tile;
+  return { lat: Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI, lng: x / n * 360 - 180 };
+}
+// Kartenbild mit Pins: pins = [{ id, lat, lng, nr, farbe, titel }]; Breite/Höhe = 1536 px, scrollbar im Rahmen
+export function karteHtml(pins, { id = 'karte', hoehe = 480 } = {}) {
+  const W = KARTE.w * KARTE.tile, H = KARTE.h * KARTE.tile;
+  const kacheln = [];
+  for (let dy = 0; dy < KARTE.h; dy++) for (let dx = 0; dx < KARTE.w; dx++) kacheln.push(`<img src="${url(`/assets/images/karte/${KARTE.z}-${KARTE.x0 + dx}-${KARTE.y0 + dy}.png`)}" alt="" loading="lazy" decoding="async" width="${KARTE.tile}" height="${KARTE.tile}" style="left:${dx * KARTE.tile}px;top:${dy * KARTE.tile}px">`);
+  const marker = pins.filter(p => p.lat && p.lng).map(p => { const { px, py } = kartePx(+p.lat, +p.lng); return `<button type="button" class="karte-pin" data-pin="${esc(p.id)}" style="left:${px.toFixed(0)}px;top:${py.toFixed(0)}px;--pf:${esc(p.farbe || '#E3000F')}" aria-label="${esc(p.titel || '')}"><span></span><b>${esc(String(p.nr ?? ''))}</b></button>`; }).join('');
+  return `<div class="karte" id="${esc(id)}" style="height:${hoehe}px"><div class="karte-flaeche" style="width:${W}px;height:${H}px">${kacheln.join('')}${marker}</div><span class="karte-quelle">© OpenStreetMap-Mitwirkende</span></div>`;
+}

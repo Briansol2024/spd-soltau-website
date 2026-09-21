@@ -20,6 +20,7 @@ import * as fallback from './src/data-fallback.mjs';
 import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
+import * as M from './src/templates-mitreden.mjs';
 import { countdownPage } from './src/countdown.mjs';
 import esbuild from 'esbuild';
 import { createHash } from 'node:crypto';
@@ -116,6 +117,7 @@ async function loadData() {
     await tryLoad('fraktion', () => wix.fetchPeople(client, env.WIX_FRAKTION_COLLECTION || 'Team1'));
     await tryLoad('insta', () => wix.fetchInstagram(client));
     try { d.ratsberichte = await wix.fetchRatsberichte(client); } catch (e) { console.log('[build] Ratsberichte: ' + e.message); d.ratsberichte = []; }
+    try { d.mitreden = await wix.fetchMitreden(client); } catch (e) { console.log('[build] Mitreden: ' + e.message); }
     try { d.blogCats = await wix.fetchCategories(client); } catch (e) { d.blogCats = []; }
   }
   // Ergänzungen aus dem Fallback (Rolle, Text, Themen), falls das CMS diese Felder (noch) nicht hat
@@ -293,6 +295,11 @@ async function main() {
   // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
   await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat'), 'SPD Soltau – Termine'), 'utf8');
   await writeFile(path.join(OUT, 'assets', `termine-intern-${icsToken}.ics`), icsFeed(d.events, 'SPD Soltau – alle Termine (Mitglieder)'), 'utf8');
+  d.mitreden = d.mitreden || { start: {}, anliegen: [], fragen: [], baustellen: [], umfragen: [] };
+  if (env.MITREDEN_BEISPIEL) { const { beispielMitreden } = await import('./src/lib/mitreden-beispiel.mjs'); d.mitreden = beispielMitreden(); } // nur lokal zum Ansehen
+  d.startVariante = (env.START_VARIANTE || d.mitreden.start.variante) === 'mitreden' ? 'mitreden' : 'klassisch';
+  site.mitreden = d.startVariante === 'mitreden';
+  console.log(`[build] Startseite: Variante „${d.startVariante}“ – Mitreden: ${d.mitreden.anliegen.length} Anliegen, ${d.mitreden.fragen.length} Fragen, ${d.mitreden.baustellen.length} Baustellen, ${d.mitreden.umfragen.length} Abstimmungen`);
   const page = (rel, pth, title, description, content, extra = {}) =>
     write(rel, T.layout({ site, path: pth, title, description, content, clientData, noindex, ...extra }));
 
@@ -309,6 +316,11 @@ async function main() {
     ['roter-bahnhof/index.html', '/roter-bahnhof/', 'Roter Bahnhof', 'Den Roten Bahnhof in Soltau für Treffen, Vorträge und kleine Veranstaltungen anfragen.', T.roterBahnhofPage(d)],
     ['newsletter/index.html', '/newsletter/', 'Newsletter', 'Newsletter der SPD Soltau: anmelden, bestätigen, abmelden.', T.newsletterPage(d)],
     ['ratsbericht/index.html', '/ratsbericht/', 'So hat der Rat entschieden', 'Ratsberichte der SPD-Fraktion Soltau: die Entscheidungen der Ratssitzungen, wie abgestimmt wurde und wo die SPD stand – kurz und verständlich.', T.ratsberichtPage(d)],
+    ['mitreden/index.html', '/mitreden/', 'Mitreden', 'Mitreden in Soltau: Anliegen unterstützen, Fragen stellen, abstimmen, Baustellen verstehen – die SPD Soltau hört zu.', M.mitredenPage(d)],
+    ['mitreden/anliegen/index.html', '/mitreden/anliegen/', 'Was Soltau bewegt', 'Anliegen aus Soltau, sortiert danach, wie viele sagen: Das betrifft mich auch – und was die SPD-Fraktion daraus macht.', M.anliegenPage(d)],
+    ['mitreden/fragen/index.html', '/mitreden/fragen/', 'Fragen Sie uns', 'Fragen an die SPD Soltau – jede bekommt eine Antwort, auch anonym. Beantwortete Fragen mit Video.', M.fragenPage(d)],
+    ['mitreden/abstimmung/index.html', '/mitreden/abstimmung/', 'Sie entscheiden mit', 'Kleine Abstimmungen der SPD Soltau: Ihre Stimme geht in den Ausschuss – und hier steht, was daraus wurde.', M.abstimmungPage(d)],
+    ['mitreden/baustellen/index.html', '/mitreden/baustellen/', 'Wo wird gebaut?', 'Baustellen und Sperrungen in Soltau: was, warum, wie lange, Umleitung – mit Einordnung der SPD-Fraktion.', M.baustellenPage(d)],
     ['rat-und-rathaus/index.html', '/rat-und-rathaus/', 'Aus Rat & Rathaus', 'Sitzungen des Rates, Amtsblatt, Meldungen aus dem Rathaus und laufende Beteiligungen – automatisch aus den öffentlichen Quellen der Stadt Soltau.', T.ratRathausPage(d)],
     ['mitglieder/index.html', '/mitglieder/', 'Mitgliederbereich', 'Mitgliederbereich der SPD Soltau: Anmelden, Termine zusagen, Benachrichtigungen, App.', T.mitgliederPage(d)],
     ['impressum/index.html', '/impressum/', 'Impressum', 'Impressum des SPD Ortsvereins Soltau.', T.impressumPage(d)],
@@ -354,7 +366,10 @@ async function main() {
   const imgDir = path.join(__dirname, 'src', 'images');
   if (existsSync(imgDir)) {
     await mkdir(path.join(OUT, 'assets', 'images'), { recursive: true });
-    for (const f of await readdir(imgDir)) await copyFile(path.join(imgDir, f), path.join(OUT, 'assets', 'images', f));
+    for (const e of await readdir(imgDir, { withFileTypes: true })) {
+      if (e.isDirectory()) { await mkdir(path.join(OUT, 'assets', 'images', e.name), { recursive: true }); for (const f of await readdir(path.join(imgDir, e.name))) await copyFile(path.join(imgDir, e.name, f), path.join(OUT, 'assets', 'images', e.name, f)); }
+      else await copyFile(path.join(imgDir, e.name), path.join(OUT, 'assets', 'images', e.name));
+    }
   }
 
   // Suchmaschinen & Hosting

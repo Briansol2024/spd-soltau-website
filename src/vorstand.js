@@ -19,6 +19,7 @@ export function makeVorstand(ctx) {
     ['whatsapp', 'WhatsApp-Gruppen', 'Einladungslinks für Mitglieder', 'verwaltung', ICON.link],
     ['stammtisch', 'Stammtisch-Umfrage', 'Lokale für „Wo treffen wir uns?“', 'verwaltung', ICON.poll],
     ['statistik', 'Statistik', 'Aufrufe, Besuche, Quellen – ohne Cookies', 'statistik', ICON.chart],
+    ['mitreden', 'Mitreden (Website)', 'Startseite, Anliegen, Fragen, Abstimmungen, Baustellen', 'verwaltung', ICON.hand],
   ];
   const erlaubt = () => KACHELN.filter(k => me().can(k[3]));
   const ALT = { eingang: 'anliegen' };
@@ -40,6 +41,7 @@ export function makeVorstand(ctx) {
     v.innerHTML = `<p class="small rz-zurueck"><a href="#vorstand">← Vorstand</a></p><div id="vs-panel"></div>`;
     const panel = $('#vs-panel', v);
     if (cur[0] === 'anliegen') { await anliegen(panel, parts[1]); return; }
+    if (cur[0] === 'mitreden') { await ctx.mitreden.sec(panel, parts[1]); return; }
     if (ctx.tafeln[cur[0]]) { await ctx.tafeln[cur[0]](panel); return; }
     if (ctx.mehr[cur[0]]) { await ctx.mehr[cur[0]](panel); return; }
     panel.innerHTML = '<p class="muted">Kommt bald.</p>';
@@ -85,7 +87,7 @@ export function makeVorstand(ctx) {
       const aktionen = it.done ? '' : it.typ === 'registrierung'
         ? `<button class="btn btn-rot btn-sm" data-act="mitglied_freigeben">Freischalten</button><button class="btn btn-line btn-sm" data-act="mitglied_ablehnen">Ablehnen</button>`
         : it.typ === 'buchung' ? `<button class="btn btn-rot btn-sm" data-act="buchung_annehmen">Annehmen</button><button class="btn btn-line btn-sm" data-act="buchung_ablehnen">Ablehnen</button>`
-          : `<button class="btn btn-rot btn-sm" data-act="anfrage_erledigt">Beantwortet ✓</button>`;
+          : `<button class="btn btn-rot btn-sm" data-act="anfrage_erledigt">Beantwortet ✓</button>${ctx.mitreden && it.details['Darf veröffentlicht werden'] === 'ja' ? '<button class="btn btn-line btn-sm" data-anliegen-oeffentlich>Als Anliegen veröffentlichen</button>' : ''}`;
       const inArbeit = /in Arbeit/.test(it.status);
       return `<article class="inbox-item${it.done ? ' erledigt' : ''}" data-id="${esc(it.id)}">
       <div class="vg-kopf"><span class="tag ${it.typ === 'buchung' ? 'tag-schwarz' : ''}">${esc(LABEL[it.typ] || 'Info')}</span> <span class="small muted">${esc(fmtWhen(it.receivedAt))}</span><span class="badge ${it.done ? '' : inArbeit ? 'badge-mit' : 'badge-off'}">${esc(it.done ? it.status : inArbeit ? 'in Arbeit' : 'offen')}</span>${it.zustaendigName ? `<span class="small">zuständig: <b>${esc(it.zustaendigName)}</b></span>` : ''}</div>
@@ -109,6 +111,10 @@ export function makeVorstand(ctx) {
         if (e.target.matches('[data-zust]')) { const p = people().find(x => x.memberId === e.target.value); it.row = await db.update('Vorgaenge', { ...it.row, zustaendig: e.target.value, zustaendigName: p?.name || '', geaendertVon: me().name }); msg(note, p ? `${p.name} ist jetzt zuständig.` : 'Zuständigkeit entfernt.', 'ok'); }
         if (e.target.matches('[data-stand]')) { it.row = await db.update('Vorgaenge', { ...it.row, status: e.target.value, geaendertVon: me().name }); msg(note, 'Stand gespeichert.', 'ok'); }
       } catch (err) { msg(note, 'Nicht gespeichert: ' + errText(err)); }
+    });
+    box.addEventListener('click', e => {
+      const b = e.target.closest('[data-anliegen-oeffentlich]'); if (!b) return; const it = finde(b); if (!it) return;
+      const d = it.details || {}; ctx.mitreden.anliegenAus({ titel: (d.Thema && d.Thema !== 'Sonstiges' ? d.Thema + ': ' : '') + String(d.Nachricht || '').split(/[.!?\n]/)[0].slice(0, 100), kategorie: d.Thema || 'Sonstiges', ort: d.Wohnort || '', text: String(d.Nachricht || '').slice(0, 600), anfrageId: it.payload?.anfrageId || '' });
     });
     box.addEventListener('click', async e => {
       const b = e.target.closest('button[data-act],button[data-notiz-save]'); if (!b) return;

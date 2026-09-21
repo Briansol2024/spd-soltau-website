@@ -435,7 +435,7 @@ async function boardPushes(subs, pending, routing, logKeys) {
       if (NOW - new Date(a._createdDate).getTime() > 14 * 24 * H) continue;
       const art = a.typ === 'mitglied' ? 'Mitgliedsanfrage' : 'Kontaktanfrage';
       const text = a.nachricht || a.interesse || '';
-      const details = { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '' };
+      const details = { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '', 'Darf veröffentlicht werden': a.oeffentlichOk === true || a.oeffentlichOk === 'ja' ? 'ja' : '' };
       await inbox(routing.anfrage, { key, typ: 'anfrage', title: art + (a.thema ? ': ' + a.thema : ''), body: `${a.name || '?'}: ${text}`.slice(0, 180), details, payload: { anfrageId: a._id } });
       if (logKeys.has(key)) continue;
       await send(byMembers(subs, routing.anfrage), {
@@ -798,19 +798,45 @@ async function workflowStarten(datei, inputs = {}) {
 }
 // ---------- Meilensteine: Website neu bauen, sobald ein Zeitpunkt überschritten ist (Start der Website, Tag nach der Stichwahl) ----------
 // Der halbstündliche Zeitplan-Bau kommt bei GitHub oft Stunden zu spät – hier läuft es zuverlässig alle 5 Minuten.
-async function meilensteine() {
-  const token = env.GITHUB_TOKEN, repo = env.GITHUB_REPOSITORY || 'Briansol2024/spd-soltau-website'; if (!token) return;
-  const punkte = [['Start der Website', env.LAUNCH_AT], ['Tag nach der Stichwahl', '2026-09-28T00:05:00+02:00']].map(([n, t]) => [n, Date.parse(t || '')]).filter(([, t]) => t && NOW >= t && NOW - t < 6 * 3600 * 1000);
-  if (!punkte.length) return;
+let letzterBau = null; // Zeitpunkt des letzten Website-Baus (einmal je Lauf abgefragt)
+async function deployWenn(grund, zeitpunkt) {
+  const token = env.GITHUB_TOKEN, repo = env.GITHUB_REPOSITORY || 'Briansol2024/spd-soltau-website'; if (!token || !zeitpunkt || NOW < zeitpunkt) return false;
   try {
-    const r = await (await fetch(`https://api.github.com/repos/${repo}/actions/workflows/deploy.yml/runs?per_page=1`, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } })).json();
-    const letzter = Date.parse(r.workflow_runs?.[0]?.created_at || 0);
-    for (const [name, t] of punkte) {
-      if (letzter >= t) continue;
-      if (DRY) { log(`  Meilenstein „${name}“: würde die Website neu bauen`); continue; }
-      await workflowStarten('deploy.yml'); log(`  Meilenstein „${name}“ erreicht – Website wird neu gebaut`); break;
+    if (letzterBau === null) { const r = await (await fetch(`https://api.github.com/repos/${repo}/actions/workflows/deploy.yml/runs?per_page=1`, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } })).json(); letzterBau = Date.parse(r.workflow_runs?.[0]?.created_at || 0); }
+    if (letzterBau >= zeitpunkt) return false;
+    if (DRY) { log(`  ${grund}: würde die Website neu bauen`); return true; }
+    await workflowStarten('deploy.yml'); letzterBau = NOW; log(`  ${grund} – Website wird neu gebaut`); return true;
+  } catch (e) { log('  Neu bauen:', e.message); return false; }
+}
+async function meilensteine() {
+  for (const [name, t] of [['Start der Website', env.LAUNCH_AT], ['Tag nach der Stichwahl', '2026-09-28T00:05:00+02:00']]) { const z = Date.parse(t || ''); if (z && NOW - z < 6 * 3600 * 1000 && await deployWenn(`Meilenstein „${name}“ erreicht`, z)) break; }
+}
+// ---------- Mitreden (Website): Zähler und Ergebnisse verdichten, neue Fragen melden, Website bei Änderungen neu bauen ----------
+async function mitreden(subs, routing, logKeys) {
+  try {
+    const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
+    // „Betrifft mich auch“ / „Interessiert mich auch“ → Zähler
+    const rohe = await queryAll(client, 'Unterstuetzung'); const n = {}; for (const r of rohe) { const k = (r.typ || '') + ':' + r.zielId; n[k] = (n[k] || 0) + 1; }
+    for (const [col, typ] of [['AnliegenOeffentlich', 'anliegen'], ['FragenOeffentlich', 'frage']]) for (const it of await queryAll(client, col)) { const z = n[typ + ':' + it._id] || 0; if ((Number(it.zaehler) || 0) !== z && !DRY) await client.items.update(col, { ...it, zaehler: z }); }
+    // Abstimmungen: Stimmen zählen, abgelaufene schließen
+    let geaendert = 0;
+    for (const u of await queryAll(client, 'UmfragenOeffentlich', q => q.eq('mitreden', true))) {
+      const st = await queryAll(client, 'Stimmen', q => q.eq('umfrageId', u._id));
+      const counts = (u.optionen || []).map(() => 0); for (const s of st) for (const a of (s.auswahl || [])) { const i = +a; if (counts[i] !== undefined) counts[i]++; }
+      const erg = JSON.stringify(counts); const zu = u.offen && u.endetAm && u.endetAm < heute;
+      if (erg !== (u.ergebnis || '[]') || (Number(u.stimmen) || 0) !== st.length || zu) { if (!DRY) await client.items.update('UmfragenOeffentlich', { ...u, ergebnis: erg, stimmen: st.length, offen: zu ? false : u.offen }); if (zu) geaendert++; }
     }
-  } catch (e) { log('  Meilensteine:', e.message); }
+    // neue Fragen → Vorstand (wie Anfragen)
+    for (const f of await queryAll(client, 'Fragen', q => q.eq('status', 'offen'))) {
+      const key = 'frage:' + f._id; if (logKeys.has(key) || NOW - new Date(f._createdDate).getTime() > 14 * 24 * H) continue;
+      await send(byMembers(subs, routing.anfrage), { title: 'Neue Frage von der Website', body: String(f.frage || '').slice(0, 160), tag: key, url: url('/mitglieder/#vorstand/mitreden-fragen') }, key, logKeys);
+    }
+    // Inhalt geändert (Vorstand → Mitreden) oder Abstimmung geschlossen → Website neu bauen
+    const [start] = await queryAll(client, 'Startseite', q => q.limit(1));
+    let stand = Date.parse(start?.stand || 0) || 0; if (geaendert) stand = Math.max(stand, NOW);
+    if (stand) await deployWenn('Mitreden: Inhalt geändert', stand);
+    // Ergebnisse alle 30 Minuten auf die Website (Zähler ändern sich laufend – nicht bei jedem Klick bauen)
+  } catch (e) { log('Mitreden:', e.message); }
 }
 // ---------- Overlay-Agent: wartende Aufträge starten, fertige melden ----------
 // Verweise material:<id> im Manifest durch die Wix-Adresse ersetzen; gibt einen Wartetext zurück, solange Fotos fehlen
@@ -981,6 +1007,7 @@ const st = await loadSettings(approved);
   await auftraege(subs, approved, emails, logKeys);
   await ratsberichte();
   await meilensteine();
+  await mitreden(subs, st.routing, logKeys);
   await abonnenten();
   await statistik();
   log('fertig', stats);
