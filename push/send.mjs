@@ -821,7 +821,11 @@ async function mitreden(subs, routing, logKeys) {
     // Abstimmungen: Stimmen zählen, abgelaufene schließen
     let geaendert = 0;
     for (const u of await queryAll(client, 'UmfragenOeffentlich', q => q.eq('mitreden', true))) {
-      const st = await queryAll(client, 'Stimmen', q => q.eq('umfrageId', u._id));
+      const alle = await queryAll(client, 'Stimmen', q => q.eq('umfrageId', u._id));
+      // Je Gerät zählt nur die letzte Stimme – wer mehrfach abstimmt, verändert das Ergebnis also nicht
+      const proGeraet = new Map();
+      const st = alle.filter(x => { const g = (x.geraet || '').trim(); if (!g) return true; const alt = proGeraet.get(g); if (alt && new Date(alt._createdDate) >= new Date(x._createdDate)) return false; proGeraet.set(g, x); return true; })
+        .filter(x => { const g = (x.geraet || '').trim(); return !g || proGeraet.get(g) === x; });
       const counts = (u.optionen || []).map(() => 0); for (const s of st) for (const a of (s.auswahl || [])) { const i = +a; if (counts[i] !== undefined) counts[i]++; }
       const erg = JSON.stringify(counts); const zu = u.offen && u.endetAm && u.endetAm < heute;
       if (erg !== (u.ergebnis || '[]') || (Number(u.stimmen) || 0) !== st.length || zu) { if (!DRY) await client.items.update('UmfragenOeffentlich', { ...u, ergebnis: erg, stimmen: st.length, offen: zu ? false : u.offen }); if (zu) geaendert++; }

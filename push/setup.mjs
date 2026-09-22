@@ -54,7 +54,7 @@ const SCHEMA = {
   PushLog: [T('key', 'Schlüssel'), T('titel', 'Titel'), T('empfaenger', 'Empfänger', 'NUMBER')],
   Umfragen: [T('frage', 'Frage'), T('beschreibung', 'Erläuterung'), T('optionen', 'Antworten', 'ARRAY_STRING'), T('mehrfach', 'Mehrfachauswahl', 'BOOLEAN'), T('offen', 'Offen', 'BOOLEAN'), T('endetAm', 'Läuft bis'), T('von', 'Von'), T('eventId', 'Termin-ID'), T('nurZusagen', 'Nur für Zusagen', 'BOOLEAN')],
   UmfragenOeffentlich: [T('frage', 'Frage'), T('beschreibung', 'Erläuterung'), T('optionen', 'Antworten', 'ARRAY_STRING'), T('mehrfach', 'Mehrfachauswahl', 'BOOLEAN'), T('offen', 'Offen', 'BOOLEAN'), T('endetAm', 'Läuft bis'), T('von', 'Von'), T('maxWahl', 'Höchstens Kreuze', 'NUMBER'), T('folge', 'Was daraus wurde'), T('ergebnis', 'Ergebnis (JSON)'), T('mitreden', 'Auf „Sie entscheiden mit“', 'BOOLEAN'), T('stimmen', 'Abgegebene Stimmen', 'NUMBER')],
-  Stimmen: [T('umfrageId', 'Umfrage-ID'), T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('auswahl', 'Auswahl (Index)', 'ARRAY_STRING')],
+  Stimmen: [T('umfrageId', 'Umfrage-ID'), T('name', 'Name'), T('memberId', 'Mitglieds-ID'), T('auswahl', 'Auswahl (Index)', 'ARRAY_STRING'), T('geraet', 'Gerätekennung (Besucher)')],
   Helferlisten: [T('titel', 'Titel'), T('datum', 'Datum'), T('ort', 'Ort'), T('eventTitel', 'Termin'), T('beschreibung', 'Beschreibung'), T('von', 'Von')],
   Helfer: [T('listeId', 'Liste-ID'), T('schichtId', 'Schicht'), T('name', 'Name'), T('memberId', 'Mitglieds-ID')],
   Dokumente: [T('titel', 'Titel'), T('kategorie', 'Kategorie'), T('datum', 'Datum'), T('url', 'Link'), T('datei', 'Datei', 'DOCUMENT'), T('beschreibung', 'Beschreibung'), T('von', 'Von')],

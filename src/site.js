@@ -8,6 +8,13 @@ setBase(SPD.base || '');
 const isApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /[?&]app=1/.test(location.search);
 const onMembers = /\/mitglieder\//.test(location.pathname);
 let meName = null; try { meName = JSON.parse(localStorage.getItem('spd-me') || 'null')?.name || null; } catch (e) { /* ohne Speicher */ }
+// Zufällige Kennung für dieses Gerät – damit dieselbe Person nicht mehrfach für dasselbe stimmt. Keine Personendaten, bleibt im Browser.
+function geraetId() {
+  try { let g = localStorage.getItem('spd-geraet'); if (!g) { g = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('spd-geraet', g); } return g; } catch (e) { return 'ohne'; }
+}
+// Eigene Aufrufe nicht mitzählen: auf Geräten mit Mitglieds-Anmeldung und nach „?zaehlen=aus“ wird nichts gezählt
+(() => { const w = new URLSearchParams(location.search).get('zaehlen'); if (!w) return; try { if (w === 'aus') localStorage.setItem('spd-nicht-zaehlen', '1'); if (w === 'an') localStorage.removeItem('spd-nicht-zaehlen'); } catch (e) { /* ohne Speicher */ } })();
+const nichtZaehlen = () => { try { return !!localStorage.getItem('spd-nicht-zaehlen') || !!localStorage.getItem('spd-me'); } catch (e) { return false; } };
 let fromApp = null; try { fromApp = sessionStorage.getItem('spd-from-app'); } catch (e) { /* ohne Speicher */ }
 if (onMembers) { try { sessionStorage.removeItem('spd-from-app'); } catch (e) { /* egal */ } }
 else if ((isApp && meName) || fromApp) {
@@ -317,6 +324,7 @@ function zaehlen(typ, name) {
     tag: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`, stunde: now.getHours(),
     title: typ === 'seite' ? pfad : name || '',
   };
+  if (nichtZaehlen()) return Promise.resolve(); // eigene Aufrufe (Vorstand, angemeldete Mitglieder) zählen nicht mit
   return wixInsert('Seitenaufrufe', data).catch(() => {});
 }
 window.spdZaehlen = zaehlen;
@@ -356,7 +364,7 @@ if (ubox && SPD.app?.clientId) {
       const b = e.target.closest('button[data-i]'); if (!b) return;
       $$('button', ubox).forEach(x => x.disabled = true);
       try {
-        await wixInsert('Stimmen', { umfrageId: u._id, auswahl: [+b.dataset.i], memberId: '', name: 'Besucher', title: 'Besucher – ' + u.frage });
+        await wixInsert('Stimmen', { umfrageId: u._id, auswahl: [+b.dataset.i], memberId: '', geraet: geraetId(), name: 'Besucher', title: 'Besucher – ' + u.frage });
         zaehlen('ereignis', 'umfrage:stimme');
         voted = b.dataset.i; try { localStorage.setItem(key, voted); } catch (err) { /* ohne Speicher */ }
       } catch (err) { $$('button', ubox).forEach(x => x.disabled = false); return; }
@@ -398,7 +406,7 @@ if (zaList) {
   const liste = $('[data-typ="anliegen"], [data-typ="frage"]'); if (!liste || (!SPD.app?.clientId && !SPD.demo)) return;
   const typ = liste.dataset.typ; const key = 'spd-mit-' + typ;
   let meine = []; try { meine = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { meine = []; }
-  let geraet = ''; try { geraet = localStorage.getItem('spd-geraet') || ''; if (!geraet) { geraet = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('spd-geraet', geraet); } } catch (e) { geraet = 'ohne'; }
+  const geraet = geraetId();
   const markieren = () => $$('[data-unterstuetzen]', liste).forEach(b => b.setAttribute('aria-pressed', String(meine.includes(b.dataset.unterstuetzen))));
   markieren();
   // Zähler frisch aus den Rohdaten (der Bau-Stand kann ein paar Minuten alt sein)
@@ -460,7 +468,7 @@ $$('.abstimmung[data-id]').forEach(art => {
   knopf.addEventListener('click', async () => {
     if (!gewaehlt.length) return; knopf.disabled = true;
     try {
-      if (!SPD.demo) await wixInsert('Stimmen', { umfrageId: id, auswahl: gewaehlt.map(String), memberId: '', name: 'Besucher', title: 'Besucher – ' + ($('.title', art)?.textContent || '').slice(0, 60) });
+      if (!SPD.demo) await wixInsert('Stimmen', { umfrageId: id, auswahl: gewaehlt.map(String), memberId: '', geraet: geraetId(), name: 'Besucher', title: 'Besucher – ' + ($('.title', art)?.textContent || '').slice(0, 60) });
       zaehlen('ereignis', 'mitreden:abstimmung');
       try { localStorage.setItem(key, JSON.stringify(gewaehlt)); } catch (e) { /* ohne Speicher */ }
       zeigeErgebnis(gewaehlt);
