@@ -333,6 +333,7 @@ async function main() {
     ['mitreden/baustellen/index.html', '/mitreden/baustellen/', 'Wo wird gebaut?', 'Baustellen und Sperrungen in Soltau: was, warum, wie lange, Umleitung – mit Einordnung der SPD-Fraktion.', M.baustellenPage(d)],
     ['rat-und-rathaus/index.html', '/rat-und-rathaus/', 'Aus Rat & Rathaus', 'Sitzungen des Rates, Amtsblatt, Meldungen aus dem Rathaus und laufende Beteiligungen – automatisch aus den öffentlichen Quellen der Stadt Soltau.', T.ratRathausPage(d)],
     ['app/index.html', '/app/', 'So bekommst du die App', 'Den Mitgliederbereich der SPD Soltau als App aufs Handy oder den PC holen – ohne App-Store, in einer Minute. Anleitung mit Video für Android, iPhone, Windows und Mac.', T.appPage(d)],
+    ['anmelden-hilfe/index.html', '/anmelden-hilfe/', 'Anmelden & Registrieren', 'Wie man sich im Mitgliederbereich der SPD Soltau registriert und anmeldet – Video und Schritte für Android, iPhone, Windows und Mac.', T.anmeldeHilfePage(d)],
     ['mitglieder/index.html', '/mitglieder/', 'Mitgliederbereich', 'Mitgliederbereich der SPD Soltau: Anmelden, Termine zusagen, Benachrichtigungen, App.', T.mitgliederPage(d)],
     ['impressum/index.html', '/impressum/', 'Impressum', 'Impressum des SPD Ortsvereins Soltau.', T.impressumPage(d)],
     ['datenschutz/index.html', '/datenschutz/', 'Datenschutz', 'Datenschutzhinweise der Website des SPD Ortsvereins Soltau.', T.datenschutzPage(d)],

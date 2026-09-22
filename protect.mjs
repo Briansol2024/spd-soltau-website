@@ -56,7 +56,7 @@ for (const rel of ['bald/index.html', 'index.html']) {
   if (existsSync(src) && readFileSync(src, 'utf8').includes('data-countdown')) { await cp(src, path.join(OUT, rel), { force: true }); console.log('[protect] offen gelassen:', rel); }
 }
 // „So bekommst du die App“ bleibt ohne Passwort – der Link wird vor dem Start in der Mitglieder-Gruppe geteilt
-for (const rel of ['app/index.html']) {
+for (const rel of ['app/index.html', 'anmelden-hilfe/index.html']) {
   const src = path.join(SRC, rel);
   if (existsSync(src)) { await cp(src, path.join(OUT, rel), { force: true }); console.log('[protect] offen gelassen:', rel); }
 }

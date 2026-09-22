@@ -843,6 +843,39 @@ export function appPage(d) {
 </section>`;
 }
 
+// ---------- /anmelden-hilfe/: nur das Video „Registrieren und Anmelden“ – für alle, die noch kein Konto haben ----------
+export function anmeldeHilfePage(d) {
+  const topic = HELP_TOPICS.find(t => t.id === 'registrieren');
+  const G = [
+    ['android', 'android', 'Android', 'Handy oder Tablet mit Android'],
+    ['iphone', 'ios', 'iPhone / iPad', 'iPhone oder iPad'],
+    ['windows', 'windows', 'Windows', 'PC oder Laptop mit Windows'],
+    ['mac', 'macos', 'Mac', 'Mac oder MacBook'],
+  ];
+  const panel = ([key, plat, name, hint]) => `
+    <section class="app-panel" id="ah-${key}" data-geraet="${key}" hidden>
+      <div class="app-cols">
+        <div class="app-video"><video controls playsinline preload="metadata" poster="${url('/assets/hilfe/01-registrieren-hoch.jpg')}" aria-label="Video: Registrieren und Anmelden auf ${esc(name)}"><source src="${url(`/assets/hilfe/01-registrieren-${plat}.mp4`)}" type="video/mp4"></video></div>
+        <div class="app-schritte">
+          <span class="tag">${esc(name)}</span>
+          <h2 class="title">Registrieren<br>und anmelden</h2>
+          <p class="small muted">${esc(hint)} · Video ohne Ton, alles steht als Text im Bild</p>
+          <ol class="app-liste">${stepsFor(topic, plat).map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+          <div class="hero-actions"><a class="btn btn-rot" href="${url('/mitglieder/#registrieren')}">Jetzt registrieren</a><a class="btn btn-line" href="${url('/mitglieder/')}">Zur Anmeldung</a></div>
+        </div>
+      </div>
+    </section>`;
+  return `
+<section>
+  ${pageHead('Mitgliederbereich', 'Anmelden &amp;<br>Registrieren', 'Der Mitgliederbereich ist für Mitglieder der SPD Soltau. Hier sehen Sie in einem kurzen Video, wie Sie ein Konto anlegen, Ihre E-Mail-Adresse bestätigen und sich anmelden. Gerät wählen – der Rest dauert zwei Minuten.', 'bahnhof')}
+  <div class="wrap section app-seite">
+    <div class="app-wahl" role="tablist" aria-label="Gerät wählen">${G.map(([key, , name, hint]) => `<button type="button" class="app-geraet" role="tab" data-geraet="${key}" aria-selected="false"><b>${esc(name)}</b><small>${esc(hint)}</small></button>`).join('')}</div>
+    ${G.map(panel).join('')}
+    <p class="small muted app-tipp">Nach der Registrierung prüft der Vorstand, dass Sie Mitglied sind, und schaltet das Konto frei – das dauert in der Regel nicht lange. Die App aufs Handy holen: <a href="${url('/app/')}">So bekommst du die App</a>. Fragen? <a href="${url('/kontakt/')}">Schreiben Sie uns</a>.</p>
+  </div>
+</section>`;
+}
+
 // ---------- Roter Bahnhof: Buchungsanfrage ----------
 export function roterBahnhofPage(d) {
   return `

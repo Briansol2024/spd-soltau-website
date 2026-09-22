@@ -222,7 +222,7 @@ function renderAuth(tab = 'login', hint = '') {
         <div class="mb-actions"><button class="btn btn-rot" type="submit">Link schicken</button><button class="btn btn-line" type="button" id="p-back">Zurück</button></div>
       </form>
       ${istTester() ? '<p class="small muted"><a href="?demo">Demo-Modus öffnen (Beispieldaten)</a></p>' : ''}
-      <p class="small"><a class="btn btn-line btn-sm" href="#hilfe">Hilfe &amp; Anleitungen (Videos)</a></p>
+      <p class="small"><a class="btn btn-line btn-sm" href="${esc(BASE)}/anmelden-hilfe/">Hilfe: Anmelden &amp; Registrieren (Video)</a></p>
     </div>
     <div class="mb-aside">
       ${pushCard(false)}
