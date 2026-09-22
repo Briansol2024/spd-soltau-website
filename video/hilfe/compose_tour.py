@@ -1,4 +1,4 @@
-# Rundgang-Videos fertig machen: video/hilfe/tmp/rundgang-*.webm + Musik -> video/hilfe/out/<name>.mp4 (H.264, klein genug für WhatsApp)
+# Rundgang-Videos fertig machen: video/hilfe/tmp/rundgang-*.webm und keynote-*.webm + Musik -> video/hilfe/out/<name>.mp4 (H.264, klein genug für WhatsApp)
 #   python video/hilfe/compose_tour.py            alle Rundgänge
 #   python video/hilfe/compose_tour.py rat        nur rundgang-ratsmitglieder
 import re, subprocess, sys
@@ -16,13 +16,14 @@ def duration(path):
     m = re.search(r'Duration: (\d+):(\d+):([\d.]+)', r.stderr)
     return int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3]) if m else 0
 
-for webm in sorted(TMP.glob('rundgang-*.webm')):
+for webm in sorted(list(TMP.glob('rundgang-*.webm')) + list(TMP.glob('keynote-*.webm'))):
     if only and only not in webm.stem: continue
     mp4 = OUT / (webm.stem + '.mp4')
     d = duration(webm)
+    musik = ROOT / 'video' / 'hilfe' / ('keynote.wav' if webm.stem.startswith('keynote') else 'music.wav')
     cmd = [FFMPEG, '-hide_banner', '-loglevel', 'error', '-y',
-           '-i', str(webm), '-stream_loop', '-1', '-i', str(MUSIC),
-           '-filter_complex', f'[1:a]volume=0.5,afade=t=in:st=0:d=2,afade=t=out:st={max(0, d - 3):.2f}:d=3[a]',
+           '-i', str(webm), '-stream_loop', '-1', '-i', str(musik),
+           '-filter_complex', f'[1:a]volume={0.7 if webm.stem.startswith("keynote") else 0.5},afade=t=in:st=0:d=1.5,afade=t=out:st={max(0, d - 3):.2f}:d=3[a]',
            '-map', '0:v:0', '-map', '[a]', '-t', f'{d:.2f}',
            '-c:v', 'libx264', '-preset', 'medium', '-crf', '26', '-pix_fmt', 'yuv420p', '-r', '25', '-profile:v', 'main', '-level', '4.0',
            '-c:a', 'aac', '-b:a', '80k', '-ac', '1', '-movflags', '+faststart', str(mp4)]

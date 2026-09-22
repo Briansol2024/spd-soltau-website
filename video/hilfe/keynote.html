@@ -1,0 +1,144 @@
+<!doctype html>
+<!-- Keynote-Bühne für die Rundgang-Videos: schwarzer Raum, ein Handy, das die Kamera heranholt, große Schlagzeilen, Kapitelwörter.
+     Die App läuft im iframe (localhost), gesteuert von keynote.mjs. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keynote – Bühne</title>
+<link rel="stylesheet" href="http://localhost:8080/assets/fonts.css">
+<style>
+:root{--rot:#E3000F;--schwarz:#0F0F0F;--display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;--body:'Barlow','Segoe UI',Arial,sans-serif;--ease:cubic-bezier(.22,.9,.24,1);--pop:cubic-bezier(.2,1.4,.3,1)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-family:var(--body);color:#fff}
+#stage{position:absolute;inset:0;background:#050505;overflow:clip}
+/* Raum: rotes Glimmen, das langsam atmet, und ein feiner Boden */
+#glow{position:absolute;inset:-20%;background:radial-gradient(48% 34% at 50% 78%,rgba(227,0,15,.42),transparent 70%);opacity:.9;animation:breathe 9s ease-in-out infinite;filter:blur(10px)}
+#glow2{position:absolute;inset:-20%;background:radial-gradient(40% 30% at 50% 15%,rgba(255,255,255,.07),transparent 70%)}
+@keyframes breathe{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.12) translateY(-30px)}}
+#vignette{position:absolute;inset:0;background:radial-gradient(80% 70% at 50% 50%,transparent 55%,rgba(0,0,0,.75) 100%);pointer-events:none}
+#logo{position:absolute;left:36px;top:34px;height:44px;opacity:0;transition:opacity .6s}
+#logo.on{opacity:.92}
+/* Gerät: devwrap = Auftritt/Abdunkeln, device = Kamera (Transform) */
+#devwrap{position:absolute;inset:0;opacity:0;transform:translateY(160px) scale(.9);filter:blur(14px);transition:opacity .9s var(--ease),transform 1s var(--ease),filter .9s var(--ease)}
+#devwrap.in{opacity:1;transform:none;filter:none}
+#devwrap.dim{opacity:.22;transform:scale(.94);filter:blur(6px) brightness(.5)}
+#devwrap.out{opacity:0;transform:translateY(120px) scale(.85);filter:blur(16px)}
+#device{position:absolute;background:#0b0b0b;border-radius:38px;padding:12px;box-shadow:0 40px 110px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.06),0 0 90px rgba(227,0,15,.14);transition:transform .9s var(--ease);will-change:transform}
+#screen{position:absolute;inset:12px;border-radius:28px;background:#fff;overflow:clip;display:flex;flex-direction:column}
+#status{display:flex;flex-shrink:0;height:40px;align-items:center;justify-content:space-between;padding:0 22px;background:#fff;color:#0b0b0b;font:600 15px/1 var(--body)}
+#status .r{display:flex;gap:6px;align-items:center}
+#cam{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;background:#0b0b0b;z-index:5}
+#app{flex:1;border:0;width:100%;display:block;background:#fff}
+#homebar{display:flex;flex-shrink:0;height:26px;align-items:center;justify-content:center;background:#fff}
+#homebar i{display:block;width:134px;height:5px;border-radius:3px;background:#0b0b0b}
+/* Tipp-Anzeige */
+#tap{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:rgba(227,0,15,.55);border:3px solid #fff;opacity:0;pointer-events:none;z-index:40;box-shadow:0 0 0 0 rgba(227,0,15,.5)}
+#tap.on{animation:tap .75s var(--ease) both}
+@keyframes tap{0%{opacity:0;transform:scale(.6)}18%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(2.6);box-shadow:0 0 0 18px rgba(227,0,15,0)}}
+/* Kicker: kleine rote Zeile */
+#kicker{position:absolute;left:0;right:0;top:52px;text-align:center;font:700 26px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--rot);opacity:0;transition:opacity .5s,transform .5s var(--ease);transform:translateY(10px);z-index:30}
+#kicker.on{opacity:1;transform:none}
+/* Schlagzeile: zwei bis drei Zeilen, die nacheinander einschlagen */
+#head{position:absolute;left:36px;right:36px;text-align:center;z-index:30;pointer-events:none}
+#head.center{top:50%;transform:translateY(-50%)}
+#head.top{top:150px}
+#head.bottom{bottom:64px}
+#head .ln{display:block;font:800 78px/1 var(--display);text-transform:uppercase;letter-spacing:-.005em;color:#fff;opacity:0;text-shadow:0 8px 40px rgba(0,0,0,.6)}
+#head.small .ln{font-size:60px}
+#head .ln.rot{color:var(--rot)}
+#head.on .ln{animation:punch .6s var(--ease) both}
+#head.on .ln:nth-child(2){animation-delay:.14s}#head.on .ln:nth-child(3){animation-delay:.28s}
+#head.off .ln{animation:leave .35s var(--ease) both}
+#head.over::before{content:"";position:absolute;left:-36px;right:-36px;top:-90px;bottom:-110px;background:linear-gradient(180deg,transparent,rgba(5,5,5,.9) 35%,rgba(5,5,5,.96));z-index:-1}
+@keyframes punch{0%{opacity:0;transform:translateY(46px) scale(1.06);filter:blur(8px)}100%{opacity:1;transform:none;filter:none}}
+@keyframes leave{0%{opacity:1}100%{opacity:0;transform:translateY(-18px);filter:blur(6px)}}
+/* Kapitelwort: riesig, schlägt ein, roter Strich fährt darunter */
+#word{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:35;pointer-events:none;opacity:0}
+#word b{font:800 150px/1 var(--display);text-transform:uppercase;letter-spacing:-.01em;color:#fff;text-align:center;padding:0 30px;text-shadow:0 20px 60px rgba(0,0,0,.6)}
+#word b.klein{font-size:110px}
+#word i{display:block;height:12px;width:0;background:var(--rot);margin-top:26px}
+#word.on{opacity:1;animation:none}
+#word.on b{animation:slam .55s var(--pop) both}
+#word.on i{animation:sweep .5s .3s var(--ease) both}
+#word.off{animation:wordoff .4s var(--ease) both}
+@keyframes slam{0%{opacity:0;transform:scale(1.5);filter:blur(10px)}100%{opacity:1;transform:none;filter:none}}
+@keyframes sweep{0%{width:0}100%{width:220px}}
+@keyframes wordoff{0%{opacity:1;transform:none}100%{opacity:0;transform:scale(.96);filter:blur(8px)}}
+/* Zähler: große Zahl, die hochzählt */
+#count{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;z-index:31;opacity:0;transition:opacity .3s}
+#count.on{opacity:1}
+#count b{display:block;font:800 170px/1 var(--display);color:var(--rot);font-variant-numeric:tabular-nums;text-shadow:0 10px 50px rgba(0,0,0,.6)}
+#count span{display:block;font:700 30px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;color:#fff;margin-top:8px}
+/* Schluss */
+#end{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;z-index:50;opacity:0;transition:opacity .6s}
+#end.on{opacity:1}
+#end .big{font:800 96px/1 var(--display);text-transform:uppercase;text-align:center;padding:0 30px;animation:punch .7s var(--ease) both}
+#end .adr{background:var(--rot);padding:20px 30px;font:700 44px/1 var(--display);animation:punch .7s .25s var(--ease) both}
+#end img{height:70px;margin-top:20px;animation:punch .7s .45s var(--ease) both}
+#end .sub{font:500 26px/1.3 var(--body);color:#C9C4C2;text-align:center;animation:punch .7s .35s var(--ease) both}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
+#flash.on{animation:flash .5s ease-out both}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="glow"></div><div id="glow2"></div>
+  <img id="logo" src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt="">
+  <div id="devwrap"><div id="device"><div id="screen"><div id="cam"></div><div id="status"><span id="clock">10:08</span><span class="r">&#9650; &#9646;&#9646;&#9646;</span></div><iframe id="app" title="App"></iframe><div id="homebar"><i></i></div></div></div></div>
+  <div id="vignette"></div>
+  <div id="tap"></div>
+  <div id="kicker"></div>
+  <div id="head" class="bottom"></div>
+  <div id="word"><b></b><i></i></div>
+  <div id="count"><b>0</b><span></span></div>
+  <div id="end"><div class="big"></div><div class="adr"></div><div class="sub"></div><img src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt=""></div>
+  <div id="flash"></div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+// Gerätemaße (Identität = Kamera in Ruhe): Handy 504×(815+66+24) mittig, iframe-Nullpunkt für die Koordinaten aus der App
+const DEV = { x: 108, y: 110, w: 504, h: 0 };
+const SCREEN_W = 480, APP_H = 815;
+window.SCREEN0 = { x: DEV.x + 12, y: DEV.y + 12 + 40 };
+const cam = { tx: 0, ty: 0, s: 1 };
+window.setup = () => {
+  DEV.h = 12 + 40 + APP_H + 26 + 12;
+  Object.assign($('#device').style, { left: DEV.x + 'px', top: DEV.y + 'px', width: DEV.w + 'px', height: DEV.h + 'px' });
+  $('#app').style.height = APP_H + 'px';
+};
+window.loadApp = url => { $('#app').src = url; };
+// Kamera: Punkt P (Bühnenkoordinaten in Ruhe) soll bei Faktor s auf C landen
+window.camTo = ({ s = 1, px, py, cx = 360, cy, ms = 900 } = {}) => {
+  const O = { x: DEV.x + DEV.w / 2, y: DEV.y + DEV.h / 2 };
+  const P = px === undefined ? O : { x: px, y: py }; const C = { x: cx, y: cy === undefined ? O.y : cy };
+  cam.s = s; cam.tx = C.x - O.x - s * (P.x - O.x); cam.ty = C.y - O.y - s * (P.y - O.y);
+  const d = $('#device'); d.style.transition = `transform ${ms}ms var(--ease)`; d.style.transform = `translate(${cam.tx}px, ${cam.ty}px) scale(${s})`;
+};
+window.camReset = (ms = 900) => camTo({ s: 1, ms });
+// Ruhe-Koordinate → aktuelle Bildschirmkoordinate (für die Tipp-Anzeige)
+window.toStage = (px, py) => { const O = { x: DEV.x + DEV.w / 2, y: DEV.y + DEV.h / 2 }; return { x: O.x + cam.s * (px - O.x) + cam.tx, y: O.y + cam.s * (py - O.y) + cam.ty }; };
+window.phone = mode => { const w = $('#devwrap'); w.className = mode; };  // 'in' | 'dim' | 'out' | ''
+window.tapAt = (x, y) => { const t = $('#tap'); t.style.left = x + 'px'; t.style.top = y + 'px'; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); };
+window.kicker = text => { const k = $('#kicker'); if (!text) { k.classList.remove('on'); return; } k.textContent = text; k.classList.add('on'); };
+window.headline = ({ lines = [], pos = 'bottom', over = false, small = false } = {}) => {
+  const h = $('#head'); h.className = `${pos}${over ? ' over' : ''}${small ? ' small' : ''}`;
+  h.innerHTML = lines.map(l => { const rot = l.startsWith('*'); return `<span class="ln${rot ? ' rot' : ''}">${l.replace(/^\*/, '')}</span>`; }).join('');
+  void h.offsetWidth; h.classList.add('on');
+};
+window.headOff = () => { const h = $('#head'); if (!h.classList.contains('on')) return; h.classList.remove('on'); h.classList.add('off'); setTimeout(() => { if (h.classList.contains('off')) { h.classList.remove('off'); h.innerHTML = ''; } }, 380); };
+window.word = (text, klein = false) => { const w = $('#word'); w.className = ''; w.querySelector('b').textContent = text; w.querySelector('b').className = klein ? 'klein' : ''; void w.offsetWidth; w.className = 'on'; };
+window.wordOff = () => { const w = $('#word'); if (!w.classList.contains('on')) return; w.className = 'off'; };
+window.counter = (from, to, label, ms = 1200) => {
+  const c = $('#count'), b = c.querySelector('b'); c.querySelector('span').textContent = label || ''; c.classList.add('on');
+  const t0 = performance.now(); const tick = () => { const p = Math.min(1, (performance.now() - t0) / ms); const e = 1 - Math.pow(1 - p, 3); b.textContent = Math.round(from + (to - from) * e); if (p < 1) requestAnimationFrame(tick); }; tick();
+};
+window.counterText = (text, label) => { const c = $('#count'); c.querySelector('b').textContent = text; c.querySelector('span').textContent = label || ''; c.classList.add('on'); };
+window.counterOff = () => $('#count').classList.remove('on');
+window.logo = on => $('#logo').classList.toggle('on', on);
+window.flash = () => { const f = $('#flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); };
+window.endCard = ({ big, adr, sub = '' }) => { const e = $('#end'); e.querySelector('.big').innerHTML = big; e.querySelector('.adr').textContent = adr; e.querySelector('.sub').textContent = sub; e.classList.add('on'); };
+</script>
+</body>
+</html>
