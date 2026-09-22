@@ -66,6 +66,7 @@ jobs:
         run: node protect.mjs
         env:
           PREVIEW_PASSWORD: ${{ secrets.PREVIEW_PASSWORD }}
+          LAUNCH_AT: ${{ vars.LAUNCH_AT }}   # ab diesem Zeitpunkt kein Passwort mehr
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-protected
