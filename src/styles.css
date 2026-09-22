@@ -1159,13 +1159,13 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 @keyframes bang{0%,12%,100%{transform:none}3%{transform:translateY(-12%) rotate(-8deg) scale(1.1)}6%{transform:translateY(2%) rotate(6deg) scale(.96)}9%{transform:translateY(-5%) rotate(-3deg)}}
 @keyframes hop{0%{transform:none}40%{transform:translateY(-14%) scale(1.06)}100%{transform:none}}
 /* Der Strich: zwei Züge wie mit dem Stift – erst hin, dann kürzer schief zurück */
-.moin-strich{display:block;width:112%;margin:-.02em -6% 0;height:.34em;overflow:visible}
+.moin-strich{display:block;width:114%;margin:.01em -7% 0;height:.1em;overflow:visible}
 .moin-strich path{fill:none;stroke:var(--rot);stroke-linecap:round;stroke-linejoin:round}
 .moin-strich .zug1{stroke-dasharray:283;animation:moinZug .45s cubic-bezier(.4,.02,.25,1) 1.32s backwards}
 .moin-strich .zug2{stroke-dasharray:254;animation:moinZug2 .36s cubic-bezier(.4,0,.3,1) 1.8s backwards}
 @keyframes moinZug{from{stroke-dashoffset:283}to{stroke-dashoffset:0}}
 @keyframes moinZug2{from{stroke-dashoffset:254}to{stroke-dashoffset:0}}
-@container site (max-width:600px){.hero h1.hero-moin{font-size:112px;align-self:center}.moin-strich{height:.38em}}
+@container site (max-width:600px){.hero h1.hero-moin{font-size:112px;align-self:center}.moin-strich{height:.11em}}
 
 /* ===== Ratsarbeit (Working Space der Fraktion): große Ziele, wenig Bedienelemente ===== */
 .rz{display:grid;gap:0}
