@@ -60,7 +60,7 @@ const TOUREN = {
         ['Mitfahren: Platz im Auto anbieten oder eine Mitfahrt suchen – direkt am Termin.', async () => {
           await S.tap('.rsvp >> nth=0 >> details.rides summary');
           await S.select('.rsvp >> nth=0 >> .ride-form select[name=typ]', 'biete'); await S.fill('.rsvp >> nth=0 >> .ride-form [name=ab]', ''); await S.type('.rsvp >> nth=0 >> .ride-form [name=ab]', 'Harber'); await S.fill('.rsvp >> nth=0 >> .ride-form [name=zeit]', '17:30');
-          await S.tap('.rsvp >> nth=0 >> .ride-form [type=submit]'); await sleep(600); await S.point('.rsvp >> nth=0 >> .ride');
+          await S.tap('.rsvp >> nth=0 >> .ride-form [type=submit]'); await sleep(900); await S.point('.rsvp >> nth=0 >> .ride-list');
         }],
         ['Helferlisten: Schicht antippen – schon bist du eingetragen.', async () => {
           await S.scroll('.hl-embed .shift'); await S.tap('.hl-embed .shift button[data-shift]:not([disabled])');
@@ -213,13 +213,15 @@ async function recordTour(t) {
       const url = `${BASE}/mitglieder/${Q}&r=${Date.now()}#${hash}`;
       await page.evaluate(u => loadApp(u), url);
       await app().locator(opts.wait || '#mb-view .section-head, #mb-view .start-grid, #f-login, #f-register').first().waitFor({ timeout: 15000 });
+      // Nur-Tester-Einträge (Demo-Umschalter, Filmdreh, Testen-Kasten) ausblenden – die sehen normale Mitglieder nicht
+      await app().locator('body').evaluate(() => { const st = document.createElement('style'); st.textContent = '.mb-sheet a[data-sec="filmdreh"],.mb-sheet a[href="#demo"],.mb-side a[href="#demo"],.mb-side a[data-sec="filmdreh"],section.tester{display:none!important}'; document.head.append(st); }).catch(() => {});
       await sleep(700);
     },
     async point(sel) {
       const loc = app().locator(sel).first();
       await loc.scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
       await sleep(250);
-      const b = await loc.boundingBox();
+      const b = await loc.boundingBox({ timeout: 4000 }).catch(() => null);
       if (b) await S.pointAt(b.x + b.width / 2, b.y + Math.min(b.height / 2, 40));
       return loc;
     },
