@@ -235,7 +235,7 @@ export function startPage(d) {
       <div class="hero-text">
         <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span></h1>
         <div class="hero-box">
-          <p>Schön, dass Sie da sind. Wir sind für Sie da – im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
+          <p>${d.startVariante === 'mitreden' ? 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wie Sie mitreden können.' : 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wer für Sie im Stadtrat sitzt.'}</p>
           ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a></div>` : `<a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>`}
         </div>
       </div>
