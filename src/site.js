@@ -477,3 +477,17 @@ $$('.abstimmung[data-id]').forEach(art => {
   // Karte anfangs auf den ersten Pin (oder die Mitte) stellen
   const erst = $('.karte-pin', karte); karte.scrollTo({ left: erst ? Math.max(0, erst.offsetLeft - karte.clientWidth / 2) : (karte.scrollWidth - karte.clientWidth) / 2, top: erst ? Math.max(0, erst.offsetTop - karte.clientHeight / 2) : (karte.scrollHeight - karte.clientHeight) / 2 });
 })();
+
+// ---------- /app/: Gerät wählen – automatisch nach dem Gerät, sonst per Knopf ----------
+(() => {
+  const wahl = $('.app-wahl'); if (!wahl) return;
+  const zeige = key => {
+    $$('.app-panel').forEach(p => { p.hidden = p.dataset.geraet !== key; if (p.hidden) $('video', p)?.pause(); });
+    $$('.app-geraet', wahl).forEach(b => b.setAttribute('aria-selected', String(b.dataset.geraet === key)));
+    try { history.replaceState(null, '', '#' + key); } catch (e) { /* egal */ }
+  };
+  wahl.addEventListener('click', e => { const b = e.target.closest('.app-geraet'); if (b) zeige(b.dataset.geraet); });
+  const ua = navigator.userAgent, hash = location.hash.slice(1);
+  const auto = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iphone' : /Android/.test(ua) ? 'android' : /Macintosh/.test(ua) ? 'mac' : 'windows';
+  zeige(['android', 'iphone', 'windows', 'mac'].includes(hash) ? hash : auto);
+})();

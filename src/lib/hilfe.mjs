@@ -58,8 +58,8 @@ export const HELP_TOPICS = [
       ],
       ios: [
         'Öffne spd-soltau.de/mitglieder/ in Safari und melde dich an.',
-        'Tippe unten in der Mitte auf das Teilen-Symbol (Viereck mit Pfeil nach oben).',
-        'Wische im Menü nach unten und tippe auf „Zum Home-Bildschirm“.',
+        'Tippe unten in der Adressleiste auf die drei Punkte „···“.',
+        'Tippe im Menü auf „Zum Home-Bildschirm“ (bei älteren iPhones: Teilen-Symbol, dann „Zum Home-Bildschirm“).',
         'Tippe rechts oben auf „Hinzufügen“. Das Symbol „SPD Soltau“ liegt jetzt auf deinem Home-Bildschirm.',
         'Öffne die App über das Symbol – nur so bekommst du auf dem iPhone auch Push-Nachrichten.',
       ],

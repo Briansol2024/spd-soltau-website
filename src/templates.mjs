@@ -1,6 +1,7 @@
 // Seitenvorlagen – 1:1 nach Referenz-Entwurf D, mit echten Links und Inhalten aus dem Build.
 import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zielAccordion, zieleGrid, tickerItems, pollButtons, instaTiles, photo, teamCard, byRole, eventRowMini, zielCards, zielBlocks, zielJump, zielAccordionFotos } from './render.mjs';
 import { stadtKacheln } from './lib/stadt.mjs';
+import { HELP_TOPICS, stepsFor } from './lib/hilfe.mjs';
 
 import { videoBlock, mitredenBlock } from './templates-mitreden.mjs';
 // Reihenfolge nach Wichtigkeit (Vorstandswunsch): Aktuelles, Fraktion, Vorstand, Ziele, Termine, Mitmachen, Kontakt
@@ -807,6 +808,39 @@ export function mitgliederPage(d) {
   </div>
 </section>
 <script type="module" src="${url('/assets/mitglieder.js')}"></script>`;
+}
+
+// ---------- /app/: So bekommst du die App – ein Link für die Gruppe, Gerät wählen, Video und Schritte ----------
+export function appPage(d) {
+  const topic = HELP_TOPICS.find(t => t.id === 'installieren');
+  const G = [
+    ['android', 'android', 'Android', 'Handy oder Tablet mit Android – in Chrome'],
+    ['iphone', 'ios', 'iPhone / iPad', 'In Safari – ab iOS 26 über die drei Punkte'],
+    ['windows', 'windows', 'Windows', 'PC oder Laptop – in Chrome oder Edge'],
+    ['mac', 'macos', 'Mac', 'In Safari (oder Chrome)'],
+  ];
+  const panel = ([key, plat, name, hint]) => `
+    <section class="app-panel" id="app-${key}" data-geraet="${key}" hidden>
+      <div class="app-cols">
+        <div class="app-video"><video controls playsinline preload="metadata" poster="${url(`/assets/hilfe/app-${key}.jpg`)}" aria-label="Video: Die App auf ${esc(name)} installieren"><source src="${url(`/assets/hilfe/app-${key}.mp4`)}" type="video/mp4"></video></div>
+        <div class="app-schritte">
+          <span class="tag">${esc(name)}</span>
+          <h2 class="title">So geht es auf ${esc(name === 'iPhone / iPad' ? 'dem iPhone' : name === 'Android' ? 'Android' : name === 'Mac' ? 'dem Mac' : 'Windows')}</h2>
+          <p class="small muted">${esc(hint)} · Video 33 Sekunden, ohne Ton</p>
+          <ol class="app-liste">${stepsFor(topic, plat).map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+          <div class="hero-actions"><a class="btn btn-rot" href="${url('/mitglieder/')}">Zum Mitgliederbereich</a><a class="btn btn-line" href="${url('/mitglieder/#registrieren')}">Noch kein Konto? Registrieren</a></div>
+        </div>
+      </div>
+    </section>`;
+  return `
+<section>
+  ${pageHead('Mitgliederbereich', 'So bekommst du<br>die App', 'Kein App-Store, kein Download: Der Mitgliederbereich der SPD Soltau kommt direkt aus dem Browser auf dein Handy – und auf den PC. Wähle dein Gerät, der Rest dauert eine Minute.', 'bahnhof')}
+  <div class="wrap section app-seite">
+    <div class="app-wahl" role="tablist" aria-label="Gerät wählen">${G.map(([key, , name, hint]) => `<button type="button" class="app-geraet" role="tab" data-geraet="${key}" aria-selected="false"><b>${esc(name)}</b><small>${esc(hint)}</small></button>`).join('')}</div>
+    ${G.map(panel).join('')}
+    <p class="small muted app-tipp">Nach der Installation: In der App unter „Mein Profil“ die Benachrichtigungen einschalten – dann kommen neue Termine und Nachrichten direkt aufs Handy. Fragen? Der Vorstand hilft: <a href="${url('/kontakt/')}">Kontakt</a>.</p>
+  </div>
+</section>`;
 }
 
 // ---------- Roter Bahnhof: Buchungsanfrage ----------

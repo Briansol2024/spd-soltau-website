@@ -37,7 +37,7 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 #tap.on{animation:tap .75s var(--ease) both}
 @keyframes tap{0%{opacity:0;transform:scale(.6)}18%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(2.6);box-shadow:0 0 0 18px rgba(227,0,15,0)}}
 /* Kicker: kleine rote Zeile */
-#kicker{position:absolute;left:0;right:0;top:52px;text-align:center;font:700 26px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--rot);opacity:0;transition:opacity .5s,transform .5s var(--ease);transform:translateY(10px);z-index:30}
+#kicker{position:absolute;left:100px;right:24px;top:52px;text-align:center;font:700 26px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--rot);opacity:0;transition:opacity .5s,transform .5s var(--ease);transform:translateY(10px);z-index:30}
 #kicker.on{opacity:1;transform:none}
 /* Schlagzeile: zwei bis drei Zeilen, die nacheinander einschlagen */
 #head{position:absolute;left:36px;right:36px;text-align:center;z-index:30;pointer-events:none}
@@ -46,6 +46,8 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 #head.bottom{bottom:64px}
 #head .ln{display:block;font:800 78px/1 var(--display);text-transform:uppercase;letter-spacing:-.005em;color:#fff;opacity:0;text-shadow:0 8px 40px rgba(0,0,0,.6)}
 #head.small .ln{font-size:60px}
+#head.xl .ln{font-size:84px;line-height:.95}
+#head.xl .ln.rot{font-size:66px;margin-top:6px}
 #head .ln.rot{color:var(--rot)}
 #head .ln.url{text-transform:none;font-size:62px;letter-spacing:0}
 #head.on .ln{animation:punch .6s var(--ease) both}
@@ -142,6 +144,17 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 .plat-windows #titlebar .lights,.plat-windows #titlebar .center{display:none}
 .plat-macos #titlebar .win,.plat-macos #titlebar .winbtns{display:none}
 .plat-ios #cam{width:110px;height:30px;border-radius:15px}
+/* Untertitel für die Hilfevideos: Schrittnummer und Text auf dunkler Platte unten */
+#cap{position:absolute;left:36px;right:36px;bottom:64px;display:flex;gap:18px;align-items:flex-start;z-index:32;opacity:0;transform:translateY(20px);transition:opacity .35s,transform .45s var(--ease);pointer-events:none}
+#cap.on{opacity:1;transform:none}
+#cap::before{content:"";position:absolute;left:-36px;right:-36px;top:-70px;bottom:-64px;background:linear-gradient(180deg,transparent,rgba(5,5,5,.88) 30%,rgba(5,5,5,.96));z-index:-1}
+#cap b{flex-shrink:0;width:56px;height:56px;border-radius:50%;background:var(--rot);color:#fff;font:800 30px/56px var(--display);text-align:center}
+#cap span{font:500 30px/1.32 var(--body);color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.6);padding-top:6px}
+/* Einleitung eines Themas: Text mittig */
+#intro{position:absolute;left:56px;right:56px;top:50%;transform:translateY(-50%);text-align:center;z-index:31;opacity:0;transition:opacity .4s}
+#intro.on{opacity:1}
+#intro small{display:block;font:700 24px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--rot);margin-bottom:22px}
+#intro p{margin:0;font:500 34px/1.35 var(--body);color:#fff;animation:punch .6s var(--ease) both}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
 #flash.on{animation:flash .5s ease-out both}
 @keyframes flash{0%{opacity:.85}100%{opacity:0}}
@@ -158,6 +171,8 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
   <div id="head" class="bottom"></div>
   <div id="word"><b></b><i></i></div>
   <div id="count"><b>0</b><span></span></div>
+  <div id="cap"><b></b><span></span></div>
+  <div id="intro"><small></small><p></p></div>
   <div id="end"><div class="big"></div><div class="adr"></div><div class="sub"></div><img src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt=""></div>
   <div id="flash"></div>
 </div>
@@ -222,11 +237,11 @@ window.overlayOff = () => { $('#overlay').innerHTML = ''; };
 window.stageRect = sel => { const el = typeof sel === 'string' ? $(sel) : sel; if (!el) return null; const r = el.getBoundingClientRect(); const O = { x: DEV.x + DEV.w / 2, y: DEV.y + DEV.h / 2 }; const inv = (x, y) => ({ x: O.x + (x - cam.tx - O.x) / cam.s, y: O.y + (y - cam.ty - O.y) / cam.s }); const a = inv(r.left, r.top), b = inv(r.right, r.bottom); return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 }; };
 window.loadApp = url => { $('#app').src = url; };
 // Kamera: Punkt P (Bühnenkoordinaten in Ruhe) soll bei Faktor s auf C landen
-window.camTo = ({ s = 1, px, py, cx = 360, cy, ms = 900 } = {}) => {
+window.camTo = ({ s = 1, px, py, cx = 360, cy, ms = 900, rot = 0 } = {}) => {
   const O = { x: DEV.x + DEV.w / 2, y: DEV.y + DEV.h / 2 };
   const P = px === undefined ? O : { x: px, y: py }; const C = { x: cx, y: cy === undefined ? O.y : cy };
   cam.s = s; cam.tx = C.x - O.x - s * (P.x - O.x); cam.ty = C.y - O.y - s * (P.y - O.y);
-  const d = $('#device'); d.style.transition = `transform ${ms}ms var(--ease)`; d.style.transform = `translate(${cam.tx}px, ${cam.ty}px) scale(${s})`;
+  const d = $('#device'); d.style.transition = ms ? `transform ${ms}ms var(--ease)` : 'none'; d.style.transform = `translate(${cam.tx}px, ${cam.ty}px) scale(${s})${rot ? ` rotate(${rot}deg)` : ''}`;
 };
 window.camReset = (ms = 900) => camTo({ s: 1, ms });
 // Ruhe-Koordinate → aktuelle Bildschirmkoordinate (für die Tipp-Anzeige)
@@ -234,8 +249,8 @@ window.toStage = (px, py) => { const O = { x: DEV.x + DEV.w / 2, y: DEV.y + DEV.
 window.phone = mode => { const w = $('#devwrap'); w.className = mode; };  // 'in' | 'dim' | 'out' | ''
 window.tapAt = (x, y) => { const t = $('#tap'); t.style.left = x + 'px'; t.style.top = y + 'px'; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); };
 window.kicker = text => { const k = $('#kicker'); if (!text) { k.classList.remove('on'); return; } k.textContent = text; k.classList.add('on'); };
-window.headline = ({ lines = [], pos = 'bottom', over = false, small = false } = {}) => {
-  const h = $('#head'); h.className = `${pos}${over ? ' over' : ''}${small ? ' small' : ''}`;
+window.headline = ({ lines = [], pos = 'bottom', over = false, small = false, xl = false } = {}) => {
+  const h = $('#head'); h.className = `${pos}${over ? ' over' : ''}${small ? ' small' : ''}${xl ? ' xl' : ''}`;
   h.innerHTML = lines.map(l => { const rot = l.startsWith('*'), url = l.startsWith('~'); return `<span class="ln${rot ? ' rot' : ''}${url ? ' url' : ''}">${l.replace(/^[*~]/, '')}</span>`; }).join('');
   void h.offsetWidth; h.classList.add('on');
 };
@@ -249,6 +264,8 @@ window.counter = (from, to, label, ms = 1200) => {
 window.counterText = (text, label) => { const c = $('#count'); c.querySelector('b').textContent = text; c.querySelector('span').textContent = label || ''; c.classList.add('on'); };
 window.counterOff = () => $('#count').classList.remove('on');
 window.logo = on => $('#logo').classList.toggle('on', on);
+window.caption = (n, text) => { const c = $('#cap'); if (!text) { c.classList.remove('on'); return; } c.querySelector('b').textContent = n; c.querySelector('span').textContent = text; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); };
+window.intro = (kickerText, text) => { const i = $('#intro'); if (!text) { i.classList.remove('on'); return; } i.querySelector('small').textContent = kickerText || ''; i.querySelector('p').textContent = text; i.classList.add('on'); };
 window.flash = () => { const f = $('#flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); };
 window.endCard = ({ big, adr, sub = '' }) => { const e = $('#end'); e.querySelector('.big').innerHTML = big; e.querySelector('.adr').textContent = adr; e.querySelector('.sub').textContent = sub; e.classList.add('on'); };
 </script>

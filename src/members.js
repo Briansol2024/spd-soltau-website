@@ -631,7 +631,7 @@ function secHilfe(v) {
     <ol class="help-steps" id="help-steps"></ol>
     <div class="mb-actions help-nav">${prev ? `<a class="btn btn-line btn-sm" href="#hilfe/${prev.id}">← ${prev.n} ${esc(prev.title)}</a>` : ''}${next ? `<a class="btn btn-line btn-sm" href="#hilfe/${next.id}">${next.n} ${esc(next.title)} →</a>` : ''}</div>`;
     const show = plat => {
-      const name = videoName(topic, plat), portrait = plat === 'android' || plat === 'ios';
+      const name = videoName(topic, plat), portrait = true; // alle Hilfevideos sind hochkant (Keynote-Look), auch die für PC und Mac
       const src = `${HELP_DIR}${name}.mp4`;
       $('#help-player').innerHTML = `<video class="help-video ${portrait ? 'portrait' : 'landscape'}" controls playsinline preload="metadata" poster="${HELP_DIR}${posterName(topic, portrait)}.jpg" src="${src}"></video>`;
       $('#help-steps').innerHTML = stepsFor(topic, plat).map(t => `<li>${esc(t)}</li>`).join('');
