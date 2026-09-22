@@ -1975,8 +1975,10 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
   .hero.has-video h1.hero-moin{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;margin:0;font-size:clamp(96px,31cqw,132px)}
   .hero.has-video .hero-box{justify-items:center;text-align:center;gap:12px;padding:14px 16px 16px;border-left:0;border-top:5px solid var(--rot);max-width:none}
   .hero.has-video .hero-text .hero-box p{font-size:15.5px;line-height:1.45}
-  .hero.has-video .hero-actions{gap:6px;justify-content:center;width:100%}
-  .hero.has-video .hero-actions .btn{padding:7px 12px;font-size:12px;letter-spacing:.05em;flex:1 1 auto;width:auto}
+  /* Zwei kleine, leicht runde Knöpfe nebeneinander; Text darf umbrechen, beide gleich hoch */
+  .hero.has-video .hero-box{padding:12px 12px 14px}
+  .hero.has-video .hero-actions{gap:8px;flex-wrap:nowrap;justify-content:center;width:100%}
+  .hero.has-video .hero-actions .btn{flex:1 1 0;min-width:0;width:auto;justify-content:center;padding:8px 10px;font-size:11.5px;line-height:1.2;letter-spacing:.04em;white-space:normal;text-align:center;border-radius:10px}
   /* Aus der App geöffnet: die schwarze Rückleiste (44px) nimmt Platz – sonst rutscht der zweite Knopf aus dem Bild */
   html.from-app .hero.has-video .wrap{min-height:calc(100vh - 116px);min-height:calc(100svh - 116px)}
 }
