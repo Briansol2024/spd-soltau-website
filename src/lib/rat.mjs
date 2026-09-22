@@ -7,17 +7,24 @@
 // Fraktionsschlüssel damit; das Gerät packt ihn aus und behält ihn nur im Arbeitsspeicher. Fällt jemand aus der Fraktion, löscht der
 // Dienst dessen Einträge – beim nächsten Öffnen ist der Bereich zu. Unverschlüsselt bleiben nur Bereich, Frist, Status und die
 // Zuständigen, damit der Push-Dienst erinnern kann.
+// Die Ausschüsse und Gremien des Rates der Stadt Soltau (Stand Wahlperiode 2026–31) – dazu die Fraktion selbst
 export const BEREICHE = [
-  { id: 'rat', name: 'Fraktion / Rat', kind: 'Alle Ratsmitglieder', kachel: 'Rat' },
-  { id: 'stadt', name: 'Stadtentwicklung', kind: 'Ausschuss', kachel: 'ST' },
-  { id: 'soziales', name: 'Soziales', kind: 'Ausschuss', kachel: 'SO' },
-  { id: 'schule', name: 'Schule & Kultur', kind: 'Ausschuss', kachel: 'SK' },
-  { id: 'wirtschaft', name: 'Wirtschaft', kind: 'Ausschuss', kachel: 'WI' },
+  { id: 'rat', name: 'Fraktion / Rat', kind: 'Alle Ratsmitglieder', kachel: 'Rat', gremium: 'Rat der Stadt Soltau' },
+  { id: 'bau', name: 'Bau', kind: 'Ausschuss', kachel: 'BA', gremium: 'Bauausschuss' },
+  { id: 'wirtschaft', name: 'Wirtschaft, Finanzen', kind: 'Ausschuss', kachel: 'WF', gremium: 'Ausschuss für Wirtschaft und Finanzen' },
+  { id: 'feuerschutz', name: 'Feuerschutz', kind: 'Ausschuss', kachel: 'FS', gremium: 'Feuerschutzausschuss' },
+  { id: 'schule', name: 'Schule', kind: 'Ausschuss', kachel: 'SC', gremium: 'Schulausschuss' },
+  { id: 'kultur', name: 'Kultur', kind: 'Ausschuss', kachel: 'KU', gremium: 'Kulturausschuss' },
+  { id: 'soziales', name: 'Soziales', kind: 'Ausschuss', kachel: 'SO', gremium: 'Sozialausschuss' },
+  { id: 'stadtwerke', name: 'Aufsichtsrat Stadtwerke', kind: 'Aufsichtsrat', kachel: 'SW', gremium: 'Aufsichtsrat Stadtwerke' },
+  { id: 'aws', name: 'Aufsichtsrat AWS', kind: 'Aufsichtsrat', kachel: 'AWS', gremium: 'Aufsichtsrat AWS' },
 ];
-export const bereichVon = id => BEREICHE.find(b => b.id === id) || BEREICHE[0];
-export const AUSSCHUESSE = BEREICHE.filter(b => b.kind === 'Ausschuss');
-// Gremiumsname für Sitzungen: „Ausschuss Stadtentwicklung“ – für Rat/Fraktion der Rat selbst
-export const gremiumVon = id => id === 'rat' ? 'Rat der Stadt Soltau' : 'Ausschuss ' + bereichVon(id).name;
+// Frühere Kennungen (vor der Entscheidung, die Ausschüsse nicht zusammenzulegen) auf die heutigen abbilden
+const ALT = { stadt: 'bau' };
+export const bereichVon = id => BEREICHE.find(b => b.id === (ALT[id] || id)) || BEREICHE[0];
+export const AUSSCHUESSE = BEREICHE.filter(b => b.kind !== 'Alle Ratsmitglieder');
+// Gremiumsname für Sitzungen: „Bauausschuss“, „Aufsichtsrat Stadtwerke“ – für Rat/Fraktion der Rat selbst
+export const gremiumVon = id => bereichVon(id).gremium || 'Ausschuss ' + bereichVon(id).name;
 export const DOK_ARTEN = ['Protokoll', 'Bericht', 'Vorlage', 'Antrag', 'Sonstiges'];
 export const TEIL_BYTES = 288 * 1024;        // Rohbytes je Dateiteil (Base64 ≈ 393 KB; ein Wix-Element darf 512 KB haben)
 export const MAX_DATEI = 10 * 1024 * 1024;   // größte Datei

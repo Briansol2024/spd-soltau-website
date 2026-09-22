@@ -198,7 +198,7 @@ const TOUREN = {
     await beat(S, ['Aufgabe erledigt.', '*Ein Haken.'], 2100, { over: true });
     await S.cam('.rz-dok >> nth=0', { s: 1.5, cy: 540 });
     await beat(S, ['Anträge.', '*Vom Entwurf zum Beschluss.'], 2300, { over: true, small: true });
-    await S.camReset(); await S.tap('a[href="#ratsarbeit/b-stadt"]'); await sleep(600);
+    await S.camReset(); await S.tap('a[href="#ratsarbeit/b-bau"]'); await sleep(600);
     await beat(S, ['Jeder Ausschuss.', '*Aufgaben. Dokumente. Leute.'], 2400, { small: true });
     // ---- Sitzungen ----
     await S.word('Sitzungen.', 1500);
