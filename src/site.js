@@ -403,7 +403,8 @@ if (zaList) {
 
 // ---------- Mitreden: „Betrifft mich auch“ / „Interessiert mich auch“ – ein Klick je Gerät, Zähler live ----------
 (() => {
-  const liste = $('[data-typ="anliegen"], [data-typ="frage"]'); if (!liste || (!SPD.app?.clientId && !SPD.demo)) return;
+  const listen = $$('[data-typ="anliegen"], [data-typ="frage"]'); if (!listen.length || (!SPD.app?.clientId && !SPD.demo)) return;
+  listen.forEach(liste => {
   const typ = liste.dataset.typ; const key = 'spd-mit-' + typ;
   let meine = []; try { meine = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { meine = []; }
   const geraet = geraetId();
@@ -431,6 +432,7 @@ if (zaList) {
       markieren();
     } catch (err) { /* nichts – Knopf bleibt */ }
     b.disabled = false;
+  });
   });
 })();
 
@@ -498,4 +500,20 @@ $$('.abstimmung[data-id]').forEach(art => {
   const ua = navigator.userAgent, hash = location.hash.slice(1);
   const auto = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iphone' : /Android/.test(ua) ? 'android' : /Macintosh/.test(ua) ? 'mac' : 'windows';
   zeige(['android', 'iphone', 'windows', 'mac'].includes(hash) ? hash : auto);
+})();
+
+// ---------- /mitreden/: vier Reiter – Abstimmung, Was Soltau bewegt, eigenes Anliegen, Fragen ----------
+(() => {
+  const leiste = $('.mr-tabs'); if (!leiste) return;
+  const keys = $$('.mr-tab', leiste).map(b => b.dataset.tab);
+  const zeige = (key, springen = false) => {
+    if (!keys.includes(key)) key = keys[0];
+    $$('.mr-panel').forEach(p => { p.hidden = p.dataset.tab !== key; });
+    $$('.mr-tab', leiste).forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === key)));
+    try { history.replaceState(null, '', '#' + key); } catch (e) { /* egal */ }
+    if (springen) leiste.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+  };
+  leiste.addEventListener('click', e => { const b = e.target.closest('.mr-tab'); if (b) zeige(b.dataset.tab, true); });
+  addEventListener('hashchange', () => zeige(location.hash.slice(1)));
+  zeige(location.hash.slice(1));
 })();

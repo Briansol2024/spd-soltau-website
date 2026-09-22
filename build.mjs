@@ -326,7 +326,7 @@ async function main() {
     ['roter-bahnhof/index.html', '/roter-bahnhof/', 'Roter Bahnhof', 'Den Roten Bahnhof in Soltau für Treffen, Vorträge und kleine Veranstaltungen anfragen.', T.roterBahnhofPage(d)],
     ['newsletter/index.html', '/newsletter/', 'Newsletter', 'Newsletter der SPD Soltau: anmelden, bestätigen, abmelden.', T.newsletterPage(d)],
     ['ratsbericht/index.html', '/ratsbericht/', 'So hat der Rat entschieden', 'Ratsberichte der SPD-Fraktion Soltau: die Entscheidungen der Ratssitzungen, wie abgestimmt wurde und wo die SPD stand – kurz und verständlich.', T.ratsberichtPage(d)],
-    ['mitreden/index.html', '/mitreden/', 'Informieren & Mitreden', 'Mitreden in Soltau: Anliegen unterstützen, Fragen stellen, abstimmen, Baustellen verstehen – die SPD Soltau hört zu.', M.mitredenPage(d)],
+    ['mitreden/index.html', '/mitreden/', 'Mitmachen & Mitreden', 'Mitmachen in Soltau: abstimmen, Anliegen unterstützen, ein eigenes Anliegen melden oder eine Frage stellen – alles auf einer Seite.', M.mitredenPage(d)],
     ['mitreden/anliegen/index.html', '/mitreden/anliegen/', 'Was Soltau bewegt', 'Anliegen aus Soltau, sortiert danach, wie viele sagen: Das betrifft mich auch – und was die SPD-Fraktion daraus macht.', M.anliegenPage(d)],
     ['mitreden/fragen/index.html', '/mitreden/fragen/', 'Fragen Sie uns', 'Fragen an die SPD Soltau – jede bekommt eine Antwort, auch anonym. Beantwortete Fragen mit Video.', M.fragenPage(d)],
     ['mitreden/abstimmung/index.html', '/mitreden/abstimmung/', 'Sie entscheiden mit', 'Kleine Abstimmungen der SPD Soltau: Ihre Stimme geht in den Ausschuss – und hier steht, was daraus wurde.', M.abstimmungPage(d)],

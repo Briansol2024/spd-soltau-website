@@ -2,7 +2,7 @@
 //   Video mit Anschluss, Was Soltau bewegt (Anliegen-Ranking), Fragen Sie uns, Sie entscheiden mit (Abstimmungen), Wo wird gebaut? (Baustellen).
 // Inhalte pflegt der Vorstand im Mitgliederbereich (Vorstand → Mitreden); Zähler und Ergebnisse verdichtet der Push-Dienst.
 import { esc, url, karteHtml } from './render.mjs';
-import { pageHead, rathausKachel } from './templates.mjs';
+import { pageHead, rathausKachel, kontaktFormular } from './templates.mjs';
 
 const STAND = { neu: ['Neu', 'st-neu'], nachgefragt: ['Wir haben nachgefragt', 'st-nachgefragt'], antwort: ['Antwort da', 'st-antwort'] };
 const ART_FARBE = { Baustelle: '#B7791F', Sperrung: '#E3000F', Geplant: '#005BA4' };
@@ -42,33 +42,51 @@ export function videoBlock(d) {
 
 // ---------- Startseite: Mitreden-Kacheln (ersetzt „Was können wir für Sie tun?“) ----------
 export function mitredenBlock(d) {
-  const m = d.mitreden; const top = m.anliegen[0]; const offen = m.umfragen.find(u => u.offen); const stimmen = offen ? offen.stimmen : 0;
+  const m = d.mitreden; const top = m.anliegen[0]; const offen = m.umfragen.find(u => u.offen);
   const zahl = (n, t) => `<span class="quick-zahl"><b>${esc(String(n))}</b><small>${esc(t)}</small></span>`;
+  const mit = (m.anliegen.length || 0) + (m.fragen.length || 0);
   return `
   <div class="wrap section" id="mitreden">
     <div class="section-head" style="margin-bottom:24px"><h2 class="title">Informieren<br>&amp; Mitreden</h2><span class="small muted">Wissen, was läuft – und sich einmischen, ohne Parteibuch</span></div>
     <div class="quick quick-mitreden">
-      <a href="${url('/mitreden/anliegen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-4 4z"/><path d="M8 9h8M8 13h5"/></svg><b>Was Soltau bewegt</b><small>Die Anliegen aus der Stadt, sortiert nach Zustimmung – ein Tipp auf „Betrifft mich auch“ genügt.</small>${top ? `<span class="quick-teaser">Ganz oben: ${esc(top.titel)}</span>` + zahl(top.zaehler, 'Betrifft mich auch') : ''}</a>
-      <a href="${url('/mitreden/fragen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg><b>Fragen Sie uns</b><small>Ihre Frage an die SPD Soltau – auch anonym. Die Antworten stehen hier für alle, gern auch als Video.</small>${m.fragen.length ? zahl(m.fragen.length, 'beantwortet') : ''}</a>
-      <a href="${url('/mitreden/abstimmung/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><b>Sie entscheiden mit</b><small>Kurze Abstimmungen zu Soltauer Themen – Ihre Stimme zeigt uns, was Ihnen wichtig ist.</small>${offen ? `<span class="quick-teaser">Aktuell: ${esc(offen.frage)}</span>` + zahl(stimmen, 'Stimmen') : ''}</a>
-      <a href="${url('/mitreden/baustellen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20h20M4 20V10l8-6 8 6v10M9 20v-6h6v6"/></svg><b>Wo wird gebaut?</b><small>Baustellen und Sperrungen auf der Stadtkarte – warum, wie lange, Umleitung.</small>${m.baustellen.length ? zahl(m.baustellen.length, m.baustellen.length === 1 ? 'Baustelle heute' : 'Baustellen heute') : ''}</a>
-      <a href="${url('/kontakt/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><b>Ich habe ein Anliegen</b><small>Schlagloch, Kita-Platz, Ratsbeschluss – Ihre Nachricht direkt an uns, nicht öffentlich.</small></a>
       ${rathausKachel(d)}
+      <a href="${url('/mitreden/baustellen/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20h20M4 20V10l8-6 8 6v10M9 20v-6h6v6"/></svg><b>Wo wird gebaut?</b><small>Baustellen und Sperrungen auf der Stadtkarte – warum, wie lange, Umleitung. Die Meldungen der Stadt kommen automatisch dazu.</small>${m.baustellen.length ? zahl(m.baustellen.length, m.baustellen.length === 1 ? 'Baustelle heute' : 'Baustellen heute') : ''}</a>
+      <a href="${url('/mitreden/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-4 4z"/><path d="M8 9h8M8 13h5"/></svg><b>Mitmachen &amp; Mitreden</b><small>Abstimmen, Anliegen unterstützen, eigenes Anliegen melden, Fragen stellen – alles an einem Ort.</small>${offen ? `<span class="quick-teaser">Abstimmung läuft: ${esc(offen.frage)}</span>` : top ? `<span class="quick-teaser">Ganz oben: ${esc(top.titel)}</span>` : ''}${mit ? zahl(mit, 'Anliegen und Fragen') : ''}</a>
     </div>
   </div>`;
 }
 
-// ---------- /mitreden/ – Übersicht ----------
+// ---------- /mitreden/ – Mitmachen & Mitreden: vier Reiter auf einer Seite ----------
+const REITER = [
+  ['abstimmung', 'Sie entscheiden mit', 'Abstimmen'],
+  ['bewegt', 'Was Soltau bewegt', 'Anliegen unterstützen'],
+  ['anliegen', 'Ich habe ein Anliegen', 'Etwas melden'],
+  ['fragen', 'Fragen Sie uns', 'Frage stellen'],
+];
 export function mitredenPage(d) {
-  return `${pageHead('Ohne Parteibuch', 'Informieren<br>&amp; Mitreden', 'Wissen, was in Soltau läuft – und sich einmischen: Anliegen unterstützen, Fragen stellen, abstimmen, Baustellen verstehen, ins Rathaus schauen.')}
+  const inhalt = {
+    abstimmung: abstimmungPage(d, true),
+    bewegt: anliegenPage(d, true),
+    anliegen: `<div class="wrap section split">${kontaktFormular(d)}
+      <div class="box">
+        <h3>Was passiert mit Ihrem Anliegen?</h3>
+        <p>Es geht direkt an Vorstand und Fraktion – nicht öffentlich. Wir lesen jedes und melden uns, wenn Sie eine E-Mail angeben.</p>
+        <p class="small muted">Mit dem Häkchen im Formular erscheint es zusätzlich ohne Namen unter „Was Soltau bewegt“, damit andere sagen können: betrifft mich auch.</p>
+      </div></div>`,
+    fragen: fragenPage(d, true),
+  };
+  return `${pageHead('Ohne Parteibuch', 'Mitmachen<br>&amp; Mitreden', 'Abstimmen, ein Anliegen unterstützen, selbst eines melden oder uns eine Frage stellen – alles auf dieser Seite. Oben wählen, worum es Ihnen geht.')}
   ${videoBlock(d)}
-  ${mitredenBlock(d)}`;
+  <div class="wrap" style="padding-block:28px 0">
+    <div class="mr-tabs" role="tablist" aria-label="Mitmachen und Mitreden">${REITER.map(([k, t, u]) => `<button type="button" class="mr-tab" role="tab" data-tab="${k}" aria-selected="false"><b>${esc(t)}</b><small>${esc(u)}</small></button>`).join('')}</div>
+  </div>
+  ${REITER.map(([k]) => `<section class="mr-panel" data-tab="${k}" hidden>${inhalt[k]}</section>`).join('')}`;
 }
 
 // ---------- /mitreden/anliegen/ – Was Soltau bewegt ----------
-export function anliegenPage(d) {
+export function anliegenPage(d, nurInhalt = false) {
   const liste = d.mitreden.anliegen; const kats = [...new Set(liste.map(a => a.kategorie))];
-  return `${pageHead('Was Soltau bewegt', 'Anliegen, die<br>viele teilen', 'Anliegen aus der Stadt, sortiert danach, wie viele sagen: Das betrifft mich auch. Kein Bürgerentscheid – ein Stimmungsbild. Wir lesen jedes Anliegen, antworten und sind für Sie da. Was wir erreichen, steht hier.')}
+  return `${nurInhalt ? '' : `${pageHead('Was Soltau bewegt', 'Anliegen, die<br>viele teilen', 'Anliegen aus der Stadt, sortiert danach, wie viele sagen: Das betrifft mich auch. Kein Bürgerentscheid – ein Stimmungsbild. Wir lesen jedes Anliegen, antworten und sind für Sie da. Was wir erreichen, steht hier.')}`}
   <div class="wrap section">
     ${kats.length > 1 ? `<div class="chips filter-chips" id="anliegen-filter"><button type="button" class="chip" data-kat="" aria-pressed="true">Alle</button>${kats.map(k => `<button type="button" class="chip" data-kat="${esc(k)}" aria-pressed="false">${esc(k)}</button>`).join('')}</div>` : ''}
     <div class="anliegen-liste" id="anliegen-liste" data-typ="anliegen">
@@ -88,9 +106,9 @@ export function anliegenPage(d) {
 }
 
 // ---------- /mitreden/fragen/ – Fragen Sie uns ----------
-export function fragenPage(d) {
+export function fragenPage(d, nurInhalt = false) {
   const liste = d.mitreden.fragen;
-  return `${pageHead('Fragen Sie uns', 'Ihre Frage<br>an uns', 'Stellen Sie uns Ihre Frage – auch anonym. Wir lesen jede und antworten; ausgewählte Fragen beantworten wir hier öffentlich, gern im Video.')}
+  return `${nurInhalt ? '' : `${pageHead('Fragen Sie uns', 'Ihre Frage<br>an uns', 'Stellen Sie uns Ihre Frage – auch anonym. Wir lesen jede und antworten; ausgewählte Fragen beantworten wir hier öffentlich, gern im Video.')}`}
   <div class="wrap section">
     <form class="form wix-form frage-form" id="form-frage" data-collection="Fragen" novalidate>
       <input type="hidden" name="quelle" id="frage-quelle" value="Website">
@@ -121,10 +139,10 @@ export function fragenPage(d) {
 }
 
 // ---------- /mitreden/abstimmung/ – Sie entscheiden mit ----------
-export function abstimmungPage(d) {
+export function abstimmungPage(d, nurInhalt = false) {
   const offen = d.mitreden.umfragen.filter(u => u.offen), vorbei = d.mitreden.umfragen.filter(u => !u.offen);
   const balken = u => { const sum = u.stimmen || u.ergebnis.reduce((a, b) => a + (Number(b) || 0), 0); return `<div class="balken-liste">${u.optionen.map((o, i) => { const n = Number(u.ergebnis[i]) || 0, p = sum ? Math.round(100 * n / sum) : 0; return `<div class="balken-zeile"><span>${esc(o)}</span><span class="balken"><i style="width:${p}%"></i></span><b>${p} %</b></div>`; }).join('')}<p class="small muted">${sum} ${sum === 1 ? 'Stimme' : 'Stimmen'}${u.maxWahl > 1 ? ' · Prozent = Anteil der Abstimmenden, die das angekreuzt haben' : ''}${u.offen ? ' · Zwischenstand, wird alle 30 Minuten aktualisiert' : ''}</p></div>`; };
-  return `${pageHead('Sie entscheiden mit', 'Eine Frage,<br>Ihre Kreuze', 'Kleine Abstimmungen zu Dingen, die Soltau bewegen. Ihre Stimme zeigt uns, was den Menschen wichtig ist – das inspiriert unsere Arbeit. Und hier steht hinterher, was daraus wurde.')}
+  return `${nurInhalt ? '' : `${pageHead('Sie entscheiden mit', 'Eine Frage,<br>Ihre Kreuze', 'Kleine Abstimmungen zu Dingen, die Soltau bewegen. Ihre Stimme zeigt uns, was den Menschen wichtig ist – das inspiriert unsere Arbeit. Und hier steht hinterher, was daraus wurde.')}`}
   <div class="wrap section">
     ${offen.length ? offen.map(u => `
     <article class="abstimmung" data-id="${esc(u.id)}" data-max="${u.maxWahl}" data-ergebnis="${esc(JSON.stringify(u.ergebnis))}" data-stimmen="${u.stimmen}">

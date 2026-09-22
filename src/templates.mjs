@@ -574,12 +574,9 @@ export function mitmachenPage(d) {
 </section>`;
 }
 
-export function kontaktPage(d) {
-  return `
-<section>
-  ${pageHead('Kontakt', 'Ihr<br>Anliegen', 'Ein Schlagloch in Ihrer Straße, eine Frage zu einer Ratsentscheidung, Kritik oder Lob – wir antworten.', 'bahnhof')}
-  <div class="wrap section split">
-    <form class="form wix-form" id="form-kontakt" data-collection="Anfragen" novalidate>
+// Das Kontaktformular – auf /kontakt/ und als Reiter „Ich habe ein Anliegen“ unter /mitreden/
+export function kontaktFormular(d) {
+  return `<form class="form wix-form" id="form-kontakt" data-collection="Anfragen" novalidate>
       <input type="hidden" name="typ" value="kontakt"><input type="hidden" name="thema" id="k-thema" value="Straßen &amp; Verkehr">
       <div class="form-fields" style="display:grid;gap:18px">
         <div class="field"><label for="k-name">Name</label><input id="k-name" name="name" type="text" required autocomplete="name"></div>
@@ -597,7 +594,15 @@ export function kontaktPage(d) {
         <button class="btn btn-rot" type="submit" style="justify-self:start">Anliegen senden</button>
       </div>
       <p class="form-ok" hidden>Danke! Ihr Anliegen ist angekommen. Wir melden uns – in der Regel innerhalb einer Woche.</p>
-    </form>
+    </form>`;
+}
+
+export function kontaktPage(d) {
+  return `
+<section>
+  ${pageHead('Kontakt', 'Ihr<br>Anliegen', 'Ein Schlagloch in Ihrer Straße, eine Frage zu einer Ratsentscheidung, Kritik oder Lob – wir antworten.', 'bahnhof')}
+  <div class="wrap section split">
+    ${kontaktFormular(d)}
     <div style="display:grid;gap:20px">
       <div class="box foto">${motiv('rathaus')}
         <h3>SPD Ortsverein Soltau</h3>
