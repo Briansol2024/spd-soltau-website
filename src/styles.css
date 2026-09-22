@@ -1452,14 +1452,16 @@ body.fokus-modus .mb-main{margin:0}
 .fokus-ergebnis-text .pos{margin-left:0;font-size:13px;padding:7px 9px 6px}
 .fokus-beschluss{display:flex;gap:6px;flex-wrap:wrap}
 .fokus-beschluss .chip[aria-pressed="true"]{background:var(--schwarz);color:#fff}
-.fokus-ergebnis-mehr{display:grid;grid-template-columns:130px minmax(0,1fr) auto;gap:8px;align-items:center}
+.fokus-beschluss-mehr{margin-top:6px;padding-top:8px;border-top:1px dashed var(--linie)}
+.fokus-beschluss-mehr input{flex:1 1 220px;font:inherit;font-size:15px;padding:9px 10px;border:2px solid var(--schwarz);min-width:0}
+.fokus-mehr{color:var(--muted)}
+.fokus-ergebnis-mehr{display:grid;grid-template-columns:auto 150px;gap:10px;align-items:center;margin-top:8px}
 .fokus-ergebnis-mehr input{font:inherit;font-size:15px;padding:9px 10px;border:2px solid var(--schwarz);min-width:0;width:100%;box-sizing:border-box}
 .pos.besch-angenommen,.pos.besch-geaendert{background:#177A38;border-color:#177A38;color:#fff}
 .pos.besch-abgelehnt{background:var(--rot);border-color:var(--rot);color:#fff}
 .pos.besch-vertagt,.pos.besch-zurueckgezogen,.pos.besch-kenntnis{background:var(--grau)}
 @container site (max-width:600px){
-  .fokus-ergebnis-mehr{grid-template-columns:minmax(0,1fr) auto}
-  .fokus-ergebnis-mehr input:nth-child(2){grid-column:1/-1}
+  .fokus-ergebnis-mehr{grid-template-columns:auto minmax(0,150px)}
 }
 /* Chat im Sitzungsmodus: zugeklappt eine Leiste unten, aufgeklappt Liste + Eingabe */
 .fokus-chat{position:sticky;bottom:0;z-index:35;margin:0 calc(-1 * var(--fokus-rand)) calc(-1 * var(--fokus-rand));background:#fff;border:2px solid var(--schwarz);border-bottom:0;box-shadow:0 -6px 18px rgba(0,0,0,.08)}

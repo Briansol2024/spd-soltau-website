@@ -1237,7 +1237,7 @@ function ratForm(r) {
       <div class="field"><label for="ra-titel">Titel (optional)</label><input id="ra-titel" name="titel" type="text" value="${esc(r?.titel || '')}" placeholder="z. B. Haushalt 2027"></div>
     </div>
     <div class="field"><label for="ra-protokoll">Ergebnisse trägt ein (Sitzungsleitung / Protokoll)</label><select id="ra-protokoll" name="protokoll"><option value="">– alle mit dem Recht „Ratsvorbereitung pflegen“ –</option>${people.map(p => `<option value="${esc(p.memberId)}" ${r?.protokoll === p.memberId ? 'selected' : ''}>${esc(p.name)}${p.memberId === me.id ? ' (du)' : ''}</option>`).join('')}</select><span class="small muted">Diese Person leitet im Sitzungsmodus („Ich leite“ – alle Geräte folgen ihrem Punkt).</span>
-      <label class="check" style="margin-top:8px"><input type="checkbox" name="ergebnisNur" ${r?.ergebnisNur ? 'checked' : ''}><span>Nur diese Person (und wer „Ratsvorbereitung pflegen“ darf) trägt Ergebnisse ein. <span class="muted">Sonst kann jede*r in der Sitzung das Ergebnis eintragen – mit Name und Uhrzeit, alle sehen es sofort.</span></span></label></div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" name="ergebnisAlle" ${r?.ergebnisAlle ? 'checked' : ''}><span>Alle in der Sitzung dürfen Ergebnisse eintragen. <span class="muted">Sonst nur diese Person und wer „Ratsvorbereitung pflegen“ darf – alle anderen sehen das Ergebnis nur.</span></span></label></div>
     <div class="field"><label for="ra-link">Link (Bürgerinformationssystem, optional)</label><input id="ra-link" name="link" type="url" value="${esc(r?.link || '')}"></div>
     <div class="field"><label>Tagesordnungspunkte – je Punkt: Haltung, Argumente, wer spricht, was intern diskutiert wurde, Ergebnis</label>
       <div id="ra-tops" class="rows">${tops.map(t => topRow(t)).join('')}</div>
@@ -1286,7 +1286,7 @@ function wireRat(v, all, stadt = []) {
       const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
       const tops = $$('#ra-tops .top-row').map(topLesen).filter(t => t.titel);
       const dokumente = $$('#ra-doks .dok-row').map(dokLesen).filter(d => d.titel || d.url).map(d => ({ ...d, titel: d.titel || d.url }));
-      const data = { typ: fd.get('typ'), b: fd.get('b') || '', protokoll: fd.get('protokoll') || '', ergebnisNur: fd.get('ergebnisNur') === 'on', gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), ort: fd.get('ort').trim(), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, dokumente, hinweis: fd.get('hinweis').trim(), von: me.name };
+      const data = { typ: fd.get('typ'), b: fd.get('b') || '', protokoll: fd.get('protokoll') || '', ergebnisAlle: fd.get('ergebnisAlle') === 'on', gremium: fd.get('gremium').trim(), sitzung: fd.get('sitzung'), zeit: fd.get('zeit'), ort: fd.get('ort').trim(), titel: fd.get('titel').trim(), title: `${fd.get('gremium')} ${fd.get('sitzung')}`, link: fd.get('link').trim(), tops, dokumente, hinweis: fd.get('hinweis').trim(), von: me.name };
       try {
         const cur = all.find(r => r._id === f.dataset.id);
         if (cur) await db.update('Ratsvorbereitung', { ...cur, ...data }); else await db.insert('Ratsvorbereitung', data);
@@ -1379,7 +1379,7 @@ function fokusSitzung(v, r, vomPoll = false) {
   const chatTipp = $('#fo-chat-in', v)?.value || '';
   const tops = r.tops || [], docs = Array.isArray(r.dokumente) ? r.dokumente : [];
   const kann = me.can('rat') || (!!r.protokoll && r.protokoll === me.id); // leiten, Ergebnisse immer
-  const darfErgebnis = kann || !r.ergebnisNur; // Standard: alle in der Sitzung dürfen das Ergebnis eintragen
+  const darfErgebnis = kann || r.ergebnisAlle === true; // Standard: nur Sitzungsleitung/Protokoll (und wer „Ratsvorbereitung pflegen“ darf); alle nur, wenn in der Sitzung freigegeben
   if (live.id !== r._id) {
     liveStop();
     Object.assign(live, { id: r._id, r, v, msgs: [], folgen: !kann, leiten: false, chatOffen: false, ungelesen: 0, chatStatus: null, erklaertOffen: false, gruppe: ['Vorstand', 'Versammlung'].includes(sitzungTyp(r)) ? 'vorstand' : 'fraktion' });
@@ -1403,7 +1403,7 @@ function fokusSitzung(v, r, vomPoll = false) {
         <li><b>Ein Tagesordnungspunkt pro Bildschirm.</b> Weiter mit „Nächster“, Wischen nach links/rechts oder den Pfeiltasten. Unten stehen alle Punkte – antippen springt hin.</li>
         <li><b>Haltung</b> = so will die Fraktion abstimmen: <span class="pos pos-dafr">dafür</span> <span class="pos pos-dagegen">dagegen</span> <span class="pos pos-enthaltung">Enthaltung</span> <span class="pos pos-nderungsantrag">Änderungsantrag</span> <span class="pos">offen</span></li>
         <li><b>Unsere Haltung &amp; Argumente</b> darfst du laut sagen. <b>Intern besprochen</b> bleibt in der Fraktion.</li>
-        <li><b>Es spricht</b> = wer für uns redet. <b>Ergebnis</b> = wie entschieden wurde: ein Tipp auf „Angenommen“, „Abgelehnt“ usw., dazu bei Bedarf das Abstimmungsergebnis (17:12). ${darfErgebnis ? 'Das darf hier jede*r – Name und Uhrzeit stehen dabei, der letzte Eintrag gilt, alle Geräte zeigen ihn nach wenigen Sekunden.' : `In dieser Sitzung trägt es ${protokollName ? esc(protokollName) : 'die Sitzungsleitung'} ein; dein Gerät zeigt es nach wenigen Sekunden.`}</li>
+        <li><b>Es spricht</b> = wer für uns redet. <b>Ergebnis</b> = wie entschieden wurde: ein Tipp auf „Angenommen“, „Abgelehnt“ usw., dazu bei Bedarf das Abstimmungsergebnis (17:12). ${r.ergebnisAlle ? 'Das darf hier jede*r – Name und Uhrzeit stehen dabei, der letzte Eintrag gilt, alle Geräte zeigen ihn nach wenigen Sekunden.' : `In dieser Sitzung trägt es ${protokollName ? esc(protokollName) : 'die Sitzungsleitung'} ein; dein Gerät zeigt es nach wenigen Sekunden.`}</li>
         <li><b>Live:</b> Wer leitet, tippt „Ich leite“ – dann springen alle Geräte, die „folgen“, mit zum aktuellen Punkt. Blättern darfst du trotzdem jederzeit selbst.</li>
         <li><b>Chat</b> unten: schnell etwas an die ${live.gruppe === 'vorstand' ? 'Vorstandsrunde' : 'Fraktion'} – verschlüsselt, nur für die mit Gruppenschlüssel.</li>
         <li><b>Zum Nachschlagen:</b> Vorlagen, Protokolle und Links zu dieser Sitzung stehen beim Punkt und ganz unten${bereichName ? `, dazu die Dokumente aus der Ratsarbeit (${esc(bereichName)})` : ''}.</li>
@@ -1412,7 +1412,7 @@ function fokusSitzung(v, r, vomPoll = false) {
       <button type="button" class="btn btn-schwarz btn-sm" id="fo-verstanden">Verstanden</button>
     </details>
     <div class="fokus-zeile"><span class="fokus-zaehler">${tops.length ? `Punkt ${fokus.i + 1} von ${tops.length}` : 'keine Punkte'}</span>${kann ? `<button type="button" class="chip" id="fo-leiten" aria-pressed="${live.leiten}" title="Alle Geräte, die folgen, springen mit zu deinem Punkt">${live.leiten ? '✓ Ich leite – alle folgen' : 'Ich leite die Sitzung'}</button>` : `<button type="button" class="chip" id="fo-folgen" aria-pressed="${live.folgen}" title="Zum Punkt der Sitzungsleitung springen">${live.folgen ? '✓ Ich folge der Sitzungsleitung' : 'Der Sitzungsleitung folgen'}</button>`}<button type="button" class="chip" id="fo-notizen" title="Meine Notizen zu dieser Sitzung – Text oder mit dem Stift">✎ Notizen</button><span class="fokus-wach small" id="fo-wach" hidden>● Bildschirm bleibt an</span></div>
-    ${r.ergebnisNur ? `<p class="small muted fokus-wer">Ergebnisse trägt in dieser Sitzung nur ${protokollName ? `<b>${esc(protokollName)}</b>` : 'die Sitzungsleitung'} ein${kann && r.protokoll !== me.id ? ' – und du (Recht „Ratsvorbereitung pflegen“)' : ''}.</p>` : `<p class="small muted fokus-wer">Ergebnisse kann hier jede*r eintragen – ein Tipp genügt, Name und Uhrzeit stehen dabei.${protokollName ? ` Sitzungsleitung: <b>${esc(protokollName)}</b>.` : ''}</p>`}
+    ${!r.ergebnisAlle ? `<p class="small muted fokus-wer">Das Ergebnis trägt ${protokollName ? `<b>${esc(protokollName)}</b>` : 'die Sitzungsleitung'} ein${kann && r.protokoll !== me.id ? ' – und du' : ''}; alle anderen sehen es nach wenigen Sekunden.</p>` : `<p class="small muted fokus-wer">Ergebnisse kann hier jede*r eintragen – ein Tipp genügt, Name und Uhrzeit stehen dabei.${protokollName ? ` Sitzungsleitung: <b>${esc(protokollName)}</b>.` : ''}</p>`}
     ${tops.length ? `<div class="fokus-top" id="fo-top">
       <div class="fokus-nr">TOP ${esc(nrVon(t, fokus.i))}</div>
       <h2 class="fokus-titel">${esc(t.titel || '')}</h2>
@@ -1423,9 +1423,11 @@ function fokusSitzung(v, r, vomPoll = false) {
       ${dazu.length ? `<div class="fokus-block"><span class="fokus-label">Dazu nachschlagen</span><div class="fokus-doks">${dazu.map(dokLink).join('')}</div></div>` : ''}
       <div class="fokus-block fokus-ergebnis"><span class="fokus-label">Ergebnis <small>wie entschieden wurde</small></span>
         ${hatErgebnis(t) ? `<p class="fokus-ergebnis-text">${beschlussBadge(t)} ${esc([t.abstimmung, t.ergebnis].filter(Boolean).join(' · '))}</p><p class="small muted">${ergebnisVon(t)}</p>` : '<p><span class="muted">noch offen</span></p>'}
-        ${darfErgebnis ? `<div class="fokus-beschluss">${BESCHLUSS.map(([k, l]) => `<button type="button" class="chip" data-beschluss="${k}" aria-pressed="${t.beschluss === k}">${l}</button>`).join('')}</div>
-        <div class="fokus-ergebnis-mehr"><input type="text" id="fo-abst" maxlength="30" placeholder="Abstimmung, z. B. 17:12" value="${esc(t.abstimmung || '')}" aria-label="Abstimmungsergebnis"><input type="text" id="fo-ergebnis" maxlength="200" placeholder="Anmerkung (optional), z. B. mit unserem Änderungsantrag" value="${esc(t.ergebnis || '')}" aria-label="Anmerkung"><button class="btn btn-schwarz btn-sm" type="button" id="fo-save">Speichern</button></div>
-        <div class="mb-actions"><span class="small muted" id="fo-msg"></span>${hatErgebnis(t) ? '<button type="button" class="linkbtn" id="fo-reset">Ergebnis löschen</button>' : ''}</div>` : ''}</div>
+        ${darfErgebnis ? (() => { const haupt = BESCHLUSS.slice(0, 2).concat([BESCHLUSS[3]]), weitere = [BESCHLUSS[2], BESCHLUSS[4], BESCHLUSS[5]]; const mehrOffen = weitere.some(([k]) => k === t.beschluss) || !!t.ergebnis; const chip = ([k, l]) => `<button type="button" class="chip" data-beschluss="${k}" aria-pressed="${t.beschluss === k}">${l}</button>`; return `<div class="fokus-beschluss">${haupt.map(chip).join('')}<button type="button" class="chip fokus-mehr" id="fo-mehr" aria-expanded="${mehrOffen}" aria-controls="fo-mehr-box">Mehr ▾</button></div>
+        <div class="fokus-beschluss fokus-beschluss-mehr" id="fo-mehr-box" ${mehrOffen ? '' : 'hidden'}>${weitere.map(chip).join('')}<input type="text" id="fo-ergebnis" maxlength="200" placeholder="Anmerkung, z. B. mit unserem Änderungsantrag" value="${esc(t.ergebnis || '')}" aria-label="Anmerkung"></div>
+        <div class="fokus-ergebnis-mehr"><label for="fo-abst" class="small muted">Abstimmung</label><input type="text" id="fo-abst" maxlength="30" placeholder="z. B. 17 : 12" value="${esc(t.abstimmung || '')}" aria-label="Abstimmungsergebnis" enterkeyhint="done"></div>
+`; })() : ''}
+        ${darfErgebnis ? `<div class="mb-actions"><span class="small muted" id="fo-msg"></span>${hatErgebnis(t) ? '<button type="button" class="linkbtn" id="fo-reset">Ergebnis löschen</button>' : ''}</div>` : ''}</div>
     </div>
     <div class="fokus-nav"><button class="btn btn-line" type="button" id="fo-prev" ${fokus.i === 0 ? 'disabled' : ''}>‹ Vorheriger</button><button class="btn btn-rot" type="button" id="fo-next" ${fokus.i >= tops.length - 1 ? 'disabled' : ''}>Nächster ›</button></div>` : '<p class="muted">Diese Sitzung hat noch keine Tagesordnungspunkte.</p>'}
     <details class="fokus-alle" ${tops.length > 1 ? 'open' : ''}><summary>Alle Punkte auf einen Blick</summary>
@@ -1470,8 +1472,8 @@ function fokusSitzung(v, r, vomPoll = false) {
     } catch (err) { const m = $('#fo-msg', v); if (m) m.textContent = 'Nicht gespeichert: ' + errText(err); if (btn) busy(btn, false); }
   };
   $$('[data-beschluss]', v).forEach(b => b.addEventListener('click', () => ergebnisSpeichern({ beschluss: b.getAttribute('aria-pressed') === 'true' ? '' : b.dataset.beschluss }, b)));
-  $('#fo-save', v)?.addEventListener('click', () => ergebnisSpeichern({}, $('#fo-save', v)));
-  ['#fo-abst', '#fo-ergebnis'].forEach(sel => $(sel, v)?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ergebnisSpeichern({}, $('#fo-save', v)); } }));
+  ['#fo-abst', '#fo-ergebnis'].forEach(sel => { const inp = $(sel, v); if (!inp) return; inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } }); inp.addEventListener('change', () => ergebnisSpeichern({})); });
+  $('#fo-mehr', v)?.addEventListener('click', () => { const box = $('#fo-mehr-box', v), b = $('#fo-mehr', v); box.hidden = !box.hidden; b.setAttribute('aria-expanded', String(!box.hidden)); b.textContent = box.hidden ? 'Mehr ▾' : 'Weniger ▴'; });
   $('#fo-reset', v)?.addEventListener('click', () => { if (confirm('Ergebnis dieses Punkts löschen?')) ergebnisSpeichern({ beschluss: '', abstimmung: '', ergebnis: '', leer: true }); });
   // Wischen auf dem Punkt: nach links = nächster, nach rechts = vorheriger
   const top = $('#fo-top', v); let sx = null, sy = null;
