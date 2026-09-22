@@ -16,14 +16,14 @@ def duration(path):
     m = re.search(r'Duration: (\d+):(\d+):([\d.]+)', r.stderr)
     return int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3]) if m else 0
 
-for webm in sorted(list(TMP.glob('rundgang-*.webm')) + list(TMP.glob('keynote-*.webm'))):
+for webm in sorted(list(TMP.glob('rundgang-*.webm')) + list(TMP.glob('keynote-*.webm')) + list(TMP.glob('app-*.webm'))):
     if only and only not in webm.stem: continue
     mp4 = OUT / (webm.stem + '.mp4')
     d = duration(webm)
-    musik = ROOT / 'video' / 'hilfe' / ('keynote.wav' if webm.stem.startswith('keynote') else 'music.wav')
+    musik = ROOT / 'video' / 'hilfe' / ('keynote.wav' if webm.stem.startswith(('keynote', 'app-')) else 'music.wav')
     cmd = [FFMPEG, '-hide_banner', '-loglevel', 'error', '-y',
            '-i', str(webm), '-stream_loop', '-1', '-i', str(musik),
-           '-filter_complex', f'[1:a]volume={0.7 if webm.stem.startswith("keynote") else 0.5},afade=t=in:st=0:d=1.5,afade=t=out:st={max(0, d - 3):.2f}:d=3[a]',
+           '-filter_complex', f'[1:a]volume={0.7 if webm.stem.startswith(("keynote", "app-")) else 0.5},afade=t=in:st=0:d=1.5,afade=t=out:st={max(0, d - 3):.2f}:d=3[a]',
            '-map', '0:v:0', '-map', '[a]', '-t', f'{d:.2f}',
            '-c:v', 'libx264', '-preset', 'medium', '-crf', '26', '-pix_fmt', 'yuv420p', '-r', '25', '-profile:v', 'main', '-level', '4.0',
            '-c:a', 'aac', '-b:a', '80k', '-ac', '1', '-movflags', '+faststart', str(mp4)]

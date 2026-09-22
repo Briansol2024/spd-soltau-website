@@ -47,6 +47,7 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 #head .ln{display:block;font:800 78px/1 var(--display);text-transform:uppercase;letter-spacing:-.005em;color:#fff;opacity:0;text-shadow:0 8px 40px rgba(0,0,0,.6)}
 #head.small .ln{font-size:60px}
 #head .ln.rot{color:var(--rot)}
+#head .ln.url{text-transform:none;font-size:62px;letter-spacing:0}
 #head.on .ln{animation:punch .6s var(--ease) both}
 #head.on .ln:nth-child(2){animation-delay:.14s}#head.on .ln:nth-child(3){animation-delay:.28s}
 #head.off .ln{animation:leave .35s var(--ease) both}
@@ -77,6 +78,70 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 #end .adr{background:var(--rot);padding:20px 30px;font:700 44px/1 var(--display);animation:punch .7s .25s var(--ease) both}
 #end img{height:70px;margin-top:20px;animation:punch .7s .45s var(--ease) both}
 #end .sub{font:500 26px/1.3 var(--body);color:#C9C4C2;text-align:center;animation:punch .7s .35s var(--ease) both}
+/* ---- Browserleisten (nachgebaut, schematisch) ---- */
+#browser{display:none;flex-shrink:0;align-items:center;gap:8px;padding:6px 10px;background:#E9E9EB;border-bottom:1px solid #D0D0D3;font:500 15px var(--body);color:#333}
+#browser .url{flex:1;display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;background:#fff;border-radius:17px;min-width:0;white-space:nowrap;overflow:hidden}
+#browser .dots{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+#browser .ic{width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:#444}
+#browser .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* iOS 26 (Liquid Glass): Adresskapsel unten, das „…“ öffnet das Menü */
+#browser.ios{border:0;background:transparent;padding:8px 14px 10px;position:absolute;left:0;right:0;bottom:26px;z-index:20}
+#browser.ios .kapsel{display:flex;align-items:center;gap:6px;height:50px;padding:0 6px 0 14px;border-radius:25px;background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.6);box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.7);color:#111;flex:1}
+#browser.ios .kapsel .url{background:transparent;padding:0;height:auto;flex:1;justify-content:center;font-weight:600;font-size:16px}
+#browser.ios .rund{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.75);backdrop-filter:blur(18px);box-shadow:0 6px 18px rgba(0,0,0,.16),inset 0 0 0 1px rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:20px;color:#111;flex-shrink:0}
+#browser.ios .rund.more{font-weight:800;letter-spacing:1px}
+/* ---- Nachgebaute System-Oberflächen (Menüs, Dialoge, Startbildschirm) ---- */
+#overlay{position:absolute;inset:0;pointer-events:none;z-index:30}
+.ov-dim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.ov{position:absolute;background:#fff;color:#111;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.4);font:500 19px/1.3 var(--body);overflow:hidden}
+.ov .hd{padding:14px 18px;border-bottom:1px solid #E5E5E5;font-weight:700}
+.ov .it{padding:13px 18px;border-bottom:1px solid #EEE;display:flex;align-items:center;gap:12px}
+.ov .it:last-child{border-bottom:0}
+.ov .it.hl{outline:3px solid var(--rot);outline-offset:-3px;background:#FFF1F2}
+.ov .it .ic{width:24px;height:24px;flex-shrink:0;color:#555;display:flex;align-items:center;justify-content:center}
+.ov .it .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ov .txt{padding:16px 18px;color:#444}
+.ov .btns{display:flex;justify-content:flex-end;gap:10px;padding:12px 16px 16px}
+.ov .btn{padding:10px 18px;border-radius:8px;border:1px solid #CCC;background:#fff;font:600 17px var(--body)}
+.ov .btn.p{background:#1A73E8;color:#fff;border-color:#1A73E8}
+.ov .btn.hl{outline:3px solid var(--rot);outline-offset:2px}
+.ov.ios{border-radius:22px;font-size:19px;background:rgba(250,250,252,.94);backdrop-filter:blur(20px) saturate(1.5)}
+.ov.ios .it{justify-content:space-between;padding:14px 18px}
+.ov.ios .it .ic{order:2;color:#111}
+.ov.ios .btn{border:0;font-weight:600;color:#0A84FF;background:transparent}
+.ov.ios .btns{border-top:1px solid #E5E5E5;justify-content:space-around;padding:12px}
+.ov.mac .btn{border-radius:6px}
+.ov.mac .btn.p{background:#0A60FF;border-color:#0A60FF}
+.ov.win .btn{border-radius:4px}
+.ov.win .btn.p{background:#0067C0;border-color:#0067C0}
+.ov.win .hd{font-size:20px}
+.ov.sheet{border-radius:22px 22px 0 0;left:0;right:0;bottom:0}
+.ov.sheet .grab{width:44px;height:5px;border-radius:3px;background:#CCC;margin:10px auto 6px}
+.home{position:absolute;inset:0;background:linear-gradient(180deg,#1f3b57,#0d1b2a);display:grid;grid-template-columns:repeat(4,1fr);gap:22px 10px;padding:70px 26px;align-content:start;pointer-events:none}
+.home .ap{display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;font:500 13px var(--body)}
+.home .ap i{width:62px;height:62px;border-radius:16px;background:#8A8F98;display:block}
+.home .ap.spd i{background:var(--rot) url(http://localhost:8080/assets/icons/icon-192.png) center/cover;outline:4px solid #fff;outline-offset:3px}
+.menubar{position:absolute;left:0;right:0;top:0;height:28px;background:#F5F5F7;border-bottom:1px solid #D9D9D9;display:flex;align-items:center;gap:18px;padding:0 14px;font:500 14px var(--body);color:#111}
+.menubar b{font-weight:700}
+.menubar .hl{background:#0A60FF;color:#fff;padding:3px 8px;border-radius:5px}
+.toast{position:absolute;left:50%;transform:translateX(-50%);background:#fff;color:#111;border-radius:14px;padding:14px 18px;box-shadow:0 14px 40px rgba(0,0,0,.35);font:500 18px/1.3 var(--body);display:flex;gap:12px;align-items:center;max-width:90%}
+.toast img{width:40px;height:40px;border-radius:9px}
+.toast b{display:block}
+/* ---- Gerät als PC-Fenster (Windows / Mac) ---- */
+.mode-desktop #device{border-radius:10px;padding:0;background:#fff}
+.mode-desktop #screen{inset:0;border-radius:10px}
+.mode-desktop #status,.mode-desktop #homebar,.mode-desktop #cam{display:none}
+#titlebar{display:none;flex-shrink:0;align-items:center;height:36px;padding:0 12px;background:#F3F3F3;border-bottom:1px solid #D9D9D9;font:500 13px var(--body);color:#333;position:relative}
+.mode-desktop #titlebar{display:flex}
+#titlebar .win{display:flex;align-items:center;gap:10px}
+#titlebar .win img{width:16px;height:16px}
+#titlebar .winbtns{margin-left:auto;display:flex;gap:26px;font-size:14px;color:#333}
+#titlebar .lights{display:flex;gap:8px}
+#titlebar .lights i{width:12px;height:12px;border-radius:50%;display:block}
+#titlebar .center{position:absolute;left:50%;transform:translateX(-50%)}
+.plat-windows #titlebar .lights,.plat-windows #titlebar .center{display:none}
+.plat-macos #titlebar .win,.plat-macos #titlebar .winbtns{display:none}
+.plat-ios #cam{width:110px;height:30px;border-radius:15px}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
 #flash.on{animation:flash .5s ease-out both}
 @keyframes flash{0%{opacity:.85}100%{opacity:0}}
@@ -86,7 +151,7 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 <div id="stage">
   <div id="glow"></div><div id="glow2"></div>
   <img id="logo" src="http://localhost:8080/assets/images/logo-spd-soltau-weiss.png" alt="">
-  <div id="devwrap"><div id="device"><div id="screen"><div id="cam"></div><div id="status"><span id="clock">10:08</span><span class="r">&#9650; &#9646;&#9646;&#9646;</span></div><iframe id="app" title="App"></iframe><div id="homebar"><i></i></div></div></div></div>
+  <div id="devwrap"><div id="device"><div id="screen"><div id="cam"></div><div id="status"><span id="clock">10:08</span><span class="r">&#9650; &#9646;&#9646;&#9646;</span></div><div id="titlebar"><div class="lights"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div><div class="win"><img src="http://localhost:8080/assets/icons/icon-192.png" alt=""><span>SPD Soltau – Mitgliederbereich</span></div><span class="center">spd-soltau.de</span><div class="winbtns"><span>&#8212;</span><span>&#9633;</span><span>&#10005;</span></div></div><div id="browser"></div><iframe id="app" title="App"></iframe><div id="homebar"><i></i></div><div id="overlay"></div></div></div></div>
   <div id="vignette"></div>
   <div id="tap"></div>
   <div id="kicker"></div>
@@ -100,14 +165,61 @@ html,body{margin:0;width:100%;height:100%;overflow:clip;background:#050505;font-
 const $ = s => document.querySelector(s);
 // Gerätemaße (Identität = Kamera in Ruhe): Handy 504×(815+66+24) mittig, iframe-Nullpunkt für die Koordinaten aus der App
 const DEV = { x: 108, y: 110, w: 504, h: 0 };
-const SCREEN_W = 480, APP_H = 815;
+const APP_H = 815;
 window.SCREEN0 = { x: DEV.x + 12, y: DEV.y + 12 + 40 };
 const cam = { tx: 0, ty: 0, s: 1 };
-window.setup = () => {
-  DEV.h = 12 + 40 + APP_H + 26 + 12;
+let cfg = { plat: 'android', mode: 'phone' };
+// mode 'phone': Handy 504 breit (App 480×815). mode 'desktop': PC-Fenster 680 breit (Titelleiste 36 + Adressleiste 46 + App 680×400)
+window.setup = (c = {}) => {
+  cfg = { plat: c.plat || 'android', mode: c.mode || 'phone' };
+  document.body.className = `plat-${cfg.plat} mode-${cfg.mode}`;
+  if (cfg.mode === 'desktop') {
+    // Die App bekommt 1180 CSS-Pixel Breite (PC-Layout mit Seitenleiste) und wird als Ganzes auf 680 verkleinert
+    Object.assign(DEV, { x: 20, y: 330, w: 680, h: 36 + 46 + 400 });
+    window.SCREEN0 = { x: DEV.x, y: DEV.y + 36 + 46 };
+    Object.assign($('#app').style, { flex: 'none', width: '1180px', height: (400 * 1180 / 680) + 'px', transform: `scale(${680 / 1180})`, transformOrigin: '0 0' });
+  } else {
+    Object.assign(DEV, { x: 108, y: 110, w: 504, h: 12 + 40 + APP_H + 26 + 12 });
+    window.SCREEN0 = { x: DEV.x + 12, y: DEV.y + 12 + 40 };
+    $('#app').style.height = APP_H + 'px';
+  }
   Object.assign($('#device').style, { left: DEV.x + 'px', top: DEV.y + 'px', width: DEV.w + 'px', height: DEV.h + 'px' });
-  $('#app').style.height = APP_H + 'px';
+  $('#clock').textContent = cfg.plat === 'ios' ? '9:41' : '10:08';
 };
+// Browserleiste an/aus (Chrome oben, Safari iOS 26 unten als Kapsel, PC: Adressleiste mit Installieren-Symbol)
+window.setBrowser = (on, url) => {
+  const b = $('#browser'); b.style.display = on ? 'flex' : 'none'; if (!on) return;
+  const u = url || 'spd-soltau.de/mitglieder';
+  const install = '<span class="ic" id="dots" title="Installieren"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M12 7v6M9.5 10.5L12 13l2.5-2.5"/></svg></span>';
+  if (cfg.plat === 'ios') { b.className = 'ios'; b.innerHTML = `<span class="rund">&#8249;</span><div class="kapsel"><span>&#128274;</span><span class="url" id="url">${u.replace(/\/.*$/, '')}</span><span class="rund more" id="dots">&middot;&middot;&middot;</span></div>`; }
+  else if (cfg.mode === 'phone') { b.className = ''; b.innerHTML = `<span>&#8592;</span><div class="url"><span>&#128274;</span><span id="url">${u}</span></div><span class="dots" id="dots">&#8942;</span>`; }
+  else { b.className = ''; b.innerHTML = `<span>&#8592;</span><span>&#8594;</span><span>&#8635;</span><div class="url"><span>&#128274;</span><span id="url" style="flex:1">${u}</span>${install}</div><span class="dots">&#8942;</span>`; }
+};
+const ICONS = { install: '<svg viewBox="0 0 24 24"><path d="M12 3v12M6 9l6 6 6-6M4 21h16"/></svg>', share: '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 12v8h14v-8"/></svg>', plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>', star: '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>', book: '<svg viewBox="0 0 24 24"><path d="M4 4h12a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3z"/></svg>', copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>', search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>', print: '<svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>', home: '<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>', tab: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 9v6M9 12h6"/></svg>', text: '<svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>', globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>' };
+const item = (it, i, hl) => `<div class="it ${i === hl ? 'hl' : ''}">${it.icon ? `<span class="ic">${ICONS[it.icon] || ''}</span>` : ''}<span>${it.label}</span></div>`;
+// spec: { kind:'dropdown'|'sheet'|'dialog'|'home'|'menubar'|'toast', ... } – wie in stage.html
+window.overlay = spec => {
+  const o = $('#overlay'); o.innerHTML = '';
+  const skin = cfg.plat === 'ios' ? 'ios' : cfg.plat === 'macos' ? 'mac' : cfg.plat === 'windows' ? 'win' : '';
+  const dim = spec.dim === false ? '' : '<div class="ov-dim"></div>';
+  if (spec.kind === 'dropdown') {
+    o.innerHTML = `${dim}<div class="ov ${skin}" style="right:${spec.right ?? 10}px;top:${spec.top ?? 54}px;bottom:${spec.bottom ?? 'auto'};width:${spec.width || 300}px;left:${spec.left ?? 'auto'}">${spec.title ? `<div class="hd">${spec.title}</div>` : ''}${spec.items.map((it, i) => item(it, i, spec.highlight)).join('')}</div>`;
+  } else if (spec.kind === 'sheet') {
+    o.innerHTML = `${dim}<div class="ov ${skin} sheet"><div class="grab"></div>${spec.title ? `<div class="hd">${spec.title}</div>` : ''}${spec.items.map((it, i) => item(it, i, spec.highlight)).join('')}</div>`;
+  } else if (spec.kind === 'dialog') {
+    o.innerHTML = `${dim}<div class="ov ${skin}" style="left:50%;top:${spec.top ?? '38%'};transform:translate(-50%,-50%);width:${spec.width || 360}px">${spec.icon ? `<div style="padding:18px 18px 0;text-align:center"><img src="http://localhost:8080/assets/icons/icon-192.png" style="width:56px;height:56px;border-radius:12px"></div>` : ''}<div class="hd" style="border:0;text-align:${skin === 'ios' ? 'center' : 'left'}">${spec.title}</div>${spec.text ? `<div class="txt" style="padding-top:0">${spec.text}</div>` : ''}<div class="btns">${spec.buttons.map((b, i) => `<button class="btn ${i === spec.primary ? 'p' : ''} ${i === spec.highlight ? 'hl' : ''}">${b}</button>`).join('')}</div></div>`;
+  } else if (spec.kind === 'home') {
+    const apps = ['Telefon', 'Nachrichten', 'Kamera', 'Fotos', 'Kalender', 'Karten', 'Wetter', 'Einstellungen', 'Mail', 'Musik', 'Notizen'];
+    o.innerHTML = `<div class="home">${apps.map(a => `<div class="ap"><i></i>${a}</div>`).join('')}<div class="ap spd hl"><i></i>SPD Soltau</div></div>`;
+  } else if (spec.kind === 'menubar') {
+    o.innerHTML = `<div class="menubar"><b>&#63743;</b><span>Safari</span><span class="${spec.open === 'Ablage' ? 'hl' : ''}">Ablage</span><span>Bearbeiten</span><span>Darstellung</span><span>Verlauf</span><span>Lesezeichen</span><span>Fenster</span><span>Hilfe</span></div>${spec.items ? `<div class="ov mac" style="left:100px;top:30px;width:300px;border-radius:8px">${spec.items.map((it, i) => item(it, i, spec.highlight)).join('')}</div>` : ''}`;
+  } else if (spec.kind === 'toast') {
+    o.innerHTML = `<div class="toast" style="top:${spec.top ?? 18}px"><img src="http://localhost:8080/assets/icons/icon-192.png"><span><b>${spec.title}</b>${spec.text || ''}</span></div>`;
+  }
+};
+window.overlayOff = () => { $('#overlay').innerHTML = ''; };
+// Ruhe-Koordinaten (Kamera in Ruhe) eines Bühnenelements, z. B. des hervorgehobenen Menüpunkts oder des „…“-Knopfs
+window.stageRect = sel => { const el = typeof sel === 'string' ? $(sel) : sel; if (!el) return null; const r = el.getBoundingClientRect(); const O = { x: DEV.x + DEV.w / 2, y: DEV.y + DEV.h / 2 }; const inv = (x, y) => ({ x: O.x + (x - cam.tx - O.x) / cam.s, y: O.y + (y - cam.ty - O.y) / cam.s }); const a = inv(r.left, r.top), b = inv(r.right, r.bottom); return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 }; };
 window.loadApp = url => { $('#app').src = url; };
 // Kamera: Punkt P (Bühnenkoordinaten in Ruhe) soll bei Faktor s auf C landen
 window.camTo = ({ s = 1, px, py, cx = 360, cy, ms = 900 } = {}) => {
@@ -124,7 +236,7 @@ window.tapAt = (x, y) => { const t = $('#tap'); t.style.left = x + 'px'; t.style
 window.kicker = text => { const k = $('#kicker'); if (!text) { k.classList.remove('on'); return; } k.textContent = text; k.classList.add('on'); };
 window.headline = ({ lines = [], pos = 'bottom', over = false, small = false } = {}) => {
   const h = $('#head'); h.className = `${pos}${over ? ' over' : ''}${small ? ' small' : ''}`;
-  h.innerHTML = lines.map(l => { const rot = l.startsWith('*'); return `<span class="ln${rot ? ' rot' : ''}">${l.replace(/^\*/, '')}</span>`; }).join('');
+  h.innerHTML = lines.map(l => { const rot = l.startsWith('*'), url = l.startsWith('~'); return `<span class="ln${rot ? ' rot' : ''}${url ? ' url' : ''}">${l.replace(/^[*~]/, '')}</span>`; }).join('');
   void h.offsetWidth; h.classList.add('on');
 };
 window.headOff = () => { const h = $('#head'); if (!h.classList.contains('on')) return; h.classList.remove('on'); h.classList.add('off'); setTimeout(() => { if (h.classList.contains('off')) { h.classList.remove('off'); h.innerHTML = ''; } }, 380); };

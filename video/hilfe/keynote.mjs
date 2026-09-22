@@ -15,7 +15,8 @@ const TMP = path.join(HERE, 'tmp');
 const STAGE = pathToFileURL(path.join(HERE, 'keynote.html')).href;
 const only = process.argv[2] || 'alle';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const W = 720, H = 1280, APP_W = 412, ZOOM = 480 / APP_W;
+const W = 720, H = 1280;
+const zoomFor = t => t.mode === 'desktop' ? 1 : 480 / 412; // Handy: CSS-Zoom im iframe; PC: die Bühne skaliert den ganzen iframe (Transform), damit das PC-Layout bleibt
 
 await mkdir(TMP, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-gpu-vsync', '--autoplay-policy=no-user-gesture-required'] });
@@ -30,14 +31,14 @@ async function record(t) {
     if (window.top === window) return;
     const apply = () => { document.documentElement.style.zoom = String(z); };
     if (document.documentElement) apply(); else new MutationObserver((m, o) => { if (document.documentElement) { apply(); o.disconnect(); } }).observe(document, { childList: true });
-  }, ZOOM);
+  }, zoomFor(t));
   const page = await ctx.newPage();
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto(STAGE);
-  await page.evaluate(() => setup());
+  await page.evaluate(c => setup(c), { plat: t.plat || 'android', mode: t.mode || 'phone' });
   const app = () => page.frameLocator('#app');
   const Q = t.rolle === 'mitglied' ? '?demo&video' : `?demo=${t.rolle}&video`;
-  let K = 1, nr = 0; // Chrome liefert getBoundingClientRect im iframe bereits in gezoomten Pixeln (Bühnenmaß) – calibrate() prüft das
+  let K = t.mode === 'desktop' ? 680 / 1180 : 1, nr = 0; // Handy: Chrome liefert getBoundingClientRect im iframe bereits in gezoomten Pixeln; PC: iframe per Transform verkleinert
   const ev = (fn, arg) => page.evaluate(fn, arg);
   const S = {
     page, app,
@@ -61,7 +62,7 @@ async function record(t) {
     async calibrate(sel) {
       const loc = app().locator(sel).first();
       const bb = await loc.boundingBox(); const r = await loc.evaluate(el => el.getBoundingClientRect().width);
-      if (bb && r) K = bb.width / r;
+      if (bb && r && t.mode !== 'desktop') K = bb.width / r;
       console.log(`  Kalibrierung K=${K.toFixed(3)}${bb ? '' : ' (kein boundingBox)'}`);
     },
     async cam(sel, { s = 1.7, cy = 600, ms = 900 } = {}) { const r = await S.rect(sel); await ev(o => camTo(o), { s, px: r.cx, py: r.cy, cx: 360, cy, ms }); await sleep(ms + 80); return r; },
@@ -76,6 +77,13 @@ async function record(t) {
     async nav(sec) { await S.tap(`.mb-tabbar [data-tab="${sec}"]`); await sleep(500); },
     async more(sec) { await S.tap('#mb-more'); await sleep(450); await S.tap(`.mb-sheet a[data-sec="${sec}"]`); await sleep(600); },
     // Bühne
+    // Browserleiste und nachgebaute System-Oberflächen (Menüs, Dialoge, Startbildschirm)
+    browser: (on, url) => ev(([o, u]) => setBrowser(o, u), [on, url || '']),
+    overlay: spec => ev(sp => overlay(sp), spec),
+    overlayOff: () => ev(() => overlayOff()),
+    async stageRect(sel) { const r = await ev(x => stageRect(x), sel); if (!r) throw new Error('Bühnenelement fehlt: ' + sel); return r; },
+    async camStage(sel, { s = 1.7, cy = 600, ms = 900 } = {}) { const r = await S.stageRect(sel); await ev(o => camTo(o), { s, px: r.cx, py: r.cy, cx: 360, cy, ms }); await sleep(ms + 80); return r; },
+    async tapStage(sel) { const r = await S.stageRect(sel); await S.ripple(r); await sleep(300); },
     kicker: text => ev(x => kicker(x), text),
     head: (lines, o = {}) => ev(a => headline(a), { lines, ...o }),
     headOff: () => ev(() => headOff()),
@@ -237,6 +245,90 @@ const TOUREN = {
     await S.end({ big: 'Fragen?<br>Der Vorstand hilft.', adr: 'spd-soltau.de/mitglieder', sub: 'Ratsarbeit und Sitzungen – ab heute in der App.' }); await sleep(4000);
   } },
 };
+
+// ---------- „So bekommst du die App“: je Plattform ein kurzer Clip, gleicher Anfang und Schluss ----------
+const appIntro = async (S, kicker) => {
+  await S.load('start'); await sleep(300);
+  await S.kicker('So bekommst du die App'); await sleep(900);
+  await S.word('Die App.', 1400); await S.kicker('');
+  await S.head(['Kein App-Store.', '*Kein Download.'], { pos: 'center' }); await sleep(2100); await S.headOff(); await sleep(200);
+  await S.kicker(kicker); await S.browser(true, 'spd-soltau.de/mitglieder');
+  await S.phone('in'); await sleep(1100); await S.calibrate('.mb-tabbar, .mb-side, .mb-head');
+};
+const appEnde = async (S, zeilen) => {
+  await S.kicker('');
+  if (zeilen) await beat(S, zeilen, 2400, { small: true });
+  await S.phone('out'); await sleep(600);
+  await S.flash(); await S.word('Fertig.', 1400); await S.phone('out');
+  await S.end({ big: 'Jetzt<br>ausprobieren.', adr: 'spd-soltau.de/mitglieder', sub: 'Fragen? Der Vorstand hilft.' }); await sleep(3800);
+};
+const APP = {
+  android: { name: 'app-android', rolle: 'mitglied', plat: 'android', mode: 'phone', script: async S => {
+    await appIntro(S, 'Android · Chrome');
+    await S.camStage('#url', { s: 1.7, cy: 520 });
+    await beat(S, ['~spd‑soltau.de/mitglieder', '*in Chrome öffnen.'], 2300, { over: true, small: true });
+    await S.camStage('#dots', { s: 1.9, cy: 520, ms: 700 }); await S.tapStage('#dots');
+    await S.overlay({ kind: 'dropdown', right: 14, top: 60, width: 300, items: [{ label: 'Neuer Tab', icon: 'tab' }, { label: 'Neuer Inkognitotab' }, { label: 'Verlauf' }, { label: 'Downloads' }, { label: 'Lesezeichen', icon: 'star' }, { label: 'App installieren', icon: 'install' }, { label: 'Teilen …', icon: 'share' }, { label: 'Auf der Seite suchen', icon: 'search' }], highlight: 5 });
+    await sleep(400); await S.camStage('#overlay .hl', { s: 1.6, cy: 560, ms: 700 }); await S.tapStage('#overlay .hl');
+    await beat(S, ['Drei Punkte.', '*App installieren.'], 2200, { over: true });
+    await S.overlay({ kind: 'dialog', icon: true, title: 'SPD Soltau installieren?', text: 'spd-soltau.de', buttons: ['Abbrechen', 'Installieren'], primary: 1, highlight: 1 });
+    await sleep(300); await S.camStage('#overlay .btn.hl', { s: 1.6, cy: 560, ms: 700 }); await S.tapStage('#overlay .btn.hl');
+    await beat(S, ['Installieren.', '*Das war es schon.'], 2100, { over: true });
+    await S.overlay({ kind: 'home' }); await S.camReset();
+    await beat(S, ['Liegt auf dem', '*Startbildschirm.'], 2300);
+    await S.overlayOff(); await S.browser(false);
+    await appEnde(S, ['Öffnet wie jede App –', '*direkt im Mitgliederbereich.']);
+  } },
+  ios: { name: 'app-iphone', rolle: 'mitglied', plat: 'ios', mode: 'phone', script: async S => {
+    await appIntro(S, 'iPhone · Safari');
+    await S.camStage('#url', { s: 1.7, cy: 640 });
+    await beat(S, ['~spd‑soltau.de/mitglieder', '*in Safari öffnen.'], 2300, { over: true, small: true });
+    await S.camStage('#dots', { s: 1.9, cy: 640, ms: 700 }); await S.tapStage('#dots');
+    await S.overlay({ kind: 'dropdown', left: 30, right: 30, top: 'auto', bottom: 110, width: 420, items: [{ label: 'Neuer Tab', icon: 'tab' }, { label: 'Teilen …', icon: 'share' }, { label: 'Lesezeichen hinzufügen', icon: 'star' }, { label: 'Zum Home-Bildschirm', icon: 'plus' }, { label: 'Reader anzeigen', icon: 'text' }, { label: 'Auf der Seite suchen', icon: 'search' }], highlight: 3 });
+    await sleep(400); await S.camStage('#overlay .hl', { s: 1.6, cy: 600, ms: 700 }); await S.tapStage('#overlay .hl');
+    await beat(S, ['Die drei Punkte.', '*Zum Home-Bildschirm.'], 2300, { over: true });
+    await S.overlay({ kind: 'dialog', icon: true, title: 'Zum Home-Bildschirm', text: 'SPD Soltau<br><span style="color:#888">spd-soltau.de/mitglieder</span>', buttons: ['Abbrechen', 'Hinzufügen'], primary: 1, highlight: 1 });
+    await sleep(300); await S.camStage('#overlay .btn.hl', { s: 1.6, cy: 560, ms: 700 }); await S.tapStage('#overlay .btn.hl');
+    await beat(S, ['Hinzufügen.', '*Das war es schon.'], 2100, { over: true });
+    await S.overlay({ kind: 'home' }); await S.camReset();
+    await beat(S, ['Liegt auf dem', '*Home-Bildschirm.'], 2300);
+    await S.overlayOff(); await S.browser(false);
+    await appEnde(S, ['Wichtig am iPhone:', '*Nur so gibt es Push-Nachrichten.']);
+  } },
+  windows: { name: 'app-windows', rolle: 'mitglied', plat: 'windows', mode: 'desktop', script: async S => {
+    await appIntro(S, 'Windows · Chrome oder Edge');
+    await S.camStage('#url', { s: 1.9, cy: 640 });
+    await beat(S, ['~spd‑soltau.de/mitglieder', '*in Chrome oder Edge.'], 2300, { over: true, small: true });
+    await S.camStage('#dots', { s: 2.4, cy: 640, ms: 800 }); await S.tapStage('#dots');
+    await beat(S, ['Rechts in der Adressleiste:', '*das Installieren-Symbol.'], 2400, { over: true, small: true });
+    await S.overlay({ kind: 'dialog', icon: true, top: '45%', width: 360, title: 'SPD Soltau installieren?', text: 'Herausgeber: spd-soltau.de', buttons: ['Nicht jetzt', 'Installieren'], primary: 1, highlight: 1 });
+    await sleep(300); await S.camStage('#overlay .btn.hl', { s: 1.9, cy: 640, ms: 700 }); await S.tapStage('#overlay .btn.hl');
+    await beat(S, ['Installieren.', '*Eigenes Fenster.'], 2100, { over: true });
+    await S.overlayOff(); await S.browser(false); await S.camReset();
+    await S.overlay({ kind: 'toast', top: 50, title: 'SPD Soltau', text: 'Installiert – im Startmenü unter S' }); await sleep(300);
+    await beat(S, ['Im Startmenü.', '*Wie jedes Programm.'], 2300);
+    await S.overlayOff();
+    await appEnde(S, ['Bei Bedarf an die', '*Taskleiste anheften.']);
+  } },
+  macos: { name: 'app-mac', rolle: 'mitglied', plat: 'macos', mode: 'desktop', script: async S => {
+    await appIntro(S, 'Mac · Safari');
+    await S.camStage('#url', { s: 1.9, cy: 640 });
+    await beat(S, ['~spd‑soltau.de/mitglieder', '*in Safari öffnen.'], 2300, { over: true, small: true });
+    await S.camReset(600);
+    await S.overlay({ kind: 'menubar', open: 'Ablage', items: [{ label: 'Neues Fenster' }, { label: 'Neues privates Fenster' }, { label: 'Neuer Tab' }, { label: 'Datei öffnen …' }, { label: 'Zum Dock hinzufügen', icon: 'install' }, { label: 'Als PDF exportieren …' }, { label: 'Drucken …', icon: 'print' }], highlight: 4 });
+    await sleep(300); await S.camStage('#overlay .hl', { s: 1.9, cy: 600, ms: 800 }); await S.tapStage('#overlay .hl');
+    await beat(S, ['Menü „Ablage“.', '*Zum Dock hinzufügen.'], 2300, { over: true });
+    await S.overlay({ kind: 'dialog', icon: true, top: '45%', width: 360, title: 'Zum Dock hinzufügen', text: 'SPD Soltau<br><span style="color:#888">spd-soltau.de/mitglieder</span>', buttons: ['Abbrechen', 'Hinzufügen'], primary: 1, highlight: 1 });
+    await sleep(300); await S.camStage('#overlay .btn.hl', { s: 1.9, cy: 640, ms: 700 }); await S.tapStage('#overlay .btn.hl');
+    await beat(S, ['Hinzufügen.', '*Das war es schon.'], 2100, { over: true });
+    await S.overlayOff(); await S.browser(false); await S.camReset();
+    await S.overlay({ kind: 'toast', top: 50, title: 'SPD Soltau', text: 'Liegt jetzt im Dock' }); await sleep(300);
+    await beat(S, ['Im Dock.', '*Wie jede App.'], 2300);
+    await S.overlayOff();
+    await appEnde(S, ['In Chrome am Mac genauso:', '*Symbol in der Adressleiste.']);
+  } },
+};
+Object.assign(TOUREN, APP);
 
 for (const key of Object.keys(TOUREN)) {
   if (only !== 'alle' && only !== key) continue;
