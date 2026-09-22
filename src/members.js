@@ -114,11 +114,18 @@ async function echtesKonto() {
 }
 const errText = e => e?.details?.applicationError?.description || e?.message || String(e);
 const db = {
+  // Wix erlaubt höchstens 1000 Einträge je Abfrage (WDE0077) – größere Wünsche holen wir seitenweise,
+  // sonst kommt gar nichts zurück (das ließ Umfragen früher immer „0 Stimmen“ anzeigen).
   async list(col, { eq = {}, desc = null, asc = null, limit = 500 } = {}) {
-    let q = client.items.query(col);
-    for (const [k, v] of Object.entries(eq)) q = q.eq(k, v);
-    if (desc) q = q.descending(desc); if (asc) q = q.ascending(asc);
-    return (await q.limit(limit).find()).items;
+    const bauen = () => { let q = client.items.query(col); for (const [k, v] of Object.entries(eq)) q = q.eq(k, v); if (desc) q = q.descending(desc); if (asc) q = q.ascending(asc); return q; };
+    if (limit <= 1000) return (await bauen().limit(limit).find()).items;
+    const alle = [];
+    for (let seite = 0; alle.length < limit; seite++) {
+      const teil = (await bauen().limit(1000).skip(seite * 1000).find()).items;
+      alle.push(...teil);
+      if (teil.length < 1000) break;
+    }
+    return alle.slice(0, limit);
   },
   insert: (col, data) => client.items.insert(col, data),
   update: (col, item) => client.items.update(col, item),
