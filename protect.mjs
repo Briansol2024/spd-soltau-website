@@ -55,6 +55,11 @@ for (const rel of ['bald/index.html', 'index.html']) {
   const src = path.join(SRC, rel);
   if (existsSync(src) && readFileSync(src, 'utf8').includes('data-countdown')) { await cp(src, path.join(OUT, rel), { force: true }); console.log('[protect] offen gelassen:', rel); }
 }
+// „So bekommst du die App“ bleibt ohne Passwort – der Link wird vor dem Start in der Mitglieder-Gruppe geteilt
+for (const rel of ['app/index.html']) {
+  const src = path.join(SRC, rel);
+  if (existsSync(src)) { await cp(src, path.join(OUT, rel), { force: true }); console.log('[protect] offen gelassen:', rel); }
+}
 // HTML unter assets/ (Overlay-Bühne für die Werkstatt-Vorschau) ist keine Seite, sondern Baumaterial – bleibt offen
 const assetsHtml = async dir => { const { readdir } = await import('node:fs/promises'); const out = []; for (const e of await readdir(dir, { withFileTypes: true })) { const f = path.join(dir, e.name); if (e.isDirectory()) out.push(...await assetsHtml(f)); else if (/\.html$/i.test(e.name)) out.push(f); } return out; };
 if (existsSync(path.join(SRC, 'assets'))) for (const f of await assetsHtml(path.join(SRC, 'assets'))) { const rel = path.relative(SRC, f); await cp(f, path.join(OUT, rel), { force: true }); console.log('[protect] offen gelassen:', rel); }
