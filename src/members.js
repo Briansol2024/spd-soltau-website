@@ -47,7 +47,7 @@ const DEMO_ROLLEN = [
   ['rat', 'Ratsmitglied', 'Dazu Sitzungen und Ratsarbeit – aber ohne Vorstandsrechte: keine Umfragen, Termine oder Einstellungen anlegen.'],
   ['vorstand', 'Vorstand', 'Alles, mit Beispieldaten – auch Eingang, Rechte und Statistik.'],
 ];
-const DEMO_ROLLE = !DEMO ? '' : VIDEO || /[?&]mitglied\b/.test(location.search) ? 'mitglied' : (r => DEMO_ROLLEN.some(([k]) => k === r) ? r : 'vorstand')((location.search.match(/[?&]demo=([a-z]+)/) || [])[1] || '');
+const DEMO_ROLLE = !DEMO ? '' : (r => DEMO_ROLLEN.some(([k]) => k === r) ? r : VIDEO || /[?&]mitglied/.test(location.search) ? 'mitglied' : 'vorstand')((location.search.match(/[?&]demo=([a-z]+)/) || [])[1] || ''); // demo=rat gewinnt auch bei video
 const demoName = r => (DEMO_ROLLEN.find(([k]) => k === r) || [])[1] || '';
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
 const BASE = SPD.base || '.';

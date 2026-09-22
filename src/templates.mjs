@@ -3,12 +3,13 @@ import { esc, fmt, url, short, newsCard, eventRow, eventsGrouped, personCard, zi
 import { stadtKacheln } from './lib/stadt.mjs';
 
 import { videoBlock, mitredenBlock } from './templates-mitreden.mjs';
+// Reihenfolge nach Wichtigkeit (Vorstandswunsch): Aktuelles, Fraktion, Vorstand, Ziele, Termine, Mitmachen, Kontakt
 const NAV = [
-  ['/aktuelles/', 'Aktuelles'], ['/termine/', 'Termine'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'],
-  ['/ziele/', 'Ziele'], ['/mitmachen/', 'Mitmachen'], ['/kontakt/', 'Kontakt'],
+  ['/aktuelles/', 'Aktuelles'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'], ['/ziele/', 'Ziele'],
+  ['/termine/', 'Termine'], ['/mitmachen/', 'Mitmachen'], ['/kontakt/', 'Kontakt'],
 ];
-// Variante „Mitreden“ der Startseite (Schalter im Mitgliederbereich): eigener Menüpunkt zwischen Termine und Fraktion
-const navFuer = site => site.mitreden ? [NAV[0], NAV[1], ['/mitreden/', 'Mitreden'], ...NAV.slice(2)] : NAV;
+// Variante „Mitreden“ der Startseite (Schalter im Mitgliederbereich): eigener Menüpunkt zwischen Termine und Mitmachen
+const navFuer = site => site.mitreden ? [...NAV.slice(0, 5), ['/mitreden/', 'Mitreden'], ...NAV.slice(5)] : NAV;
 
 export function layout({ site, path, title, description, content, clientData = {}, noindex = false, ogImage = null, welcome = null }) {
   const fullTitle = path === '/' ? `${site.name} – ${site.claim}` : `${title} – ${site.name}`;
@@ -234,8 +235,8 @@ export function startPage(d) {
       <div class="hero-text">
         <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span></h1>
         <div class="hero-box">
-          <p>Schön, dass Sie da sind. Danke für das große Vertrauen bei der Kommunalwahl – für jede einzelne Stimme. Wir wissen, dass daraus Verantwortung entsteht, und wir bleiben ansprechbar: im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
-          ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Mitreden</a><a class="btn btn-weiss" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a></div>` : `<a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>`}
+          <p>Schön, dass Sie da sind. Wir sind für Sie da – im Stadtrat, im Roten Bahnhof und bei Ihnen vor Ort.</p>
+          ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a></div>` : `<a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>`}
         </div>
       </div>
       ${heroPhoto(d.site)}
@@ -321,7 +322,7 @@ export function rathausKachel(d) {
   const k = stadtKacheln(d.stadt, 3);
   if (!k.length) return '';
   return `<div class="quick-live">
-        <a class="quick-live-head" href="${url('/rat-und-rathaus/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg><b>Ich will wissen, was im Rathaus läuft</b></a>
+        <a class="quick-live-head" href="${url('/rat-und-rathaus/')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l10 5H2z"/></svg><b>Ich will wissen, was im Rathaus läuft</b><small>Sitzungen, Amtsblatt und Bekanntmachungen der Stadt – automatisch gesammelt, immer aktuell.</small></a>
         <div class="quick-live-list">${k.map(t => `<a href="${esc(t.url)}" target="_blank" rel="noopener">${RR_ICON[t.art] || ''}<span><small>${esc(t.kurz)}</small><b>${esc(kurzText(t.titel, 70))}</b></span></a>`).join('')}</div>
         <a class="quick-live-more" href="${url('/rat-und-rathaus/')}">Alle Meldungen →</a>
       </div>`;
