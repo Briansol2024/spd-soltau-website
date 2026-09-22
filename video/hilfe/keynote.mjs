@@ -212,12 +212,14 @@ const TOUREN = {
     await S.tap('#fo-verstanden').catch(() => {});
     await S.cam('#fo-top', { s: 1.3, cy: 560 });
     await beat(S, ['Ein Punkt.', '*Groß und klar.'], 2200, { over: true });
-    await S.cam('[data-beschluss="angenommen"]', { s: 1.6, cy: 500 });
-    await S.tap('[data-beschluss="angenommen"]'); await S.type('#fo-abst', '19 : 10', 60); await S.tap('#fo-save'); await sleep(400);
-    await S.phone('dim'); await S.counterText('19 : 10', 'Angenommen'); await sleep(1900); await S.counterOff(); await S.phone('in'); await sleep(500);
-    await beat(S, ['Ergebnis.', '*Sofort bei allen.'], 2000, { over: true });
+    await S.cam('#fo-leiten', { s: 1.6, cy: 520, ms: 700 }); await S.tap('#fo-leiten'); await sleep(500); await S.cam('#fo-leiten', { s: 1.6, cy: 520, ms: 400 });
+    await beat(S, ['Ich leite.', '*Alle Geräte folgen.'], 2100, { over: true });
     await S.cam('#fo-next', { s: 1.5, cy: 560, ms: 700 }); await S.tap('#fo-next'); await sleep(400); await S.cam('#fo-top', { s: 1.3, cy: 560, ms: 700 });
-    await beat(S, ['Nächster Punkt.', '*Alle Geräte folgen.'], 2100, { over: true });
+    await beat(S, ['Nächster Punkt.', '*Bei allen zugleich.'], 2000, { over: true });
+    await S.cam('.fokus-beschluss', { s: 1.6, cy: 520 });
+    await S.tap('[data-beschluss="angenommen"]'); await sleep(500); await S.cam('#fo-abst', { s: 1.6, cy: 520, ms: 500 }); await S.type('#fo-abst', '19 : 10', 70); await S.page.keyboard.press('Enter'); await sleep(700);
+    await S.phone('dim'); await S.counterText('19 : 10', 'Angenommen'); await sleep(1900); await S.counterOff(); await S.phone('in'); await sleep(500);
+    await beat(S, ['Ergebnis.', '*Nur die Leitung trägt ein.'], 2200, { over: true, small: true });
     await S.camReset();
     await S.tap('#fo-notizen'); await sleep(500); await S.type('#nz-ta', 'Nachfragen: Kosten Radspur?', 40); await sleep(500);
     await beat(S, ['Deine Notizen.', '*Nur für dich.'], 2000);
@@ -231,7 +233,7 @@ const TOUREN = {
     await S.camReset();
     // ---- Finale ----
     await S.phone('out'); await sleep(700);
-    await S.flash(); await S.word('Bereit.', 1500); await S.phone('out');
+    await S.flash(); await S.word('Bereit?', 1500); await S.phone('out');
     await S.end({ big: 'Fragen?<br>Der Vorstand hilft.', adr: 'spd-soltau.de/mitglieder', sub: 'Ratsarbeit und Sitzungen – ab heute in der App.' }); await sleep(4000);
   } },
 };
