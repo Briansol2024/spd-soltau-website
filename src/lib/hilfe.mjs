@@ -190,7 +190,7 @@ export const HELP_TOPICS = [
     steps: { alle: [
       'Öffne {mehr} und {tippe} auf „Dokumente & Wissen“.',
       'Die Dokumente sind nach Art sortiert: Protokolle, Anträge, Beschlüsse, Vorlagen. {tippe} auf einen Titel, um es zu öffnen.',
-      'Über {mehr} findest du auch „Ratsvorbereitung“.',
+      'Über {mehr} findest du auch „Sitzungen“ – Rat, Ausschüsse, Fraktion und Vorstand.',
       'Dort steht die Tagesordnung der nächsten Sitzung – jeder Punkt mit der Einordnung der SPD-Fraktion.',
       'Für Ratsleute: „Sitzungsmodus“ blendet alles andere aus – ein Punkt pro Bildschirm, Haltung, Argumente, Ergebnis, Dokumente zum Nachschlagen, ein verschlüsselter Chat für die Fraktion und deine eigenen Notizen (auch mit dem Stift). Wer leitet, tippt „Ich leite“ – dann blättern alle Geräte mit.',
     ] },

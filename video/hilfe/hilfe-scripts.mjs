@@ -78,7 +78,7 @@ export const SCRIPTS = {
     async () => { await S.tap('.rsvp >> nth=0 >> details.rides summary'); },
     async () => { await S.select('.rsvp >> nth=0 >> .ride-form select[name=typ]', 'biete'); await S.fill('.rsvp >> nth=0 >> .ride-form [name=ab]', ''); await S.type('.rsvp >> nth=0 >> .ride-form [name=ab]', 'Harber'); await S.fill('.rsvp >> nth=0 >> .ride-form [name=zeit]', '17:30'); },
     async () => { await S.tap('.rsvp >> nth=0 >> .ride-form [type=submit]'); },
-    async () => { await S.point('.rsvp >> nth=0 >> .ride .wa'); },
+    async () => { await S.point('.rsvp >> nth=0 >> .ride-list .share, .rsvp >> nth=0 >> .ride-list, .rsvp >> nth=0 >> details.rides'); },
   ] }),
   kalender: S => ({ start: 'termine', steps: {
     android: [
@@ -107,16 +107,17 @@ export const SCRIPTS = {
     ],
   } }),
   umfragen: S => ({ start: 'start', steps: [
-    async () => { await S.nav('umfragen'); },
+    async () => { await S.nav('mitmachen'); },
     async () => { await S.tap('.poll:not(:has([data-vote-save])) >> nth=0 >> [data-vote="0"]'); },
     async () => { await S.point('.poll:not(:has([data-vote-save])) >> nth=0 >> .poll-results'); },
     async () => { await S.scroll('.poll [data-vote-save]'); await S.tap('.poll:has([data-vote-save]) [data-vote="1"]'); await S.tap('.poll:has([data-vote-save]) [data-vote="2"]'); await S.tap('.poll [data-vote-save]'); },
   ] }),
   dokumente: S => ({ start: 'start', steps: [
-    async () => { await S.more('dokumente'); },
+    async () => { await S.more('wissen'); },
     async () => { await S.point('.doc-title'); },
     async () => { await S.more('rat'); },
-    async () => { await S.point('.rat .tops, .rat'); },
+    async () => { await S.point('.rat .tops .top >> nth=0, .rat'); },
+    async () => { await S.point('.rat >> nth=0 >> a[href^="#rat/fokus-"]'); },
   ] }),
   profil: S => ({ start: 'start', steps: [
     async () => { await S.more('mitglieder'); },

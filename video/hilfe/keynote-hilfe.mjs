@@ -19,7 +19,7 @@ for (const topic of topics) {
   for (const plat of plats) {
     const mode = plat === 'android' || plat === 'ios' ? 'phone' : 'desktop';
     await record({
-      name: videoName(topic, plat), rolle: 'mitglied', plat, mode,
+      name: videoName(topic, plat), rolle: topic.id === 'dokumente' ? 'rat' : 'mitglied', plat, mode, // Thema 10 zeigt „Sitzungen“ – das sehen nur Ratsmitglieder
       script: async S => {
         S.auto = true; // Kamera fährt von selbst auf das Element, das gerade angetippt wird
         const sc = SCRIPTS[topic.id] ? SCRIPTS[topic.id](S) : { start: 'start', steps: [] };

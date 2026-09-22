@@ -51,7 +51,7 @@ export async function record(t) {
     async rect(sel) {
       const loc = app().locator(sel).first();
       // nicht scrollIntoView: das würde auch die Bühne (#screen, Fenster) verschieben – nur das App-Fenster selbst scrollen
-      await loc.evaluate(el => { const b = el.getBoundingClientRect(); window.scrollBy({ top: b.top + b.height / 2 - innerHeight / 2, left: 0, behavior: 'instant' }); });
+      await loc.evaluate(el => { const b = el.getBoundingClientRect(); window.scrollBy({ top: b.top + b.height / 2 - innerHeight / 2, left: 0, behavior: 'instant' }); }, null, { timeout: 6000 });
       await sleep(350);
       await ev(() => { document.getElementById('screen').scrollTop = 0; document.getElementById('screen').scrollLeft = 0; window.scrollTo(0, 0); });
       const r2 = await loc.evaluate(el => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
@@ -60,7 +60,7 @@ export async function record(t) {
     },
     async calibrate(sel) {
       const loc = app().locator(sel).first();
-      const bb = await loc.boundingBox(); const r = await loc.evaluate(el => el.getBoundingClientRect().width);
+      const bb = await loc.boundingBox({ timeout: 3000 }).catch(() => null); const r = bb ? await loc.evaluate(el => el.getBoundingClientRect().width).catch(() => 0) : 0;
       if (bb && r && t.mode !== 'desktop') K = bb.width / r;
       console.log(`  Kalibrierung K=${K.toFixed(3)}${bb ? '' : ' (kein boundingBox)'}`);
     },
