@@ -234,7 +234,7 @@ export function startPage(d) {
     ${heroMedia(d.site)}
     <div class="wrap">
       <div class="hero-text">
-        <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span></h1>
+        <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span><svg class="moin-strich" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><filter id="moin-rau" x="-6%" y="-40%" width="112%" height="180%"><feTurbulence type="fractalNoise" baseFrequency="0.035 0.07" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/></filter></defs><g filter="url(#moin-rau)"><path class="zug1" d="M9 16 C 70 8, 150 22, 226 12 C 258 8, 276 14, 291 10" stroke-width="10"/><path class="zug2" d="M285 31 C 232 35, 168 27, 104 33 C 76 36, 56 32, 32 35" stroke-width="7.5"/></g></svg></h1>
         <div class="hero-box">
           <p>${d.startVariante === 'mitreden' ? 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wie Sie mitreden können.' : 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wer für Sie im Stadtrat sitzt.'}</p>
           ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a></div>` : `<a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>`}
