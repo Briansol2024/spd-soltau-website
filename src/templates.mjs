@@ -459,7 +459,7 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
     <div class="team">${byRole(people).map(teamCard).join('') || '<p class="muted">Wird nach der konstituierenden Sitzung eingetragen.</p>'}</div>
   </div>
   <div class="wrap section" style="padding-top:0">
-    <div class="cols cols-2">${boxA}${boxB}</div>
+    <div class="cols${boxA ? ' cols-2' : ''}">${boxA}${boxB}</div>
   </div>
   <div class="band-schwarz foto">${motiv('hagen')}<div class="wrap section">
     <div class="section-head"><h2 class="title">${newsTitle}</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
@@ -469,18 +469,12 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
 }
 
 export function fraktionPage(d) {
-  const chair = byRole(d.fraktion).find(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
   return teamPage({
     tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat', foto: 'altesrathaus',
     lead: 'Seit dem 13. September 2026 erstmals stärkste Fraktion im Rat der Stadt Soltau. Wir erklären Entscheidungen, bleiben ansprechbar und setzen den 10-Punkte-Plan um.',
     stats: [['Nr. 1', 'Erstmals stärkste Fraktion'], ['11', 'Gewählte Ratsmitglieder'], ['1. Nov.', 'Beginn der Wahlperiode 2026–31'], ['10', 'Punkte für Soltau']],
     people: d.fraktion, teamTitle: 'Ratsmitglieder', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
-    boxA: `<div class="box foto">${motiv('rathausnacht')}
-        <h3>Fraktionsvorsitz</h3>
-        <p><b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(chair ? chair.name : 'Birhat Kaçar')}</b><br><span class="small">${esc(chair ? chair.role : 'Fraktionsvorsitzender, stellv. Bürgermeister')}</span></p>
-        <dl><dt>Sitzungen</dt><dd>Vor jeder Ratssitzung, Altes Rathaus</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
-        <a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Fraktion kontaktieren</a>
-      </div>`,
+    boxA: '',
     boxB: `<div class="box box-rot">
         <span class="tag tag-schwarz" style="justify-self:start">Ab 1. November 2026</span>
         <h3>Die neue Fraktion</h3>
@@ -494,17 +488,15 @@ export function fraktionPage(d) {
 export function ortsvereinPage(d) {
   const people = d.vorstand.map(v => ({ name: v.name, job: v.job, role: v.position, photo: v.photo, text: '' }));
   const chairs = byRole(people).filter(p => /vorsitz/i.test(p.role) && !/stellv/i.test(p.role));
+  // Fakten mit Bezug zum Vorstand: Doppelspitze (aus den Positionen), Berufsvielfalt (aus den Berufen), Treffpunkt, offene Sitzungen
+  const berufe = new Set(people.map(p => (p.job || '').trim().toLowerCase()).filter(Boolean));
+  const spitze = chairs.length === 2 ? ['Doppelspitze', 'Zwei Vorsitzende, gleichberechtigt'] : chairs.length ? ['1 Vorsitz', esc(chairs[0].name)] : ['Vorsitz', 'Wird eingetragen'];
   return teamPage({
     tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand', foto: 'vorstand',
     lead: 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.',
-    stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], ['16 + 1', 'Ortschaften und Kernstadt'], ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(d.people.length), 'Kandidatinnen und Kandidaten 2026']],
+    stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], spitze, ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(berufe.size || d.vorstand.length), 'Berufe – vom Azubi bis zum Lehrer']],
     people, teamTitle: 'Vorstand', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
-    boxA: `<div class="box foto">${motiv('infostand')}
-        <h3>Vorsitz</h3>
-        <p>${chairs.map(c => `<b style="color:#fff;font:800 24px/1 var(--display);text-transform:uppercase">${esc(c.name)}</b><br><span class="small">${esc(c.role)}</span>`).join('<br><br>') || '<span class="small">Wird eingetragen.</span>'}</p>
-        <dl><dt>Treffpunkt</dt><dd>Roter Bahnhof, Am Bahnhof 1t</dd><dt>Sprechstunde</dt><dd>Nach Vereinbarung</dd></dl>
-        <a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Vorstand kontaktieren</a>
-      </div>`,
+    boxA: '',
     boxB: `<div class="box box-rot">
         <h3>Mitglied werden</h3>
         <p class="small">Mitgestalten statt zuschauen. Im Rat, am Infostand oder im Hintergrund – es gibt viele Wege.</p>

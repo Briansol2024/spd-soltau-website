@@ -1982,3 +1982,19 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
   /* Aus der App geöffnet: die schwarze Rückleiste (44px) nimmt Platz – sonst rutscht der zweite Knopf aus dem Bild */
   html.from-app .hero.has-video .wrap{min-height:calc(100vh - 116px);min-height:calc(100svh - 116px)}
 }
+
+/* Fußbereich auf dem Handy kompakt: Claim kleiner, Adresse in einer Zeile, Linkgruppen nebeneinander, SPD-Links in einer Reihe */
+@container site (max-width:600px){
+  .footer{padding-bottom:16px}
+  .footer .claim{font-size:44px;padding-top:26px;margin-bottom:16px}
+  .footer .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 20px}
+  .footer .grid>div:first-child{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px}
+  .footer .grid>div:first-child p{margin:0!important;max-width:none;font-size:14px}
+  .footer .logo img{height:40px}
+  .footer h4{margin-bottom:8px;font-size:12px}
+  .footer ul{gap:4px;font-size:15px}
+  .footer .grid>div:last-child{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .footer .grid>div:last-child h4{margin:0}
+  .footer .grid>div:last-child ul{display:flex;gap:14px;flex-wrap:wrap}
+  .footer .bottom{margin-top:18px;padding-top:12px;font-size:13px;gap:6px 16px}
+}
