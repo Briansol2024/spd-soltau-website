@@ -747,7 +747,7 @@ const TYP_FARBE = { 'Öffentlich': '#3B6FB6', Rat: '#0F0F0F', Mitglieder: '#E300
 const ARTEN = Object.keys(TYP_FARBE); // Reihenfolge der Filter-Knoepfe
 const TYP_TEXT = { 'Öffentlich': '#2A5C9E', Rat: '#0F0F0F', Mitglieder: '#C2000D', Fraktion: '#8F5400', Vorstand: '#5B5450' }; // lesbar auf Weiß
 const ANTWORT_TAGE = 35;   // so weit nach vorn fragt „Warten auf deine Antwort“
-const termineUI = { auf: null, filter: false }; // aufgeklappter Termin, Filterblatt – gemerkt, solange die App offen ist
+const termineUI = { auf: null, filter: false, zuHilfe: null }; // aufgeklappter Termin, Filterblatt, Sprungziel
 const HAKEN = '<svg viewBox="0 0 24 24" class="ic-zeichen" aria-hidden="true"><path d="M4 12.5l5.2 5.2L20 6.8"/></svg>';
 const KREUZ = '<svg viewBox="0 0 24 24" class="ic-zeichen" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 const FILTER_ICON = '<svg viewBox="0 0 24 24" class="ic-filter" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>';
@@ -801,12 +801,20 @@ async function secTermine(v) {
   const calHtml = ansicht === 'monat' ? monatsKalender(events, sichtbar) : ''; // setzt cal.tag
   const tagesEvents = ansicht === 'monat' ? sichtbar.filter(e => String(e.date).slice(0, 10) === cal.tag) : [];
   // Aufgeklappt zeigt den ganzen Termin, sonst eine Zeile
-  const zeigen = ev => termineUI.auf === ev.id ? eventCard(ev, zusagen, listen, helfer, fahrten, sichtbar) : eventZeile(ev, meinStatus(ev.id));
+  const zeigen = ev => termineUI.auf === ev.id ? eventCard(ev, zusagen, listen, helfer, fahrten, sichtbar) : eventZeile(ev, meinStatus(ev.id), hilfeJeTermin.get(ev.id) || 0);
   const agenda = () => { let monat = '', out = ''; for (const ev of events) { const m = monatVon(ev.date); if (m !== monat) { monat = m; const [j, mo] = m.split('-'); out += `<h4 class="t-monat">${MONL[+mo - 1]} ${j}</h4>`; } out += zeigen(ev); } return out; };
   // „Warten auf deine Antwort“: alles, was du sehen darfst, in den nächsten Wochen, ohne Zu- oder Absage
   const grenze = new Date(Date.now() + ANTWORT_TAGE * 864e5).toISOString().slice(0, 10);
   const offene = alleSichtbar.filter(e => !meinStatus(e.id) && e.date <= grenze);
   const filterAn = (arten.size ? artenDa.length - arten.size : 0) + (nurZusagen ? 1 : 0);
+  // Helfergesuche mit freien Plätzen – gesammelt oben, damit sie niemand suchen muss
+  const freiIn = l => Math.max(0, (l.schichten || []).reduce((n, sch) => n + (+sch.plaetze || 0), 0) - helfer.filter(h => h.listeId === l._id).length);
+  const hilfeOffen = !me.sees('helfer') ? [] : listen.filter(l => {
+    const ev = alleSichtbar.find(e => e.id === l.eventId);
+    const datum = l.datum || ev?.date || '';
+    return datum >= today && datum <= grenze && freiIn(l) > 0 && !helfer.some(h => h.listeId === l._id && h.memberId === me.id);
+  }).sort((a, b) => String(a.datum || '').localeCompare(String(b.datum || '')));
+  const hilfeJeTermin = new Map(hilfeOffen.filter(l => l.eventId).map(l => [l.eventId, freiIn(l)]));
   const meinIcs = kalLink[0]?.schluessel ? `${BASE}/assets/kalender/${kalLink[0].schluessel}.ics` : '';
   v.innerHTML = `
   ${sectionHead('Termine', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
@@ -824,6 +832,14 @@ async function secTermine(v) {
     </div>`).join('')}
     ${offene.length > 3 ? `<p class="small muted">… und ${offene.length - 3} weitere weiter unten.</p>` : ''}
   </section>`}
+  ${hilfeOffen.length ? `<section class="t-hilfe">
+    <h4>${ICON.hand}Helfer gesucht · ${hilfeOffen.length}</h4>
+    ${hilfeOffen.slice(0, 2).map(l => `<div class="t-hilfe-zeile">
+      <span class="t-offen-text"><b>${esc(l.titel)}</b><span class="small muted">${l.datum ? esc(fmtShort(l.datum)) + ' · ' : ''}noch ${freiIn(l)} ${freiIn(l) === 1 ? 'Platz' : 'Plätze'} frei${l.ort ? ' · ' + esc(l.ort) : ''}</span></span>
+      <button type="button" class="btn btn-schwarz btn-sm" data-hilfe="${esc(l._id)}" data-ev="${esc(l.eventId || '')}">Mithelfen</button>
+    </div>`).join('')}
+    ${hilfeOffen.length > 2 ? `<p class="small muted">… und ${hilfeOffen.length - 2} weitere weiter unten.</p>` : ''}
+  </section>` : ''}
   ${me.can('termine') || (me.can('helfer') && me.sees('helfer')) ? `<div class="mb-create t-create">
   ${me.can('termine') ? `<details class="mb-details" id="ev-new"><summary>Termin anlegen</summary>
     <p class="small muted">Wird bei Wix Events eingetragen und erscheint je nach Typ auf der Website und im Kalender-Abo.</p>
@@ -870,6 +886,10 @@ async function secTermine(v) {
   </section>
   ${termineUI.filter ? filterBlatt(artenDa, arten, nurZusagen, events.length, alleSichtbar, meinStatus) : ''}`;
   if (meinIcs) icsPruefen(v, meinIcs);
+  if (termineUI.zuHilfe) {                       // nach „Mithelfen“ zur Liste scrollen und kurz hervorheben
+    const id = termineUI.zuHilfe; termineUI.zuHilfe = null;
+    setTimeout(() => { const el = document.getElementById('hl-' + id); if (!el) return; el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); el.classList.add('t-blitz'); setTimeout(() => el.classList.remove('t-blitz'), 1700); }, 80);
+  }
   wireEvents(v, alleSichtbar, zusagen, listen, helfer, fahrten);
   // Ansicht wechseln, Monat blättern, Tag wählen
   v.addEventListener('click', async e => {
@@ -884,6 +904,13 @@ async function secTermine(v) {
       try { await zusageSetzen(ev, q.dataset.schnell); route(); }
       catch (err) { busy(q, false); alert('Das hat nicht geklappt: ' + errText(err)); }
       return;
+    }
+    // „Mithelfen“ aus dem Kasten: Termin aufklappen und zur Liste springen
+    const hb = e.target.closest('button[data-hilfe]');
+    if (hb) {
+      if (hb.dataset.ev) { termineUI.auf = hb.dataset.ev; store.set('spd-termine-ansicht', 'liste'); }
+      termineUI.zuHilfe = hb.dataset.hilfe;
+      route(); return;
     }
     // Termin auf- und zuklappen
     const z = e.target.closest('button[data-auf]');
@@ -930,7 +957,7 @@ async function secTermine(v) {
 }
 
 // Eine Zeile je Termin – aufgeklappt wird daraus die ganze Karte
-function eventZeile(ev, status) {
+function eventZeile(ev, status, hilfe = 0) {
   const d = new Date(String(ev.date) + 'T12:00:00');
   const typ = ev.typ || 'Öffentlich';
   const zeichen = status === 'zusage' ? `<span class="t-status ja" title="Du kommst">${HAKEN}</span>`
@@ -938,7 +965,7 @@ function eventZeile(ev, status) {
     : '<span class="t-status noch">Offen</span>';
   return `<button type="button" class="t-zeile" id="ev-${esc(ev.id)}" data-auf="${esc(ev.id)}" style="border-left-color:${TYP_FARBE[typ] || '#888'}" aria-expanded="false">
     <span class="t-tag"><b>${d.getDate()}</b><i>${WD[d.getDay()]}</i></span>
-    <span class="t-mitte"><span class="t-titel">${esc(ev.title)}</span><span class="t-meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · <b style="color:${TYP_TEXT[typ] || 'inherit'}">${esc(typ)}</b></span></span>
+    <span class="t-mitte"><span class="t-titel">${esc(ev.title)}</span><span class="t-meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · <b style="color:${TYP_TEXT[typ] || 'inherit'}">${esc(typ)}</b>${hilfe ? ' · <b class="t-hilfe-tag">Helfer gesucht</b>' : ''}</span></span>
     ${zeichen}
   </button>`;
 }

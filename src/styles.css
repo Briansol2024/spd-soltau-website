@@ -1314,6 +1314,17 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .t-nein{border-color:#8E8683;color:var(--text)}
 .t-ja:hover{background:#1F7A4C;color:#fff}
 .t-nein:hover{background:var(--schwarz);border-color:var(--schwarz);color:#fff}
+/* Helfer gesucht: gesammelt oben */
+.t-hilfe{background:#fff;border:1.5px solid var(--schwarz);border-radius:12px;padding:11px 12px 12px;margin-bottom:14px}
+.t-hilfe h4{display:flex;align-items:center;gap:8px;font:800 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
+.t-hilfe h4 svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.t-hilfe-zeile{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--linie)}
+.t-hilfe-zeile:first-of-type{border-top:0;padding-top:0}
+.t-hilfe-zeile .btn{flex:0 0 auto}
+.t-hilfe-tag{color:var(--rot-dunkel)}
+.t-blitz{animation:blitz 1.6s ease-out}
+@keyframes blitz{0%,100%{box-shadow:none}12%,62%{box-shadow:0 0 0 3px rgba(227,0,15,.45)}}
+@media (prefers-reduced-motion:reduce){.t-blitz{animation:none;outline:3px solid var(--rot)}}
 .t-fertig{display:flex;align-items:center;gap:9px;background:#fff;border-left:4px solid #1F7A4C;padding:10px 12px;margin-bottom:14px;font-size:14px;color:#1A6A42;font-weight:600}
 
 /* Monatsüberschrift in der Liste */
