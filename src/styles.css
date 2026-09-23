@@ -1586,6 +1586,8 @@ body.fokus-modus .mb-main{margin:0}
 /* ===== Statistik (Vorstand) ===== */
 .st-zeit{margin-bottom:18px}
 .st-csv{margin-left:auto}
+.st-aus[aria-pressed="true"]{background:var(--rot);border-color:var(--rot);color:#fff}
+.st-fuss code{font-size:12.5px;background:rgba(127,127,127,.14);padding:1px 5px;border-radius:4px}
 .st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px}
 .st-kpi{background:var(--grau);padding:16px 18px;display:grid;gap:4px;border-left:6px solid var(--rot)}
 .st-kpi b{font:800 34px/1 var(--display);font-variant-numeric:tabular-nums}
