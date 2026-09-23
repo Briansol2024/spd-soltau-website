@@ -747,6 +747,8 @@ const TYP_FARBE = { 'Öffentlich': '#3B6FB6', Rat: '#0F0F0F', Mitglieder: '#E300
 const ARTEN = Object.keys(TYP_FARBE); // Reihenfolge der Filter-Knoepfe
 const TYP_TEXT = { 'Öffentlich': '#2A5C9E', Rat: '#0F0F0F', Mitglieder: '#C2000D', Fraktion: '#8F5400', Vorstand: '#5B5450' }; // lesbar auf Weiß
 const ANTWORT_TAGE = 35;   // so weit nach vorn fragt „Warten auf deine Antwort“
+const MITFAHR_TAGE = 7;    // so weit nach vorn zeigt der Kasten „Mitfahren“
+const AUTO_ICON = '<svg viewBox="0 0 24 24" class="ic-auto" aria-hidden="true"><path d="M5 17h14M6 17V9l2-4h8l2 4v8"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>';
 const termineUI = { auf: null, filter: false, zuHilfe: null }; // aufgeklappter Termin, Filterblatt, Sprungziel
 const HAKEN = '<svg viewBox="0 0 24 24" class="ic-zeichen" aria-hidden="true"><path d="M4 12.5l5.2 5.2L20 6.8"/></svg>';
 const KREUZ = '<svg viewBox="0 0 24 24" class="ic-zeichen" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -801,11 +803,14 @@ async function secTermine(v) {
   const calHtml = ansicht === 'monat' ? monatsKalender(events, sichtbar) : ''; // setzt cal.tag
   const tagesEvents = ansicht === 'monat' ? sichtbar.filter(e => String(e.date).slice(0, 10) === cal.tag) : [];
   // Aufgeklappt zeigt den ganzen Termin, sonst eine Zeile
-  const zeigen = ev => termineUI.auf === ev.id ? eventCard(ev, zusagen, listen, helfer, fahrten, sichtbar) : eventZeile(ev, meinStatus(ev.id), hilfeJeTermin.get(ev.id) || 0);
+  const karte = ev => eventCard(ev, zusagen, listen, helfer, fahrten, sichtbar);
+  const zeigen = ev => { const offen = termineUI.auf === ev.id;
+    return eventZeile(ev, meinStatus(ev.id), hilfeJeTermin.get(ev.id) || 0, offen, mitfahrJeTermin.has(ev.id))
+      + `<div class="t-auf" data-fach="${esc(ev.id)}"${offen ? '' : ' hidden'}>${offen ? karte(ev) : ''}</div>`; };
   const agenda = () => { let monat = '', out = ''; for (const ev of events) { const m = monatVon(ev.date); if (m !== monat) { monat = m; const [j, mo] = m.split('-'); out += `<h4 class="t-monat">${MONL[+mo - 1]} ${j}</h4>`; } out += zeigen(ev); } return out; };
   // „Warten auf deine Antwort“: alles, was du sehen darfst, in den nächsten Wochen, ohne Zu- oder Absage
   const grenze = new Date(Date.now() + ANTWORT_TAGE * 864e5).toISOString().slice(0, 10);
-  const offene = alleSichtbar.filter(e => !meinStatus(e.id) && e.date <= grenze);
+  const offeneJetzt = () => alleSichtbar.filter(e => !meinStatus(e.id) && e.date <= grenze);
   const filterAn = (arten.size ? artenDa.length - arten.size : 0) + (nurZusagen ? 1 : 0);
   // Helfergesuche mit freien Plätzen – gesammelt oben, damit sie niemand suchen muss
   const freiIn = l => Math.max(0, (l.schichten || []).reduce((n, sch) => n + (+sch.plaetze || 0), 0) - helfer.filter(h => h.listeId === l._id).length);
@@ -815,23 +820,70 @@ async function secTermine(v) {
     return datum >= today && datum <= grenze && freiIn(l) > 0 && !helfer.some(h => h.listeId === l._id && h.memberId === me.id);
   }).sort((a, b) => String(a.datum || '').localeCompare(String(b.datum || '')));
   const hilfeJeTermin = new Map(hilfeOffen.filter(l => l.eventId).map(l => [l.eventId, freiIn(l)]));
+  // Mitfahren: nur Termine, denen ich zugesagt habe, und nur die nächsten Tage
+  const mitGrenze = new Date(Date.now() + MITFAHR_TAGE * 864e5).toISOString().slice(0, 10);
+  const mitfahrLage = [];
+  for (const ev of alleSichtbar) {
+    if (meinStatus(ev.id) !== 'zusage' || ev.date < today || ev.date > mitGrenze) continue;
+    const dazu = fahrten.filter(fh => fh.eventId === ev.id);
+    const angebote = dazu.filter(fh => fh.typ === 'biete');
+    const meinAngebot = angebote.find(fh => fh.memberId === me.id);
+    const meineMitfahrt = mitfahrten.find(m => m.memberId === me.id && angebote.some(fh => fh._id === m.fahrtId));
+    const platzFrei = angebote.filter(fh => fh.memberId !== me.id)
+      .map(fh => ({ fh, frei: Math.max(0, (+fh.plaetze || 1) - mitfahrten.filter(m => m.fahrtId === fh._id).length) }))
+      .filter(x => x.frei > 0);
+    const sucht = dazu.filter(fh => fh.typ !== 'biete' && fh.memberId !== me.id);
+    if (meinAngebot) {
+      const dabei = mitfahrten.filter(m => m.fahrtId === meinAngebot._id);
+      const plaetze = Math.max(1, +meinAngebot.plaetze || 1);
+      mitfahrLage.push({ ev, art: 'meins', titel: `Du fährst ab ${meinAngebot.ab || '?'}`,
+        text: `${dabei.length} von ${plaetze} ${plaetze === 1 ? 'Platz' : 'Plätzen'} belegt${dabei.length ? ' · ' + dabei.map(m => m.name || 'Mitglied').join(', ') : ' · noch niemand eingestiegen'}`, knopf: 'Ansehen' });
+    } else if (meineMitfahrt) {
+      const fh = angebote.find(x => x._id === meineMitfahrt.fahrtId);
+      mitfahrLage.push({ ev, art: 'dabei', titel: `Du fährst bei ${(fh?.name || 'jemandem').split(' ')[0]} mit`,
+        text: `ab ${fh?.ab || '?'}${fh?.zeit ? ' · Abfahrt ' + fh.zeit + ' Uhr' : ''}`, knopf: 'Ansehen' });
+    } else if (platzFrei.length) {
+      const x = platzFrei[0];
+      mitfahrLage.push({ ev, art: 'frei', titel: `${(x.fh.name || 'Jemand').split(' ')[0]} fährt ab ${x.fh.ab || '?'}`,
+        text: `noch ${x.frei} ${x.frei === 1 ? 'Platz' : 'Plätze'} frei${x.fh.zeit ? ' · Abfahrt ' + x.fh.zeit + ' Uhr' : ''}`, knopf: 'Mitfahren' });
+    } else if (sucht.length) {
+      mitfahrLage.push({ ev, art: 'sucht', titel: `${(sucht[0].name || 'Jemand').split(' ')[0]} sucht eine Mitfahrt ab ${sucht[0].ab || '?'}`,
+        text: sucht.length > 1 ? `${sucht.length} suchen eine Mitfahrt` : 'Du fährst hin? Dann trag ein Angebot ein.', knopf: 'Ansehen' });
+    }
+  }
+  const mitfahrJeTermin = new Map(mitfahrLage.filter(m => m.art === 'frei').map(m => [m.ev.id, true]));
   const meinIcs = kalLink[0]?.schluessel ? `${BASE}/assets/kalender/${kalLink[0].schluessel}.ics` : '';
+  // Der Kasten wird auch einzeln neu gezeichnet, wenn jemand direkt darin antwortet
+  const offenBox = () => {
+    const offene = offeneJetzt();
+    if (nurZusagen || !offene.length) return alleSichtbar.length && !nurZusagen ? `<p class="t-fertig">${HAKEN} Alles beantwortet – für die nächsten ${ANTWORT_TAGE} Tage ist alles klar.</p>` : '<span class="t-offen-leer" hidden></span>';
+    return `<section class="t-offen">
+      <h4>Warten auf deine Antwort · ${offene.length}</h4>
+      <p class="t-offen-hinweis">Termine in den nächsten ${ANTWORT_TAGE} Tagen</p>
+      ${offene.slice(0, 3).map(ev => `<div class="t-offen-zeile">
+        <span class="t-offen-text"><b>${esc(ev.title)}</b><span class="small muted">${esc(fmtShort(ev.date))}${ev.zeit ? ' · ' + esc(ev.zeit) : ''}${ev.ort ? ' · ' + esc(ev.ort) : ''}</span></span>
+        <button type="button" class="t-ja" data-schnell="zusage" data-id="${esc(ev.id)}" aria-label="Ich komme: ${esc(ev.title)}">${HAKEN}</button>
+        <button type="button" class="t-nein" data-schnell="absage" data-id="${esc(ev.id)}" aria-label="Ich kann nicht: ${esc(ev.title)}">${KREUZ}</button>
+      </div>`).join('')}
+      ${offene.length > 3 ? `<p class="small muted">… und ${offene.length - 3} weitere weiter unten.</p>` : ''}
+    </section>`;
+  };
   v.innerHTML = `
   ${sectionHead('Termine', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
   <div class="t-kopf">
     <div class="mb-tabs termine-ansicht" role="tablist" aria-label="Ansicht"><button type="button" class="chip" data-ansicht="liste" aria-pressed="${ansicht === 'liste'}">Liste</button><button type="button" class="chip" data-ansicht="monat" aria-pressed="${ansicht === 'monat'}">Monat</button></div>
     <button type="button" class="chip t-filter${filterAn ? ' an' : ''}" data-filter-auf>${FILTER_ICON}Filter${filterAn ? ' · ' + filterAn : ''}</button>
   </div>
-  ${nurZusagen || !offene.length ? (alleSichtbar.length && !nurZusagen ? `<p class="t-fertig">${HAKEN} Alles beantwortet – für die nächsten ${ANTWORT_TAGE} Tage ist alles klar.</p>` : '') : `<section class="t-offen">
-    <h4>Warten auf deine Antwort · ${offene.length}</h4>
-    <p class="t-offen-hinweis">Termine in den nächsten ${ANTWORT_TAGE} Tagen</p>
-    ${offene.slice(0, 3).map(ev => `<div class="t-offen-zeile">
-      <span class="t-offen-text"><b>${esc(ev.title)}</b><span class="small muted">${esc(fmtShort(ev.date))}${ev.zeit ? ' · ' + esc(ev.zeit) : ''}${ev.ort ? ' · ' + esc(ev.ort) : ''}</span></span>
-      <button type="button" class="t-ja" data-schnell="zusage" data-id="${esc(ev.id)}" aria-label="Ich komme: ${esc(ev.title)}">${HAKEN}</button>
-      <button type="button" class="t-nein" data-schnell="absage" data-id="${esc(ev.id)}" aria-label="Ich kann nicht: ${esc(ev.title)}">${KREUZ}</button>
+  ${offenBox()}
+  ${mitfahrLage.length ? `<section class="t-mit">
+    <h4>${AUTO_ICON}Mitfahren · ${mitfahrLage.length}</h4>
+    <p class="t-offen-hinweis">Deine Termine in den nächsten ${MITFAHR_TAGE} Tagen</p>
+    ${mitfahrLage.slice(0, 3).map(m => `<div class="t-mit-zeile${m.art === 'meins' ? ' meins' : ''}">
+      <span class="t-offen-text"><b>${esc(m.titel)}</b><span class="small muted">${esc(m.ev.title)} · ${esc(fmtShort(m.ev.date))} · ${esc(m.text)}</span></span>
+      <button type="button" class="btn btn-line btn-sm" data-fahrt="${esc(m.ev.id)}">${m.knopf}</button>
     </div>`).join('')}
-    ${offene.length > 3 ? `<p class="small muted">… und ${offene.length - 3} weitere weiter unten.</p>` : ''}
-  </section>`}
+    ${mitfahrLage.length > 3 ? `<p class="small muted">… und ${mitfahrLage.length - 3} weitere weiter unten.</p>` : ''}
+  </section>` : ''}
   ${hilfeOffen.length ? `<section class="t-hilfe">
     <h4>${ICON.hand}Helfer gesucht · ${hilfeOffen.length}</h4>
     ${hilfeOffen.slice(0, 2).map(l => `<div class="t-hilfe-zeile">
@@ -900,24 +952,46 @@ async function secTermine(v) {
     const q = e.target.closest('button[data-schnell]');
     if (q) {
       const ev = alleSichtbar.find(x => x.id === q.dataset.id); if (!ev) return;
+      const status = q.dataset.schnell;
       busy(q, true);
-      try { await zusageSetzen(ev, q.dataset.schnell); route(); }
-      catch (err) { busy(q, false); alert('Das hat nicht geklappt: ' + errText(err)); }
+      try {
+        await zusageSetzen(ev, status);
+        const vorhanden = zusagen.find(z2 => z2.eventId === ev.id && z2.memberId === me.id);
+        if (vorhanden) vorhanden.status = status; else zusagen.push({ eventId: ev.id, memberId: me.id, name: me.name, status });
+        // Zeichen in der Liste nachziehen
+        const st = v.querySelector(`.t-zeile[data-auf="${cssId(ev.id)}"] .t-status`);
+        if (st) { st.className = 't-status ' + (status === 'zusage' ? 'ja' : 'nein'); st.title = status === 'zusage' ? 'Du kommst' : 'Du kannst nicht'; st.innerHTML = status === 'zusage' ? HAKEN : KREUZ; }
+        // und den Kasten neu zeichnen, ohne die ganze Seite anzufassen
+        const kasten = v.querySelector('.t-offen, .t-fertig, .t-offen-leer');
+        if (kasten) { const platz = document.createElement('div'); kasten.replaceWith(platz); platz.outerHTML = offenBox(); const neu = v.querySelector('.t-offen, .t-fertig'); if (neu) neu.classList.add('t-neu'); }
+      } catch (err) { busy(q, false); alert('Das hat nicht geklappt: ' + errText(err)); }
       return;
     }
+    // „Mitfahren/Ansehen“ aus dem Kasten: Termin auffächern und zum Mitfahren-Teil springen
+    const fb = e.target.closest('button[data-fahrt]');
+    if (fb) { oeffneUndSpringe(v, fb.dataset.fahrt, `.rides[data-ev="${cssId(fb.dataset.fahrt)}"]`, alleSichtbar, karte); return; }
     // „Mithelfen“ aus dem Kasten: Termin aufklappen und zur Liste springen
     const hb = e.target.closest('button[data-hilfe]');
     if (hb) {
-      if (hb.dataset.ev) { termineUI.auf = hb.dataset.ev; store.set('spd-termine-ansicht', 'liste'); }
-      termineUI.zuHilfe = hb.dataset.hilfe;
-      route(); return;
+      if (hb.dataset.ev) { oeffneUndSpringe(v, hb.dataset.ev, `#hl-${cssId(hb.dataset.hilfe)}`, alleSichtbar, karte); return; }
+      const el = document.getElementById('hl-' + hb.dataset.hilfe);
+      if (el) hervorheben(el); else { termineUI.zuHilfe = hb.dataset.hilfe; route(); }
+      return;
     }
-    // Termin auf- und zuklappen
+    // Termin auffächern oder wieder zuklappen – ohne die Seite neu zu bauen
     const z = e.target.closest('button[data-auf]');
     if (z) {
-      termineUI.auf = termineUI.auf === z.dataset.auf ? null : z.dataset.auf;
+      const id = z.dataset.auf;
+      const fach = v.querySelector(`.t-auf[data-fach="${cssId(id)}"]`); if (!fach) return;
       if (location.hash.startsWith('#termine/ev-')) history.replaceState(null, '', location.pathname + location.search + '#termine');
-      route(); return;
+      if (!fach.hidden) { zuklappen(fach); z.setAttribute('aria-expanded', 'false'); termineUI.auf = null; return; }
+      // andere offene Termine schließen – so bleibt die Liste ruhig
+      $$('.t-auf:not([hidden])', v).forEach(f => { zuklappen(f); v.querySelector(`.t-zeile[data-auf="${cssId(f.dataset.fach)}"]`)?.setAttribute('aria-expanded', 'false'); });
+      const ev = alleSichtbar.find(x => x.id === id); if (!ev) return;
+      aufklappen(fach, karte(ev));
+      z.setAttribute('aria-expanded', 'true');
+      termineUI.auf = id;
+      return;
     }
     // Eigenen Zusagen-Kalender einrichten
     const kn = e.target.closest('button[data-kal-neu]');
@@ -957,17 +1031,68 @@ async function secTermine(v) {
 }
 
 // Eine Zeile je Termin – aufgeklappt wird daraus die ganze Karte
-function eventZeile(ev, status, hilfe = 0) {
+function eventZeile(ev, status, hilfe = 0, offen = false, mitfahrt = false) {
   const d = new Date(String(ev.date) + 'T12:00:00');
   const typ = ev.typ || 'Öffentlich';
   const zeichen = status === 'zusage' ? `<span class="t-status ja" title="Du kommst">${HAKEN}</span>`
     : status === 'absage' ? `<span class="t-status nein" title="Du kannst nicht">${KREUZ}</span>`
     : '<span class="t-status noch">Offen</span>';
-  return `<button type="button" class="t-zeile" id="ev-${esc(ev.id)}" data-auf="${esc(ev.id)}" style="border-left-color:${TYP_FARBE[typ] || '#888'}" aria-expanded="false">
+  return `<button type="button" class="t-zeile" id="zeile-${esc(ev.id)}" data-auf="${esc(ev.id)}" style="border-left-color:${TYP_FARBE[typ] || '#888'}" aria-expanded="${offen}">
     <span class="t-tag"><b>${d.getDate()}</b><i>${WD[d.getDay()]}</i></span>
-    <span class="t-mitte"><span class="t-titel">${esc(ev.title)}</span><span class="t-meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · <b style="color:${TYP_TEXT[typ] || 'inherit'}">${esc(typ)}</b>${hilfe ? ' · <b class="t-hilfe-tag">Helfer gesucht</b>' : ''}</span></span>
+    <span class="t-mitte"><span class="t-titel">${esc(ev.title)}</span><span class="t-meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · <b style="color:${TYP_TEXT[typ] || 'inherit'}">${esc(typ)}</b></span>${hilfe || mitfahrt ? `<span class="t-marker">${hilfe ? '<i class="mk mk-hilfe">Helfer gesucht</i>' : ''}${mitfahrt ? '<i class="mk mk-auto">Mitfahrt frei</i>' : ''}</span>` : ''}</span>
     ${zeichen}
+    <span class="t-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6"/></svg></span>
   </button>`;
+}
+
+// Termin auffächern (falls nötig) und dann zu einer Stelle darin springen
+function oeffneUndSpringe(v, eventId, wohin, alle, karte) {
+  const fach = v.querySelector(`.t-auf[data-fach="${cssId(eventId)}"]`);
+  const zeile = v.querySelector(`.t-zeile[data-auf="${cssId(eventId)}"]`);
+  if (!fach) { location.hash = '#termine/ev-' + eventId; route(); return; }
+  if (fach.hidden) {
+    $$('.t-auf:not([hidden])', v).forEach(f => { zuklappen(f); v.querySelector(`.t-zeile[data-auf="${cssId(f.dataset.fach)}"]`)?.setAttribute('aria-expanded', 'false'); });
+    const ev = alle.find(x => x.id === eventId); if (!ev) return;
+    aufklappen(fach, karte(ev));
+    zeile?.setAttribute('aria-expanded', 'true');
+    termineUI.auf = eventId;
+  }
+  setTimeout(() => { const ziel = v.querySelector(wohin); if (!ziel) return; if (ziel.tagName === 'DETAILS') ziel.open = true; hervorheben(ziel); }, 340);
+}
+function hervorheben(el) {
+  el.scrollIntoView({ behavior: ruhig() ? 'auto' : 'smooth', block: 'center' });
+  el.classList.add('t-blitz'); setTimeout(() => el.classList.remove('t-blitz'), 1700);
+}
+
+// ---------- Auf- und Zuklappen: Höhe sanft animieren ----------
+const cssId = id => String(id).replace(/["\\]/g, '\\$&');
+const ruhig = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+function aufklappen(fach, html) {
+  fach.innerHTML = html;
+  fach.hidden = false;
+  if (ruhig()) return;
+  const hoehe = fach.scrollHeight;
+  fach.style.cssText = 'height:0;overflow:hidden';
+  requestAnimationFrame(() => {
+    fach.style.transition = 'height .28s var(--ease)';
+    fach.style.height = hoehe + 'px';
+  });
+  fach.addEventListener('transitionend', function ende(e) {
+    if (e.propertyName !== 'height' || e.target !== fach) return;
+    fach.style.cssText = ''; fach.removeEventListener('transitionend', ende);
+  });
+}
+function zuklappen(fach) {
+  if (ruhig()) { fach.hidden = true; fach.innerHTML = ''; return; }
+  fach.style.cssText = `height:${fach.scrollHeight}px;overflow:hidden`;
+  requestAnimationFrame(() => {
+    fach.style.transition = 'height .24s var(--ease)';
+    fach.style.height = '0px';
+  });
+  fach.addEventListener('transitionend', function ende(e) {
+    if (e.propertyName !== 'height' || e.target !== fach) return;
+    fach.hidden = true; fach.innerHTML = ''; fach.style.cssText = ''; fach.removeEventListener('transitionend', ende);
+  });
 }
 
 // Filter als Blatt von unten: Art und „nur meine Zusagen“
@@ -1272,7 +1397,8 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
     });
   }
   // Fahrgemeinschaften
-  $$('.ride-form', v).forEach(rf => rf.addEventListener('submit', async e => {
+  v.addEventListener('submit', async e => {
+    const rf = e.target.closest('form.ride-form'); if (!rf) return;
     e.preventDefault(); if (!rf.checkValidity()) { rf.reportValidity(); return; }
     const evId = rf.closest('.rides').dataset.ev; const ev = events.find(x => x.id === evId); const fd = new FormData(rf);
     const btn = rf.querySelector('[type=submit]'); busy(btn, true);
@@ -1280,7 +1406,7 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
       await db.insert('Fahrgemeinschaften', { eventId: evId, eventTitel: ev?.title || '', eventDatum: ev?.date || '', typ: fd.get('typ'), ab: fd.get('ab').trim(), plaetze: +fd.get('plaetze') || 1, zeit: fd.get('zeit'), hinweis: '', memberId: me.id, name: me.name, title: `${me.name} – ${ev?.title || ''}` });
       location.hash = `#termine/ev-${evId}`; route();
     } catch (err) { msg(rf.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); busy(btn, false); }
-  }));
+  });
 }
 
 // ---------- Umfragen ----------

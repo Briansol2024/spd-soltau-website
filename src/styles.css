@@ -1314,6 +1314,32 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .t-nein{border-color:#8E8683;color:var(--text)}
 .t-ja:hover{background:#1F7A4C;color:#fff}
 .t-nein:hover{background:var(--schwarz);border-color:var(--schwarz);color:#fff}
+/* Auffächern: Fach unter der Zeile */
+.t-auf{overflow:hidden}
+.t-auf[hidden]{display:none}
+.t-auf>.rsvp{animation:auffaechern .3s var(--ease) both}
+@keyframes auffaechern{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.t-chev{flex:0 0 auto;display:grid;place-items:center;width:20px;height:20px;color:var(--muted);transition:transform .25s var(--ease)}
+.t-chev svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.t-zeile[aria-expanded="true"]{border-color:var(--schwarz);margin-bottom:6px}
+.t-zeile[aria-expanded="true"] .t-chev{transform:rotate(180deg);color:var(--schwarz)}
+.t-neu{animation:auffaechern .3s var(--ease) both}
+@media (prefers-reduced-motion:reduce){.t-auf>.rsvp,.t-neu{animation:none}.t-chev{transition:none}}
+
+/* Mitfahren auf einen Blick */
+.t-mit{background:#fff;border:1px solid var(--linie);border-radius:12px;padding:11px 12px 12px;margin-bottom:14px}
+.t-mit h4{display:flex;align-items:center;gap:8px;font:800 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.ic-auto{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.t-mit-zeile{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--linie)}
+.t-mit-zeile:first-of-type{border-top:0;padding-top:0}
+.t-mit-zeile.meins{border-left:3px solid var(--rot);padding-left:10px;margin-left:-10px}
+.t-mit-zeile .btn{flex:0 0 auto}
+/* kleine Merker in der Terminzeile */
+.t-marker{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.mk{font:700 10.5px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;font-style:normal;border:1px solid currentColor;border-radius:999px;padding:3px 8px}
+.mk-hilfe{color:var(--rot-dunkel)}
+.mk-auto{color:#2A5C9E}
+
 /* Helfer gesucht: gesammelt oben */
 .t-hilfe{background:#fff;border:1.5px solid var(--schwarz);border-radius:12px;padding:11px 12px 12px;margin-bottom:14px}
 .t-hilfe h4{display:flex;align-items:center;gap:8px;font:800 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
