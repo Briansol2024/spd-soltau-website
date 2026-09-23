@@ -156,7 +156,8 @@ async function loadData() {
   const fb = new Map(fallback.PEOPLE.map(p => [p.name.toLowerCase().replace(/ç/g, 'c'), p]));
   const key = n => String(n).toLowerCase().replace(/ç/g, 'c').replace(/\s+/g, ' ').trim();
   d.people = d.people.map(p => { const f = fb.get(key(p.name)); return f ? { ...p, role: p.role || f.role, text: p.text || f.text, themen: p.themen.length ? p.themen : f.themen } : p; });
-  d.fraktion = d.fraktion.map(p => { const f = fb.get(key(p.name)); return f ? { ...p, role: p.role || f.role, text: p.text || f.text, themen: p.themen?.length ? p.themen : f.themen } : { themen: [], ...p }; });
+  // Fraktion: die Funktion steht ausschließlich im CMS (Team1) – Text und Themen dürfen aus dem Fallback kommen
+  d.fraktion = d.fraktion.map(p => { const f = fb.get(key(p.name)); return f ? { ...p, text: p.text || f.text, themen: p.themen?.length ? p.themen : f.themen } : { themen: [], ...p }; });
   // Themenliste: feste Reihenfolge, nur Themen mit mindestens einer Person
   const used = new Set(d.people.flatMap(p => p.themen));
   d.themen = [...fallback.THEMEN_ORDER.filter(t => used.has(t)), ...[...used].filter(t => !fallback.THEMEN_ORDER.includes(t))];

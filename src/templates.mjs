@@ -273,7 +273,7 @@ export function startPage(d) {
     <div class="wrap" style="padding-block:40px">
       <span class="tag tag-schwarz" style="margin-bottom:18px">Soltau in Zahlen</span>
       <div class="stats">
-        ${d.site.facts.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}
+        ${d.site.facts.map(([n, t]) => `<div class="stat"><b${/[A-Za-zÄÖÜäöü]{4}/.test(n) ? ' class="wort"' : ''}>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}
       </div>
     </div>
   </div>
@@ -453,7 +453,7 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
 <section>
   ${pageHead(tag, h1, lead, foto)}
   <div class="band-rot foto foto-rot">${motiv('drohne')}<div class="wrap" style="padding-block:40px">
-    <div class="stats">${stats.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>
+    <div class="stats">${stats.map(([n, t]) => `<div class="stat"><b${/[A-Za-zÄÖÜäöü]{4}/.test(n) ? ' class="wort"' : ''}>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>
   </div></div>
   <div class="wrap section">
     <div class="section-head"><h2 class="title">${teamTitle}</h2>${teamHint ? `<span class="muted">${esc(teamHint)}</span>` : ''}</div>
@@ -472,8 +472,8 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
 export function fraktionPage(d) {
   return teamPage({
     tag: 'SPD-Ratsfraktion', h1: 'Unsere Fraktion<br>im Stadtrat', foto: 'altesrathaus',
-    lead: 'Seit dem 13. September 2026 erstmals stärkste Fraktion im Rat der Stadt Soltau. Wir erklären Entscheidungen, bleiben ansprechbar und setzen den 10-Punkte-Plan um.',
-    stats: [['Nr. 1', 'Erstmals stärkste Fraktion'], ['11', 'Gewählte Ratsmitglieder'], ['1. Nov.', 'Beginn der Wahlperiode 2026–31'], ['10', 'Punkte für Soltau']],
+    lead: `${d.fraktion.length} Ratsmitglieder in der Wahlperiode 2021–2026. Wir erklären Entscheidungen, bleiben ansprechbar – und ab dem 1. November stellt die SPD erstmals die stärkste Fraktion im Rat.`,
+    stats: [[String(d.fraktion.length), 'Ratsmitglieder im Stadtrat'], ['2021–26', 'Laufende Wahlperiode'], ['10', 'Punkte für Soltau']],
     people: d.fraktion, teamTitle: 'Ratsmitglieder', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
     boxA: '',
     boxB: `<div class="box box-rot">
@@ -495,7 +495,7 @@ export function ortsvereinPage(d) {
   return teamPage({
     tag: 'SPD Ortsverein Soltau', h1: 'Unser Vorstand', foto: 'vorstand',
     lead: 'Menschen aus unterschiedlichen Generationen, Berufen und Teilen unserer Stadt. Uns verbindet eine Überzeugung: Soltau kann mehr.',
-    stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], spitze, ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(berufe.size || d.vorstand.length), 'Berufe – vom Azubi bis zum Lehrer']],
+    stats: [[String(d.vorstand.length), 'Mitglieder im Vorstand'], ['Roter Bahnhof', 'Unser Treffpunkt am Bahnhof'], [String(berufe.size || d.vorstand.length), 'Berufe – vom Azubi bis zum Lehrer']],
     people, teamTitle: 'Vorstand', teamHint: 'Sortiert nach Funktion · Klick öffnet das Kurzprofil',
     boxA: '',
     boxB: `<div class="box box-rot">
