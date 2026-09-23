@@ -771,7 +771,7 @@ function monatsKalender(events, ansichtEvents) {
 }
 async function secTermine(v) {
   const events = visibleEvents().slice(0, 40);
-  const [zusagen, listen, helfer, fahrten, terminPolls, stimmen, mitfahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => []), db.list('Umfragen', { eq: { nurZusagen: true } }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => []), db.list('Mitfahrten', { limit: 1000 }).catch(() => [])]);
+  const [zusagen, listen, helfer, fahrten, terminPolls, stimmen, mitfahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => []), db.list('Umfragen', { eq: { nurZusagen: true } }).catch(() => []), db.list('Stimmen', { limit: 1000 }).catch(() => []), db.list('Mitfahrten', { limit: 1000 }).catch(() => [])]);
   secTermine.polls = { terminPolls: terminPolls.map(u => ({ ...u, col: 'Umfragen' })), stimmen };
   secTermine.mitfahrten = mitfahrten; // wer bei welchem Angebot mitfährt (Sammlung Mitfahrten: fahrtId, memberId, name)
   const today = todayIso();
@@ -1070,13 +1070,15 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
 
 // ---------- Umfragen ----------
 async function secUmfragen(v) {
-  const [intern, pub, stimmen] = await Promise.all([db.list('Umfragen', { desc: '_createdDate' }).catch(() => []), db.list('UmfragenOeffentlich', { desc: '_createdDate' }).catch(() => []), db.list('Stimmen', { limit: 2000 }).catch(() => [])]);
+  let stimmFehler = '';
+  const [intern, pub, stimmen] = await Promise.all([db.list('Umfragen', { desc: '_createdDate' }).catch(() => []), db.list('UmfragenOeffentlich', { desc: '_createdDate' }).catch(() => []), db.list('Stimmen', { limit: 1000 }).catch(e => { stimmFehler = errText(e); return []; })]);
   const meineZusagen = new Set((await db.list('Zusagen', { eq: { memberId: me.id } }).catch(() => [])).filter(z => z.status === 'zusage').map(z => z.eventId));
   const all = [...intern.filter(u => !u.nurZusagen || meineZusagen.has(u.eventId) || me.can('umfragen')).map(u => ({ ...u, col: 'Umfragen' })), ...pub.map(u => ({ ...u, col: 'UmfragenOeffentlich' }))].sort((a, b) => String(b._createdDate).localeCompare(String(a._createdDate)));
   const today = todayIso();
   const open = all.filter(u => u.offen && (!u.endetAm || u.endetAm >= today)), closed = all.filter(u => !open.includes(u));
   v.innerHTML = `
   ${sectionHead('Umfragen', me.can('umfragen') ? 'Du darfst Umfragen anlegen' : 'Umfragen legt der Vorstand an')}
+  ${stimmFehler ? `<p class="note note-err">Die abgegebenen Stimmen konnten nicht geladen werden: ${esc(stimmFehler)}</p>` : ''}
   ${me.can('umfragen') ? `<div class="mb-create"><details class="mb-details" id="u-new"><summary>Umfrage anlegen</summary>
     <form class="form mb-form" id="f-umfrage" novalidate>
       <div class="field"><label for="u-frage">Frage</label><input id="u-frage" name="frage" type="text" required maxlength="140" placeholder="z. B. Sommerfest am 12. oder 19. Juli?"></div>
@@ -1098,15 +1100,20 @@ function pollCard(u, stimmen, open) {
   const votes = stimmen.filter(s => s.umfrageId === u._id);
   const mine = votes.find(s => s.memberId === me.id);
   const opts = u.optionen || [];
-  const counts = opts.map((_, i) => votes.filter(s => (s.auswahl || []).includes(i)).length);
+  const gewaehlt = s => (s.auswahl || []).map(Number);   // je nach Herkunft stehen dort Zahlen oder Text
+  const counts = opts.map((_, i) => votes.filter(s => gewaehlt(s).includes(i)).length);
   const total = votes.length; const max = Math.max(1, ...counts);
   const showResults = !open || !!mine;
   const isPublic = u.col === 'UmfragenOeffentlich';
   return `<article class="mb-card poll" id="u-${esc(u._id)}" data-id="${esc(u._id)}" data-col="${esc(u.col)}">
     <div class="hl-head"><div><span class="tag ${isPublic ? 'tag-schwarz' : ''}">${isPublic ? 'Öffentlich' : 'Intern'}</span> <span class="small muted">von ${esc(u.von || '–')}${u.endetAm ? ` · ${open ? 'bis' : 'endete'} ${esc(fmtShort(u.endetAm))}` : ''} · ${total} Stimme${total === 1 ? '' : 'n'}</span><h4>${esc(u.frage)}</h4>${u.beschreibung ? `<p class="small">${nl2br(u.beschreibung)}</p>` : ''}</div>
     </div>
-    ${showResults ? `<div class="poll-results">${opts.map((o, i) => `<div class="poll-row ${mine && (mine.auswahl || []).includes(i) ? 'mine' : ''}"><span class="bar" style="width:${Math.round(counts[i] / max * 100)}%"></span><span class="lbl">${esc(o)}</span><span class="pct">${counts[i]}${total ? ` · ${Math.round(counts[i] / total * 100)} %` : ''}</span></div>`).join('')}</div>${mine && open ? '<p class="small muted">Du hast abgestimmt. Tippe auf eine Antwort, um deine Stimme zu ändern.</p>' : ''}` : ''}
-    ${open ? `<div class="poll-vote ${showResults ? 'compact' : ''} ${u.mehrfach ? 'mehrfach' : ''}">${opts.map((o, i) => `<button type="button" class="stimme" data-vote="${i}" aria-pressed="${!!mine && (mine.auswahl || []).includes(i)}"><span>${esc(o)}</span></button>`).join('')}${u.mehrfach ? '<button type="button" class="btn btn-schwarz btn-sm" data-vote-save>Auswahl speichern</button>' : ''}</div><p class="small muted">${u.mehrfach ? 'Mehrere Antworten möglich. ' : ''}${isPublic ? 'Diese Umfrage läuft auch öffentlich auf der Startseite; die Auswertung sehen nur Mitglieder.' : 'Der Vorstand kann im CMS sehen, wer wie abgestimmt hat – die Abstimmung ist also nicht geheim.'}</p>` : ''}
+    ${showResults ? `<div class="poll-results">${opts.map((o, i) => `<div class="poll-row ${mine && gewaehlt(mine).includes(i) ? 'mine' : ''}"><span class="bar" style="width:${Math.round(counts[i] / max * 100)}%"></span><span class="lbl">${esc(o)}</span><span class="pct">${counts[i]}${total ? ` · ${Math.round(counts[i] / total * 100)} %` : ''}</span></div>`).join('')}</div>${mine && open ? '<p class="small muted">Du hast abgestimmt. Tippe auf eine Antwort, um deine Stimme zu ändern.</p>' : ''}` : ''}
+    ${showResults && !isPublic && total && !!settings?.board.has(me.id) ? `<details class="poll-wer"><summary>Wer hat wie gestimmt? <span class="small muted">nur für den Vorstand sichtbar</span></summary>
+      ${opts.map((o, i) => { const wer = votes.filter(x => gewaehlt(x).includes(i)).map(x => x.name || people.find(pp => pp.memberId === x.memberId)?.name || 'Unbekannt'); return `<p class="poll-wer-zeile"><b>${esc(o)}</b> <span class="small muted">${wer.length}</span><br><span class="small">${wer.length ? esc(wer.join(', ')) : '–'}</span></p>`; }).join('')}
+      ${(() => { const dabei = new Set(votes.map(x => x.memberId).filter(Boolean)); const fehlt = people.filter(pp => pp.status !== 'inaktiv' && !dabei.has(pp.memberId)).map(pp => pp.name); return fehlt.length ? `<p class="poll-wer-zeile"><b>Noch nicht abgestimmt</b> <span class="small muted">${fehlt.length}</span><br><span class="small">${esc(fehlt.join(', '))}</span></p>` : '<p class="poll-wer-zeile"><b>Alle haben abgestimmt.</b></p>'; })()}
+    </details>` : ''}
+    ${open ? `<div class="poll-vote ${showResults ? 'compact' : ''} ${u.mehrfach ? 'mehrfach' : ''}">${opts.map((o, i) => `<button type="button" class="stimme" data-vote="${i}" aria-pressed="${!!mine && gewaehlt(mine).includes(i)}"><span>${esc(o)}</span></button>`).join('')}${u.mehrfach ? '<button type="button" class="btn btn-schwarz btn-sm" data-vote-save>Auswahl speichern</button>' : ''}</div><p class="small muted">${u.mehrfach ? 'Mehrere Antworten möglich. ' : ''}${isPublic ? 'Diese Umfrage läuft auch öffentlich auf der Startseite; die Auswertung sehen nur Mitglieder.' : 'Der Vorstand sieht, wer wie abgestimmt hat – die Abstimmung ist also nicht geheim.'}</p>` : ''}
     <p class="note" hidden></p>
     ${open ? `<div class="poll-foot"><button type="button" class="linkbtn share" data-share="${esc(`🗳️ Umfrage: ${u.frage}\n${isPublic ? 'Abstimmen auf der Startseite: ' + new URL(BASE + '/', location.href).href : 'Abstimmen im Mitgliederbereich: ' + appLink('#umfragen/u-' + u._id)}`)}">${SHARE_ICON}Teilen</button>${u._owner === me.id || me.can('umfragen') ? `<button type="button" class="linkbtn rot" data-close-poll>${ICON.close}Umfrage schließen</button>` : ''}</div>` : ''}
   </article>`;
@@ -1123,9 +1130,9 @@ function wirePolls(v, all, stimmen) {
     let auswahl;
     if (u.mehrfach) {
       if (b.dataset.vote !== undefined) { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); return; }
-      auswahl = $$('[data-vote][aria-pressed="true"]', art).map(x => +x.dataset.vote);
+      auswahl = $$('[data-vote][aria-pressed="true"]', art).map(x => String(x.dataset.vote));
       if (!auswahl.length) { msg(note, 'Bitte mindestens eine Antwort auswählen.'); return; }
-    } else auswahl = [+b.dataset.vote];
+    } else auswahl = [String(b.dataset.vote)];
     busy(b, true);
     try {
       const mine = stimmen.find(s => s.umfrageId === u._id && s.memberId === me.id);

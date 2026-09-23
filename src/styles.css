@@ -2046,3 +2046,9 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
   .mr-tab b{font-size:18px}
   .mr-tab small{font-size:12px}
 }
+
+/* Umfragen im Mitgliederbereich: wer wie abgestimmt hat (nur interne Umfragen) */
+.poll-wer{margin-top:10px;border-top:1px solid var(--linie);padding-top:8px}
+.poll-wer>summary{cursor:pointer;font:700 14px/1.3 var(--body);color:var(--rot);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.poll-wer-zeile{margin:10px 0 0;line-height:1.45}
+.poll-wer-zeile b{font:700 14px/1.2 var(--body)}

@@ -236,7 +236,14 @@ document.addEventListener('click', e => {
 // ---------- App: Service Worker (installierbar, offline, Push) ----------
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => {
-    navigator.serviceWorker.register(new URL(`${SPD.base || '.'}/sw.js`, location.href)).catch(() => { /* z. B. http ohne localhost */ });
+    navigator.serviceWorker.register(new URL(`${SPD.base || '.'}/sw.js`, location.href)).then(reg => {
+      // Neue Fassung sofort übernehmen und die Seite einmal neu laden – sonst läuft die App mit altem Stand weiter
+      let neuGeladen = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (neuGeladen) return; neuGeladen = true; location.reload(); });
+      const pruefen = () => reg.update().catch(() => {});
+      reg.addEventListener('updatefound', () => { const neu = reg.installing; if (!neu) return; neu.addEventListener('statechange', () => { if (neu.state === 'installed' && navigator.serviceWorker.controller) neu.postMessage('skipWaiting'); }); });
+      pruefen(); addEventListener('focus', pruefen);
+    }).catch(() => { /* z. B. http ohne localhost */ });
   });
 }
 
