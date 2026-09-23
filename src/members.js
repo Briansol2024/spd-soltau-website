@@ -931,7 +931,7 @@ async function secTermine(v) {
       ${meinIcs ? `<div class="mb-actions"><a class="btn btn-rot btn-sm" href="${esc(webcal(meinIcs))}">Abonnieren</a><button class="btn btn-line btn-sm" type="button" data-copy="${esc(absUrl(meinIcs))}">Adresse kopieren</button></div>
       <p class="small muted">Diese Adresse gehört nur dir – bitte nicht weitergeben. <span data-ics-status></span></p>`
       : `<div class="mb-actions"><button class="btn btn-rot btn-sm" type="button" data-kal-neu>Kalender einrichten</button></div>
-      <p class="small muted">Wird einmal eingerichtet; die Datei steht nach dem nächsten Abgleich bereit (spätestens eine halbe Stunde).</p>`}
+      <p class="small muted">Einmal einrichten – dein Kalender wird dann angelegt und steht nach wenigen Minuten bereit.</p>`}
     </div>
     <div class="mb-actions">
       ${ics.intern ? `<a class="btn btn-schwarz btn-sm" href="${esc(webcal(ics.intern))}">Alle Termine (Mitglieder)</a><button class="btn btn-line btn-sm" type="button" data-copy="${esc(absUrl(ics.intern))}">Adresse kopieren</button>` : ''}
@@ -1123,10 +1123,24 @@ async function zusageSetzen(ev, status, grund = '') {
 
 // Liegt die persönliche Kalenderdatei schon auf dem Server? Sonst sagen, dass sie noch kommt.
 function icsPruefen(v, url) {
-  const ziel = $('[data-ics-status]', v); if (!ziel) return;
-  fetch(url, { method: 'HEAD' }).then(r => { if (!r.ok) ziel.textContent = 'Die Datei wird beim nächsten Abgleich erzeugt – bis zu einer halben Stunde.'; })
-    .catch(() => { /* offline: nichts sagen */ });
+  const ziel = $('[data-ics-status]', v), karte = $('.abo-karte', v); if (!ziel || !karte) return;
+  const knoepfe = $$('.mb-actions a, .mb-actions button', karte);
+  const sperren = an => knoepfe.forEach(b => {
+    b.classList.toggle('btn-aus', an);
+    if (an) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+    if (b.tagName === 'A') { if (an && b.getAttribute('href')) { b.dataset.ziel = b.getAttribute('href'); b.removeAttribute('href'); } if (!an && b.dataset.ziel) b.setAttribute('href', b.dataset.ziel); }
+    else b.disabled = an;
+  });
+  let versuche = 0;
+  const pruefen = () => fetch(url, { method: 'HEAD', cache: 'no-store' }).then(r => {
+    if (r.ok) { sperren(false); ziel.textContent = ''; return; }
+    sperren(true);
+    ziel.innerHTML = '<b>Dein Kalender wird gerade erzeugt.</b> Das dauert ein paar Minuten – sobald er bereit ist, wird „Abonnieren“ hier von selbst frei.';
+    if (versuche++ < 60) setTimeout(pruefen, 15000);
+  }).catch(() => { /* offline: nichts sagen */ });
+  pruefen();
 }
+
 const absUrl = rel => new URL(rel, location.href).href;
 const webcal = rel => absUrl(rel).replace(/^https?:/, 'webcal:');
 // Termin-Formulare: Auswahl „Für wen?“ und Werte aus einem bestehenden Termin

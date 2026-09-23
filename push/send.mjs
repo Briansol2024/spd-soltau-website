@@ -872,6 +872,27 @@ async function workflowStarten(datei, inputs = {}) {
   const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${datei}/dispatches`, { method: 'POST', headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, body: JSON.stringify({ ref: 'main', inputs }) });
   if (res.status !== 204) throw new Error(`${datei}: ${res.status} ${(await res.text()).slice(0, 120)}`);
 }
+// ---------- Neuer Zusagen-Kalender: die Datei entsteht beim Seitenbau – also gleich einen anstoßen ----------
+async function kalenderBauen(logKeys) {
+  try {
+    const neue = (await queryAll(client, 'Kalenderlinks')).filter(k => k.schluessel && NOW - new Date(k._createdDate || 0).getTime() < 24 * H);
+    const offen = neue.filter(k => !logKeys.has('kalender-bau:' + k._id));
+    if (!offen.length) return;
+    // Liegt die Datei schon auf dem Server? Dann reicht der Vermerk.
+    const fertig = [];
+    for (const k of offen) {
+      const r = await fetch(url(`/assets/kalender/${k.schluessel}.ics`), { method: 'HEAD' }).catch(() => null);
+      if (r && r.ok) fertig.push(k);
+    }
+    for (const k of fertig) { logKeys.add('kalender-bau:' + k._id); await logKey('kalender-bau:' + k._id, { empfaenger: 0, titel: `Kalender von ${k.name || k.memberId} liegt bereit` }); }
+    const warten = offen.filter(k => !fertig.includes(k));
+    if (!warten.length) return;
+    if (DRY) { log(`  Zusagen-Kalender: ${warten.length} neu – würde die Website neu bauen`); return; }
+    await workflowStarten('deploy.yml').catch(e => log('  Kalender-Bau:', e.message));
+    log(`  Zusagen-Kalender: ${warten.length} neu – Website wird gebaut`);
+  } catch (e) { log('Zusagen-Kalender:', e.message); }
+}
+
 // ---------- Meilensteine: Website neu bauen, sobald ein Zeitpunkt überschritten ist (Start der Website, Tag nach der Stichwahl) ----------
 // Der halbstündliche Zeitplan-Bau kommt bei GitHub oft Stunden zu spät – hier läuft es zuverlässig alle 5 Minuten.
 let letzterBau = null; // Zeitpunkt des letzten Website-Baus (einmal je Lauf abgefragt)
@@ -1082,6 +1103,7 @@ const st = await loadSettings(approved);
   await stammtisch(st);
   await weitereErinnerungen(st, subs, logKeys);
   await mitfahren(st, subs, logKeys);
+  await kalenderBauen(logKeys);   // neue Zusagen-Kalender brauchen einen Seitenbau
   await feedback(subs, approved, emails, logKeys);
   await filmUploads(subs, logKeys); // erst Fotos ablegen – dann können Aufträge, die darauf warten, sofort starten
   await auftraege(subs, approved, emails, logKeys);

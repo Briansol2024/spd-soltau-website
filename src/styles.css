@@ -1396,6 +1396,7 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .abo-karte h4{font:800 20px/1.05 var(--display);text-transform:uppercase;margin-bottom:4px}
 .abo-karte p{margin-bottom:10px}
 .abo-karte .mb-actions{margin-bottom:8px}
+.btn-aus{opacity:.45;pointer-events:none;filter:grayscale(1)}
 .cal{background:var(--grau);padding:14px 14px 12px;display:grid;gap:10px;margin-bottom:22px}
 .cal-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cal-head b{font:800 22px/1 var(--display);text-transform:uppercase;min-width:170px;text-align:center}
