@@ -827,6 +827,11 @@ body.sheet-open{overflow:hidden}
 .mb-details>*:not(summary){margin-bottom:16px}
 .mb-create{display:grid;gap:8px;margin:0 0 22px}
 .mb-create .mb-details{margin:0;border-color:var(--rot)}
+/* Termine: „anlegen“ klein halten – die Liste ist wichtiger */
+.t-create{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.t-create>.mb-details{flex:1 1 170px;padding:0 12px}
+.t-create>.mb-details[open]{flex-basis:100%}
+.t-create>.mb-details>summary{padding:9px 0;font-size:13.5px;letter-spacing:.06em;gap:10px}
 .mb-create .mb-details>summary{color:var(--rot)}
 .mb-create .mb-details>summary::before{content:"+";font-size:22px;line-height:1;margin-right:10px}
 .mb-create .mb-details[open]>summary::before{content:"–"}
@@ -1288,11 +1293,71 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 
 /* ===== Termine als Monatskalender (Mitgliederbereich) ===== */
 .termine-ansicht{margin:-14px 0 20px}
-.termine-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-12px 0 20px}
-.tf-label{font:700 11px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.chip-art{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;font-size:13px;letter-spacing:.06em}
-.chip-art i{width:9px;height:9px;border-radius:50%;display:block;flex:0 0 auto}
-.chip-art[aria-pressed="true"] i{box-shadow:0 0 0 1.5px #fff}
+/* Kopfzeile: Ansicht links, Filter rechts */
+.t-kopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-14px 0 14px}
+.t-kopf .termine-ansicht{margin:0}
+.t-filter{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
+.t-filter.an{background:var(--rot);border-color:var(--rot);color:#fff}
+.ic-zeichen,.ic-filter{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.ic-filter{stroke-width:2.2}
+
+/* „Warten auf deine Antwort“ */
+.t-offen{background:#fff;border:2px solid var(--rot);padding:11px 12px 12px;margin-bottom:14px}
+.t-offen h4{font:800 14px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--rot-dunkel);margin-bottom:4px}
+.t-offen-hinweis{font-size:12.5px;color:var(--muted);margin-bottom:9px}
+.t-offen-zeile{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--linie)}
+.t-offen-zeile:first-of-type{border-top:0;padding-top:0}
+.t-offen-text{flex:1 1 auto;min-width:0}
+.t-offen-text b{display:block;font-size:14.5px;line-height:1.25}
+.t-offen-text span{display:block;margin-top:1px}
+.t-ja,.t-nein{width:46px;height:44px;border:2px solid #1F7A4C;background:#fff;color:#1A6A42;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+.t-nein{border-color:#8E8683;color:var(--text)}
+.t-ja:hover{background:#1F7A4C;color:#fff}
+.t-nein:hover{background:var(--schwarz);border-color:var(--schwarz);color:#fff}
+.t-fertig{display:flex;align-items:center;gap:9px;background:#fff;border-left:4px solid #1F7A4C;padding:10px 12px;margin-bottom:14px;font-size:14px;color:#1A6A42;font-weight:600}
+
+/* Monatsüberschrift in der Liste */
+.t-monat{display:flex;align-items:center;gap:10px;font:700 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.t-monat::after{content:"";flex-grow:1;height:1px;background:var(--linie)}
+.rsvp-list>.t-monat:first-child{margin-top:4px}
+
+/* Eine Zeile je Termin */
+.t-zeile{width:100%;text-align:left;display:flex;gap:11px;align-items:center;background:#fff;border:1px solid var(--linie);border-left-width:5px;padding:10px 11px;margin-bottom:7px;min-height:58px;cursor:pointer;font:inherit;color:inherit;transition:transform .12s var(--spring)}
+.t-zeile:hover{border-color:var(--schwarz);border-left-width:5px}
+.t-zeile:active{transform:scale(.995)}
+.t-tag{width:32px;flex:0 0 auto;text-align:center}
+.t-tag b{display:block;font:800 23px/1 var(--display)}
+.t-tag i{display:block;font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-style:normal;margin-top:3px}
+.t-mitte{flex:1 1 auto;min-width:0}
+.t-titel{display:block;font-size:15px;line-height:1.25;font-weight:700}
+.t-meta{display:block;font-size:12.5px;color:var(--text);margin-top:2px}
+.t-status{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
+.t-status.ja{background:#1F7A4C;color:#fff}
+.t-status.nein{border:2px solid #8E8683;color:var(--text)}
+.t-status.noch{width:auto;height:auto;border-radius:0;font:700 11px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--rot-dunkel)}
+
+/* Filter als Blatt von unten */
+.t-blende{position:fixed;inset:0;z-index:70;background:rgba(15,15,15,.55)}
+.t-blatt{position:fixed;left:0;right:0;bottom:0;z-index:71;background:#fff;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:84vh;overflow:auto;animation:sheetUp .25s var(--ease)}
+@media (min-width:640px){.t-blatt{left:50%;right:auto;transform:translateX(-50%);width:460px}}
+.t-griff{display:block;width:42px;height:4px;border-radius:2px;background:var(--linie);margin:0 auto 12px}
+.t-blatt-kopf{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.t-blatt-kopf h4{font:800 24px/1 var(--display);text-transform:uppercase}
+.t-zu{margin-left:auto;width:42px;height:42px;border:1px solid var(--linie);background:#fff;color:var(--schwarz);display:grid;place-items:center;cursor:pointer}
+.t-gruppe{font:700 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
+.t-fz{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--linie);font-size:15.5px;cursor:pointer;min-height:48px}
+.t-fz:last-of-type{border-bottom:0}
+.t-fz input{width:22px;height:22px;accent-color:var(--rot);flex:0 0 auto;margin:0}
+.t-pkt{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.t-anz{margin-left:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.t-blatt-fuss{display:flex;gap:10px;margin-top:16px}
+.t-blatt-fuss .btn-rot{flex:1 1 auto;justify-content:center}
+
+/* Abo: eigener Zusagen-Kalender */
+.abo-karte{background:#fff;border:1px solid var(--linie);border-left:5px solid #1F7A4C;padding:13px 14px;margin:12px 0 14px}
+.abo-karte h4{font:800 20px/1.05 var(--display);text-transform:uppercase;margin-bottom:4px}
+.abo-karte p{margin-bottom:10px}
+.abo-karte .mb-actions{margin-bottom:8px}
 .cal{background:var(--grau);padding:14px 14px 12px;display:grid;gap:10px;margin-bottom:22px}
 .cal-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cal-head b{font:800 22px/1 var(--display);text-transform:uppercase;min-width:170px;text-align:center}
@@ -1302,19 +1367,19 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 .cal-nav:hover{background:var(--schwarz);color:#fff}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-wd{font:700 11px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;padding:4px 0 6px}
-.cal-day{position:relative;min-height:50px;border:0;background:#fff;color:var(--ink);font:600 15px/1 var(--body);cursor:pointer;display:grid;gap:5px;align-content:start;justify-items:center;padding:7px 2px 6px;font-variant-numeric:tabular-nums}
+.cal-day{position:relative;min-height:54px;border:0;background:#fff;color:var(--ink);font:600 15px/1 var(--body);cursor:pointer;display:grid;gap:5px;align-content:start;justify-items:center;padding:7px 2px 6px;font-variant-numeric:tabular-nums}
 .cal-day:disabled{color:var(--muted);background:#fff;opacity:.6;cursor:default}
 .cal-day.hat{cursor:pointer;font-weight:700}
 .cal-day.hat:hover{outline:2px solid var(--schwarz)}
 .cal-day.heute>span:first-child{color:var(--rot)}
 .cal-day.gewaehlt{background:var(--schwarz);color:#fff}
 .cal-day.gewaehlt.heute>span:first-child{color:#fff}
-.cal-day.gewaehlt .cal-dots i{box-shadow:0 0 0 1.5px #fff}
-.cal-dots{display:flex;gap:3px;min-height:7px}
-.cal-dots i{width:7px;height:7px;border-radius:50%;display:block}
+.cal-day.gewaehlt .cal-dots i{background:#fff!important}
+.cal-dots{display:flex;gap:3px;min-height:4px}
+.cal-dots i{width:12px;height:4px;display:block}
 .cal-legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding-top:4px;border-top:1px solid var(--linie)}
 .cal-legend span{display:inline-flex;align-items:center;gap:6px}
-.cal-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.cal-legend i{width:12px;height:4px;display:inline-block}
 .cal-tag .rsvp:first-of-type{border-top:2px solid var(--schwarz)}
 @container site (max-width:480px){.cal{padding:10px 8px 8px}.cal-day{min-height:44px;font-size:14px;padding:6px 1px 5px}.cal-head b{font-size:19px;min-width:140px}}
 

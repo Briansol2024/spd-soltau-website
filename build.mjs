@@ -11,6 +11,7 @@
 //                   kein Passwort, kein NOINDEX – und WELCOME_HOURS lang (Standard 24) begrüßt die Countdown-Seite (Null + Konfetti) jeden Erstbesucher
 //   CNAME           eigene Domain für GitHub Pages (schreibt dist/CNAME)
 //   VAPID_PUBLIC_KEY öffentlicher Schlüssel für Push-Benachrichtigungen (siehe push/setup.mjs)
+//   WIX_API_KEY + WIX_SITE_ID  Admin-Schlüssel – nur für die persönlichen Kalender-Abos („nur meine Zusagen“)
 
 import { mkdir, writeFile, copyFile, readFile, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -92,6 +93,36 @@ function icsFeed(events, name) {
   // Zeilen über 75 Zeichen werden gefaltet (RFC 5545)
   const fold = l => { const out = []; let rest = l; while (rest.length > 74) { out.push(rest.slice(0, 74)); rest = ' ' + rest.slice(74); } out.push(rest); return out.join('\r\n'); };
   return lines.map(fold).join('\r\n') + '\r\n';
+}
+
+// ---------- Kalender-Abo „nur meine Zusagen“: je Mitglied eine Datei ----------
+// Die Mitglieder richten es in der App ein (Sammlung Kalenderlinks: memberId + zufälliger Schlüssel).
+// Der Dateiname ist der Schlüssel – die Adresse kennt nur das Mitglied selbst.
+async function zusagenKalender(events) {
+  const key = env.WIX_API_KEY, site = env.WIX_SITE_ID;
+  if (!key || !site) return;            // ohne Admin-Schlüssel (z. B. lokal) wird nichts erzeugt
+  const holen = async (collection, filter = {}) => {
+    const r = await fetch('https://www.wixapis.com/wix-data/v2/items/query', {
+      method: 'POST', headers: { Authorization: key, 'wix-site-id': site, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataCollectionId: collection, query: { filter, paging: { limit: 1000 } } }),
+    });
+    if (!r.ok) throw new Error(`${collection}: ${r.status} ${(await r.text()).slice(0, 160)}`);
+    return ((await r.json()).dataItems || []).map(x => ({ _id: x.id, ...x.data }));
+  };
+  try {
+    const links = (await holen('Kalenderlinks')).filter(l => l.memberId && /^[a-f0-9]{16,64}$/i.test(String(l.schluessel || '')));
+    if (!links.length) return;
+    const zusagen = await holen('Zusagen', { status: 'zusage' });
+    const proMitglied = new Map();
+    for (const z of zusagen) { if (!z.memberId || !z.eventId) continue; if (!proMitglied.has(z.memberId)) proMitglied.set(z.memberId, new Set()); proMitglied.get(z.memberId).add(z.eventId); }
+    await mkdir(path.join(OUT, 'assets', 'kalender'), { recursive: true });
+    for (const l of links) {
+      const ids = proMitglied.get(l.memberId) || new Set();
+      const meine = events.filter(e => ids.has(e.id));
+      await writeFile(path.join(OUT, 'assets', 'kalender', `${l.schluessel}.ics`), icsFeed(meine, 'SPD Soltau – meine Zusagen'), 'utf8');
+    }
+    console.log('[build] Kalender „meine Zusagen“:', links.length, 'Datei(en)');
+  } catch (e) { console.log('[build] Kalender „meine Zusagen“ übersprungen:', e.message); }
 }
 
 // ---------- Daten ----------
@@ -297,6 +328,7 @@ async function main() {
   // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
   await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat'), 'SPD Soltau – Termine'), 'utf8');
   await writeFile(path.join(OUT, 'assets', `termine-intern-${icsToken}.ics`), icsFeed(d.events, 'SPD Soltau – alle Termine (Mitglieder)'), 'utf8');
+  await zusagenKalender(d.events);
   d.mitreden = d.mitreden || { start: {}, anliegen: [], fragen: [], baustellen: [], umfragen: [] };
   if (env.MITREDEN_BEISPIEL || DEMO_SITE) { const { beispielMitreden } = await import('./src/lib/mitreden-beispiel.mjs'); d.mitreden = beispielMitreden(); } // Beispielinhalte: lokal zum Ansehen und in der Demo-Fassung
   // Baustellen der Stadt (soltau.de → Aktuelles → Baustellen) automatisch dazu – eigene Einträge gehen vor

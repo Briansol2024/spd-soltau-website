@@ -46,6 +46,8 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           ICS_TOKEN: ${{ vars.ICS_TOKEN }}
           LAUNCH_AT: ${{ vars.LAUNCH_AT }}
+          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}   # nur für die persönlichen Kalender-Abos
+          WIX_SITE_ID: ${{ vars.WIX_SITE_ID }}
       # Demo-Fassung unter /demo/: Beispielinhalte für „Mitreden“, nichts geht an Wix – zum Zeigen (Video, Vorstand)
       - name: Demo-Fassung bauen
         run: node build.mjs
