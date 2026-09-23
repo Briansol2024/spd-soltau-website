@@ -100,7 +100,7 @@ function icsFeed(events, name) {
 // Der Dateiname ist der Schlüssel – die Adresse kennt nur das Mitglied selbst.
 async function zusagenKalender(events) {
   const key = env.WIX_API_KEY, site = env.WIX_SITE_ID;
-  if (!key || !site) return;            // ohne Admin-Schlüssel (z. B. lokal) wird nichts erzeugt
+  if (!key || !site) { console.log('[build] Kalender „meine Zusagen“: kein Admin-Schlüssel – übersprungen'); return; }
   const holen = async (collection, filter = {}) => {
     const r = await fetch('https://www.wixapis.com/wix-data/v2/items/query', {
       method: 'POST', headers: { Authorization: key, 'wix-site-id': site, 'Content-Type': 'application/json' },
@@ -111,7 +111,7 @@ async function zusagenKalender(events) {
   };
   try {
     const links = (await holen('Kalenderlinks')).filter(l => l.memberId && /^[a-f0-9]{16,64}$/i.test(String(l.schluessel || '')));
-    if (!links.length) return;
+    if (!links.length) { console.log('[build] Kalender „meine Zusagen“: noch niemand eingerichtet'); return; }
     const zusagen = await holen('Zusagen', { status: 'zusage' });
     const proMitglied = new Map();
     for (const z of zusagen) { if (!z.memberId || !z.eventId) continue; if (!proMitglied.has(z.memberId)) proMitglied.set(z.memberId, new Set()); proMitglied.get(z.memberId).add(z.eventId); }
