@@ -215,7 +215,7 @@ async function processActions(st, subs, logKeys) {
     let payload = {}; try { payload = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ }
     const done = async (status, ergebnis) => { log(`  Aktion ${a.typ}: ${ergebnis}`); if (!DRY) await client.items.update('Aktionen', { ...a, status, ergebnis, erledigtAm: new Date().toISOString() }).catch(e => log('Aktion update', e.message)); };
     const need = NEEDS[a.typ];
-    if (!need || !hasRight(st, a._owner, need)) { await done('abgelehnt', `Absender hat das Recht „${need || '?'}“ nicht`); continue; }
+    if (a.typ !== 'post' && (!need || !hasRight(st, a._owner, need))) { await done('abgelehnt', `Absender hat das Recht „${need || '?'}“ nicht`); continue; }
     try {
       switch (a.typ) {
         case 'mitglied_freigeben':
@@ -243,6 +243,11 @@ async function processActions(st, subs, logKeys) {
         case 'termin_erstellen': {
           const ev = await createWixEvent(payload);
           await done('erledigt', `Termin „${payload.titel}“ bei Wix Events angelegt (${ev?._id || '?'})`); break;
+        }
+        case 'post': {
+          if (!payload.an || !payload.text) throw new Error('Empfänger oder Text fehlt');
+          const r = await postZustellen(a, payload, subs, logKeys);
+          await done('erledigt', `Nachricht an ${payload.anName || payload.an} zugestellt${r.mail ? ' (auch per E-Mail)' : ''}`); break;
         }
         case 'termin_aendern': {
           await updateWixEvent(payload);
@@ -356,6 +361,41 @@ async function updateWixEvent(p) {
   };
   if (DRY) { log('  (Trockenlauf) Termin ändern:', p.eventId, JSON.stringify(event)); return null; }
   return client.wixEventsV2.updateEvent(p.eventId, { event });
+}
+
+// ---------- Post: Nachricht von Mitglied zu Mitglied zustellen ----------
+// Die Kopie beim Empfänger wird in seinem Namen angelegt – so kann nur er sie lesen.
+async function postZustellen(a, p, subs, logKeys) {
+  const von = a._owner || '';
+  const key = 'post:' + (p.nachrichtId || a._id);
+  if (!DRY) {
+    const mc = await memberClient(p.an);
+    await mc.items.insert('Postfach', {
+      richtung: 'ein', partnerId: von, partnerName: p.vonName || 'Mitglied', text: p.text,
+      gelesen: false, zugestellt: true, nachrichtId: p.nachrichtId || '', gesendetAm: p.gesendetAm || new Date().toISOString(),
+      title: `Von ${p.vonName || 'Mitglied'}`,
+    });
+    // die Kopie beim Absender als zugestellt markieren
+    for (const r of await queryAll(client, 'Postfach', q => q.eq('nachrichtId', p.nachrichtId || ''))) {
+      if (r.richtung === 'aus' && !r.zugestellt) await client.items.update('Postfach', { ...r, zugestellt: true }).catch(() => {});
+    }
+  }
+  await send(byMembers(subs, [p.an]), { title: `Nachricht von ${p.vonName || 'einem Mitglied'}`, body: String(p.text).slice(0, 140), tag: key, url: url('/mitglieder/#post/' + von) }, key, logKeys);
+  // auf Wunsch zusätzlich per E-Mail
+  let perMail = false;
+  try {
+    const profil = (await queryAll(client, 'Profile', q => q.eq('memberId', p.an)))[0];
+    if (profil?.postMail && mailBereit()) {
+      const m = await client.members.getMember(p.an, { fieldsets: ['FULL'] }).catch(() => null);
+      const adresse = m?.loginEmail || m?.member?.loginEmail || '';
+      if (adresse) {
+        const text = `${p.vonName || 'Ein Mitglied'} hat dir über die SPD-App geschrieben:\n\n${p.text}\n\nAntworten kannst du in der App: ${url('/mitglieder/#post/' + von)}\n\n(Du bekommst diese E-Mail, weil du im Posteingang „auch per E-Mail“ angehakt hast.)`;
+        if (!DRY) await mailAn(adresse, `Nachricht von ${p.vonName || 'einem Mitglied'}`, textToHtml(text), text);
+        perMail = true;
+      }
+    }
+  } catch (e) { log('  Post-E-Mail:', e.message); }
+  return { mail: perMail };
 }
 
 // ---------- Wix Blog: Beitrag aus der App anlegen (Text → Ricos, Titelbild in die Medienverwaltung) ----------

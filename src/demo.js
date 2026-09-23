@@ -62,6 +62,11 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(2), thema: 'sicht:rat', modus: 'gruppen', gruppen: ['fraktion'], empfaenger: ids.slice(13, 14), namen: people.slice(13, 14).map(p => p.name), von: VON },
       { _id: uid(), _owner: OWNER, _createdDate: daysAgo(3), thema: 'whatsapp', empfaenger: [], gruppen: [{ name: 'SPD Soltau – Mitglieder', url: 'https://chat.whatsapp.com/BEISPIEL1' }, { name: 'Ratsfraktion', url: 'https://chat.whatsapp.com/BEISPIEL2' }], von: VON },
     ],
+    Postfach: [
+      { _id: uid(), _owner: ME, richtung: 'ein', partnerId: ids[2], partnerName: people[2].name, text: 'Moin! Fährst du am Dienstag zur Ratssitzung? Ich hätte noch einen Platz frei.', gelesen: false, zugestellt: true, nachrichtId: 'demo-n1', gesendetAm: daysAgo(0), _createdDate: daysAgo(0) },
+      { _id: uid(), _owner: ME, richtung: 'aus', partnerId: ids[2], partnerName: people[2].name, text: 'Moin, sehr gern – ich melde mich gleich nochmal wegen der Uhrzeit.', gelesen: true, zugestellt: true, nachrichtId: 'demo-n0', gesendetAm: daysAgo(1), _createdDate: daysAgo(1) },
+      { _id: uid(), _owner: ME, richtung: 'ein', partnerId: ids[7], partnerName: people[7].name, text: 'Kannst du mir die Vorlage für den Antrag schicken? Danke dir!', gelesen: true, zugestellt: true, nachrichtId: 'demo-n2', gesendetAm: daysAgo(3), _createdDate: daysAgo(3) },
+    ],
     Zusagen: [
       ...(ev.find(e => /stammtisch/i.test(e.title)) ? [{ _id: uid(), _owner: ME, eventId: ev.find(e => /stammtisch/i.test(e.title)).id, eventTitel: 'Stammtisch', eventDatum: ev.find(e => /stammtisch/i.test(e.title)).date, status: 'zusage', grund: '', memberId: ME, name: 'Max Mustermann', _createdDate: daysAgo(1) }] : []),
       { _id: uid(), _owner: ids[1], eventId: e0.id, eventTitel: e0.title, eventDatum: e0.date, status: 'zusage', grund: '', memberId: ids[1], name: people[1].name, _createdDate: daysAgo(2) },

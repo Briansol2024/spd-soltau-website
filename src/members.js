@@ -22,6 +22,7 @@ import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
 import { makeVorstandMehr } from './vorstand-mehr.js';
 import { makeStatistik } from './statistik.js';
+import { makePost } from './post.js';
 import { makeMitreden, standSetzen } from './mitreden.js';
 import { makeBereiche } from './bereiche.js';
 import { stammtischConfig, istStammtisch, STAMMTISCH_DEFAULT } from './lib/stammtisch.mjs';
@@ -56,7 +57,7 @@ const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrich
 const SECTIONS = [
   ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],
   ['rat', 'Sitzungen'], ['versammlung', 'Versammlung'], ['wahlkampf', 'Wahlkampf'], ['planung', 'Jahresplan'], ['wissen', 'Wissen'], ['ideen', 'Ideen'],
-  ['ratsarbeit', 'Ratsarbeit'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['profil', 'Profil'], ['vorstand', 'Vorstand'], ['hilfe', 'Hilfe'],
+  ['ratsarbeit', 'Ratsarbeit'], ['beitraege', 'Beiträge'], ['mitglieder', 'Mitglieder'], ['post', 'Post'], ['profil', 'Profil'], ['vorstand', 'Vorstand'], ['hilfe', 'Hilfe'],
 ];
 const ORTE_TERMIN = ['Roter Bahnhof, Am Bahnhof 1t', 'Altes Rathaus', 'Alte Reithalle', 'Marktplatz', 'Online'];
 
@@ -433,6 +434,7 @@ function hubStrip(key) {
 const visibleEvents = () => (SPD.events || []).filter(ev => me.sees('termine:' + (ev.typ || 'Öffentlich')));
 
 const ICON = {
+  mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7.5l9 6 9-6"/></svg>',
   web: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
   home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>',
   hand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V12M11 5.5v-2a1.5 1.5 0 1 1 3 0V12M14 5.5a1.5 1.5 0 0 1 3 0V12M17 7.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2.7L3.7 14a1.5 1.5 0 0 1 .5-2 1.9 1.9 0 0 1 2.3.3L8 13.7"/></svg>',
@@ -474,7 +476,7 @@ function navGroups() {
     ['Für alle', [sec('start', 'Start', ICON.home), sec('termine', 'Termine', ICON.cal), sec('mitmachen', 'Mitmachen', ICON.hand, true, hubHome('mitmachen')), sec('wissen', 'Dokumente & Wissen', ICON.doc, true, hubHome('wissen')), sec('mitglieder', 'Mitglieder', ICON.users)]],
     ['Rat & Fraktion', [sec('rat', 'Sitzungen', ICON.rat), sec('ratsarbeit', 'Ratsarbeit', ICON.tasks)]],
     ['Organisation', [sec('vorstand', 'Vorstand', ICON.inbox), sec('planung', 'Jahresplan', ICON.list, vorstand || me.can('planung')), sec('beitraege', 'Beiträge schreiben', ICON.edit), sec('filmdreh', 'Filmdreh', ICON.film), sec('filmdreh', 'Baustein-Werkstatt', ICON.play, secVisible('filmdreh'), '#filmdreh/werkstatt')]],
-    ['Persönlich', [sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), sec('feedback', 'Wünsche zur App', ICON.idea), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
+    ['Persönlich', [sec('post', 'Post', ICON.mail), sec('profil', 'Mein Profil', ICON.user), sec('hilfe', 'Hilfe & Anleitungen', ICON.help), sec('feedback', 'Wünsche zur App', ICON.idea), istTester() ? ['demo', DEMO ? 'Demo: ' + demoName(DEMO_ROLLE) : 'Demo-Modus', ICON.flask, '#demo'] : null]],
   ].map(([t, items]) => [t, items.filter(Boolean)]).filter(([, items]) => items.length);
 }
 // Demo-Modus per Schalter (nur Tester): Seite mit der gewünschten Rolle (oder ohne ?demo) neu laden, aktueller Bereich bleibt
@@ -533,10 +535,11 @@ function renderShell() {
 // Zähler: offene Vorgänge im Eingang (Vorstand), meine offenen Aufgaben (Ratsarbeit)
 async function updateBadges() {
   const setBadge = (key, n) => document.querySelectorAll(`[data-badge="${key}"]`).forEach(b => { b.textContent = n > 99 ? '99+' : String(n); b.hidden = !n; });
+  setBadge('post', await post.badge().catch(() => 0));
   if (me.can('freigaben')) setBadge('vorstand', await vorstand.badge());
   if (inFraktion()) setBadge('ratsarbeit', await ratsarbeit.badge());
 }
-const RENDER = { start: secStart, termine: secTermine, umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe, feedback: secFeedback, filmdreh: v => film.sec(v),
+const RENDER = { start: secStart, termine: secTermine, post: v => post.sec(v), umfragen: secUmfragen, dokumente: secDokumente, rat: secRat, ratsarbeit: v => ratsarbeit.sec(v), beitraege: secBeitraege, mitglieder: secMitglieder, profil: secProfil, vorstand: v => vorstand.sec(v), hilfe: secHilfe, feedback: secFeedback, filmdreh: v => film.sec(v),
   versammlung: v => bereiche.versammlung(v), wahlkampf: v => bereiche.wahlkampf(v), wissen: v => bereiche.wissen(v), planung: v => bereiche.planung(v), ideen: v => bereiche.ideen(v) };
 async function route() {
   let key = (location.hash || '#start').slice(1).split('/')[0];
@@ -1906,7 +1909,7 @@ async function secMitglieder(v) {
   v.innerHTML = `
   ${sectionHead('Mitglieder', `${listed.length} im Verzeichnis · ${people.length} im Mitgliederbereich`)}
   <p class="small muted">Hier steht nur, wer es im Profil freigegeben hat – der Vorstand immer (er steht auch auf der Website). Kontaktdaten und Geburtstag sind eigene Freigaben. ${myProfile?.verzeichnisSichtbar || settings.board.has(me.id) ? 'Du stehst im Verzeichnis.' : '<b>Du stehst noch nicht im Verzeichnis.</b>'} Ändern: <a href="#profil">Mein Profil</a>.</p>
-  <div class="people-list">${listed.map(p => { const pr = byId.get(p.memberId) || {}; return `<div class="member"><b>${esc(p.name)}</b><span class="small muted">${esc(rolesOf(p))}${pr.ort ? ' · ' + esc(pr.ort) : ''}</span>${pr.telefonSichtbar && pr.telefon ? `<a class="small" href="tel:${esc(pr.telefon)}">📞 ${esc(pr.telefon)}</a>` : ''}${pr.emailSichtbar && pr.email ? `<a class="small" href="mailto:${esc(pr.email)}">✉️ ${esc(pr.email)}</a>` : ''}</div>`; }).join('') || (people.length ? '<p class="muted">Noch hat niemand sein Profil für das Verzeichnis freigegeben.</p>' : '<p class="muted">Die Liste wird vom Push-Dienst aus den Wix-Mitgliedern befüllt.</p>')}</div>
+  <div class="people-list">${listed.map(p => { const pr = byId.get(p.memberId) || {}; return `<div class="member"><b>${esc(p.name)}</b><span class="small muted">${esc(rolesOf(p))}${pr.ort ? ' · ' + esc(pr.ort) : ''}</span>${pr.telefonSichtbar && pr.telefon ? `<a class="small" href="tel:${esc(pr.telefon)}">📞 ${esc(pr.telefon)}</a>` : ''}${pr.emailSichtbar && pr.email ? `<a class="small" href="mailto:${esc(pr.email)}">✉️ ${esc(pr.email)}</a>` : ''}${p.memberId !== me.id ? `<a class="small post-link" href="#post/${esc(p.memberId)}">Nachricht schreiben</a>` : ''}</div>`; }).join('') || (people.length ? '<p class="muted">Noch hat niemand sein Profil für das Verzeichnis freigegeben.</p>' : '<p class="muted">Die Liste wird vom Push-Dienst aus den Wix-Mitgliedern befüllt.</p>')}</div>
   <div class="mb-grid" style="margin-top:28px">
     <div class="mb-card"><h3>Geburtstage (60 Tage)</h3>${bdays.length ? bdays.map(b => `<p class="small">🎂 <b>${esc(b.name)}</b> – ${esc(b.text)}</p>`).join('') : '<p class="small muted">Keine eingetragen.</p>'}</div>
     <div class="mb-card"><h3>Jubiläen ${year}</h3>${jub.length ? jub.map(j => `<p class="small">🌹 <b>${esc(j.name)}</b> – ${j.jahre} Jahre in der SPD</p>`).join('') : '<p class="small muted">Keine runden Jubiläen eingetragen (Eintrittsjahr im Profil).</p>'}</div>
@@ -2205,6 +2208,7 @@ function blatt(titel, inner, wire) {
 function blattZu() { document.getElementById('mb-blatt')?.remove(); if (!document.getElementById('rz-blatt')) document.body.classList.remove('sheet-open'); }
 const bereiche = makeBereiche({ db, DEMO, store, esc, $, $$, msg, busy, route, sectionHead, fmtDate, fmtShort, fmtWhen, todayIso, nl2br, errText, ICON, SHARE_ICON, shareBtn, shareText, appLink, blatt, blattZu, SPD, ORTE, resizeImage, get me() { return me; }, get people() { return people; }, get settings() { return settings; }, inFraktion, antraegeFuerSuche: () => ratsarbeit.antraegeFuerSuche(), ideeZuAntrag: i => ratsarbeit.ideeZuAntrag(i) });
 const statistikMod = makeStatistik({ db, esc, $, $$, store, ICON, SPD, sectionHead, todayIso });
+const post = makePost({ db, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, ich: () => me, errText, DEMO, leute: () => people, badgesNeu: () => updateBadges() });
 // Mitreden (Website): der Startseiten-Schalter ist allein Brians Sache – nicht Tester, nicht Vorstand
 const nurBrian = () => DEMO || String(me?.email || '').toLowerCase() === 'weber.soltau@gmail.com';
 const mitredenMod = makeMitreden({ db, esc, $, $$, msg, busy, errText, sectionHead, ICON, DEMO, BASE, istBrian: nurBrian, fmtWhen, get me() { return me; } });

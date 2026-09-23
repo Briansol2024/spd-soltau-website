@@ -2188,3 +2188,28 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 /* Der aufgeklappte Termin ist eine Karte, kein Absatz mit dicker Linie */
 .mb-app .rsvp{background:#fff;border:1px solid var(--linie);padding:16px;margin-bottom:8px;gap:16px}
 .mb-app .rsvp+.rsvp{border-top:1px solid var(--linie)}
+
+/* ===== Post: Nachrichten zwischen zwei Mitgliedern ===== */
+.post-mail{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--linie);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14.5px;cursor:pointer}
+.post-mail input{width:20px;height:20px;accent-color:var(--rot);flex:0 0 auto}
+.post-neu{margin-bottom:14px}
+.post-liste{display:grid;gap:8px}
+.post-faden-zeile{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--linie);border-radius:12px;padding:11px 12px;text-decoration:none;color:inherit;min-height:66px}
+.post-faden-zeile:hover{border-color:var(--schwarz)}
+.post-faden-zeile.neu{border-color:var(--rot)}
+.post-avatar{width:40px;height:40px;border-radius:50%;background:var(--grau);display:grid;place-items:center;font:800 15px/1 var(--display);flex:0 0 auto}
+.post-faden-zeile.neu .post-avatar{background:var(--rot);color:#fff}
+.post-mitte{flex:1 1 auto;min-width:0;display:grid;gap:3px}
+.post-mitte b{font-size:15px;line-height:1.2}
+.post-vorschau{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.post-rechts{display:grid;justify-items:end;gap:6px;flex:0 0 auto}
+.post-zahl{background:var(--rot);color:#fff;border-radius:999px;min-width:22px;height:22px;padding:0 6px;font:700 12px/22px var(--display);text-align:center}
+.post-zurueck{margin-bottom:6px}
+.post-faden{display:grid;gap:10px;margin:4px 0 18px}
+.post-b{max-width:82%;padding:11px 13px;border-radius:14px;font-size:14.5px;line-height:1.5}
+.post-b p{margin:0}
+.post-b.ein{background:#fff;border:1px solid var(--linie);justify-self:start;border-bottom-left-radius:4px}
+.post-b.aus{background:var(--rot);color:#fff;justify-self:end;border-bottom-right-radius:4px}
+.post-zeit{display:block;margin-top:5px;font-size:11.5px;opacity:.78}
+.post-hinweis{margin-top:18px}
+.post-link{color:var(--rot-dunkel);font-weight:600}
