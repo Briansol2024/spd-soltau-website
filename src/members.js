@@ -924,7 +924,7 @@ async function secTermine(v) {
   </section>` : ''}
   <section class="mb-sub" id="kalender">
     ${sectionHead('Kalender abonnieren', 'Termine automatisch im Handy-Kalender')}
-    <p class="small">Einmal abonnieren – neue Termine erscheinen von selbst im Kalender (iPhone: Link antippen → „Abonnieren“; Android/Google: Kalender → „Per URL hinzufügen“).</p>
+    <p class="small">Einmal einrichten – neue Termine erscheinen von selbst im Kalender. <b>iPhone und Mac:</b> auf „Abonnieren“ tippen, fertig. <b>Google-Kalender:</b> Adresse kopieren und <b>am Rechner</b> unter calendar.google.com → „Weitere Kalender“ → „Per URL“ einfügen – in der Handy-App lässt sich kein Kalender hinzufügen, danach erscheint er dort aber von selbst.</p>
     <div class="abo-karte${meinIcs ? ' bereit' : ''}">
       <h4>Nur meine Zusagen</h4>
       <p class="small">Nur die Termine, bei denen du „Ich komme“ getippt hast. Sagst du später ab, verschwindet der Termin auch aus deinem Kalender – spätestens eine halbe Stunde danach.</p>
