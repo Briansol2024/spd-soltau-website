@@ -17,7 +17,7 @@ import { eventType, isPublicType } from '../src/lib/wix.mjs';
 import * as FB from '../src/lib/feedback.mjs';
 import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, encryptJson, verpacken } from '../src/lib/rat.mjs';
 import { stammtischConfig, istStammtisch, stammtischFrage } from '../src/lib/stammtisch.mjs';
-import { mail, mailAn, mailBereit, newsletterHtml, textToHtml } from './mail.mjs';
+import { mail, mailAn, mailBereit, newsletterHtml, textToHtml, postMailHtml } from './mail.mjs';
 import { randomBytes } from 'node:crypto';
 
 const DRY = process.argv.includes('--dry');
@@ -389,8 +389,10 @@ async function postZustellen(a, p, subs, logKeys) {
       const m = await client.members.getMember(p.an, { fieldsets: ['FULL'] }).catch(() => null);
       const adresse = m?.loginEmail || m?.member?.loginEmail || '';
       if (adresse) {
-        const text = `${p.vonName || 'Ein Mitglied'} hat dir über die SPD-App geschrieben:\n\n${p.text}\n\nAntworten kannst du in der App: ${url('/mitglieder/#post/' + von)}\n\n(Du bekommst diese E-Mail, weil du im Posteingang „auch per E-Mail“ angehakt hast.)`;
-        if (!DRY) await mailAn(adresse, `Nachricht von ${p.vonName || 'einem Mitglied'}`, textToHtml(text), text);
+        const link = url('/mitglieder/#post/' + von);
+        const wer = p.vonName || 'Ein Mitglied';
+        const text = `${wer} hat dir im Mitgliederbereich eine Nachricht geschrieben:\n\n${p.text}\n\nAntworten kannst du in der App: ${link}\n\nAuf diese E-Mail kann niemand antworten. Du bekommst sie, weil du im Posteingang „auch per E-Mail“ angehakt hast.`;
+        if (!DRY) await mail({ to: adresse, subject: `Nachricht von ${wer}`, text, html: postMailHtml({ von: wer, text: p.text, link }) });
         perMail = true;
       }
     }

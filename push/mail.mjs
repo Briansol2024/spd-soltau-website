@@ -30,6 +30,20 @@ export const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;',
 export function textToHtml(text) {
   return `<div style="font:16px/1.5 Arial,sans-serif;color:#222;max-width:640px">${esc(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>').replace(/^/, '<p>').replace(/$/, '</p>')}</div>`;
 }
+// E-Mail zu einer Nachricht im Posteingang („Post“) – kurz, im Stil der Website
+export function postMailHtml({ von, text, link }) {
+  return `<div style="background:#f4f2f1;padding:24px 12px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;font:16px/1.55 Arial,sans-serif;color:#222">
+    <div style="background:#E3000F;color:#fff;padding:16px 22px;font:800 20px/1 'Arial Narrow',Arial,sans-serif;text-transform:uppercase">SPD Soltau <span style="font-size:12px;letter-spacing:.14em;opacity:.9;margin-left:8px">Mitgliederbereich</span></div>
+    <div style="padding:24px 22px">
+      <p style="margin:0 0 16px"><b>${esc(von)}</b> hat dir im Mitgliederbereich eine Nachricht geschrieben:</p>
+      <div style="border-left:4px solid #E3000F;background:#f7f5f4;padding:14px 16px;margin:0 0 20px;white-space:pre-wrap">${esc(text)}</div>
+      <p style="margin:0 0 22px"><a href="${esc(link)}" style="display:inline-block;background:#E3000F;color:#fff;text-decoration:none;padding:13px 20px;font:700 15px/1 'Arial Narrow',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase">In der App antworten</a></p>
+      <p style="margin:0;color:#6E6664;font-size:13.5px">Antworten bitte in der App – auf diese E-Mail kann niemand antworten. Du bekommst sie, weil du im Posteingang „auch per E-Mail“ angehakt hast; dort kannst du den Haken jederzeit wieder entfernen.</p>
+    </div>
+  </div></div>`;
+}
+
 // Newsletter-HTML im Stil der Website (rot/schwarz, Barlow-ähnliche Systemschrift)
 export function newsletterHtml({ betreff, vorwort, beitraege, termine, siteUrl, abmeldeUrl }) {
   const block = (titel, inner) => `<h2 style="font:800 20px/1.1 'Arial Narrow',Arial,sans-serif;text-transform:uppercase;color:#0F0F0F;margin:28px 0 10px">${esc(titel)}</h2>${inner}`;
