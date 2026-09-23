@@ -210,7 +210,7 @@ async function moderate(st) {
 // ---------- Aktionen des Vorstands ----------
 async function processActions(st, subs, logKeys) {
   const open = await queryAll(client, 'Aktionen', q => q.eq('status', 'offen'));
-  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten', termin_erstellen: 'termine', termin_absagen: 'termine', beitrag_erstellen: 'beitraege', newsletter: 'newsletter', presse: 'presse' };
+  const NEEDS = { mitglied_freigeben: 'freigaben', mitglied_ablehnen: 'freigaben', buchung_annehmen: 'freigaben', buchung_ablehnen: 'freigaben', anfrage_erledigt: 'freigaben', nachricht: 'nachrichten', termin_erstellen: 'termine', termin_aendern: 'termine', termin_absagen: 'termine', beitrag_erstellen: 'beitraege', newsletter: 'newsletter', presse: 'presse' };
   for (const a of open) {
     let payload = {}; try { payload = JSON.parse(a.payload || '{}'); } catch (e) { /* leer */ }
     const done = async (status, ergebnis) => { log(`  Aktion ${a.typ}: ${ergebnis}`); if (!DRY) await client.items.update('Aktionen', { ...a, status, ergebnis, erledigtAm: new Date().toISOString() }).catch(e => log('Aktion update', e.message)); };
