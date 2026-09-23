@@ -244,6 +244,10 @@ async function processActions(st, subs, logKeys) {
           const ev = await createWixEvent(payload);
           await done('erledigt', `Termin „${payload.titel}“ bei Wix Events angelegt (${ev?._id || '?'})`); break;
         }
+        case 'termin_aendern': {
+          await updateWixEvent(payload);
+          await done('erledigt', `Termin „${payload.titel || payload.eventId}“ bei Wix Events geändert`); break;
+        }
         case 'termin_absagen': {
           if (!payload.eventId) throw new Error('eventId fehlt');
           if (!DRY) await client.wixEventsV2.cancelEvent(payload.eventId);
@@ -304,24 +308,54 @@ async function vorgangErinnerungen(st, subs, logKeys) {
   } catch (e) { log('Vorgänge (Erinnerung):', e.message); }
 }
 
-// ---------- Wix Events: Termin aus der App anlegen ----------
+// ---------- Wix Events: Termine aus der App anlegen und ändern ----------
+const EV_ZONE = 'Europe/Berlin';
+// Berliner Ortszeit → UTC-Zeitpunkt (Sommer-/Winterzeit über Intl)
+const tzOffset = (tz, date) => { const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(date); const g = t => +parts.find(x => x.type === t).value; return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - date.getTime(); };
+const toUtc = (dateStr, timeStr) => { const [y, m, d] = dateStr.split('-').map(Number); const [hh, mm] = (timeStr || '19:00').split(':').map(Number); const guess = new Date(Date.UTC(y, m - 1, d, hh, mm)); return new Date(guess.getTime() - tzOffset(EV_ZONE, guess)); };
+const berlinDatum = d => new Intl.DateTimeFormat('sv-SE', { timeZone: EV_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+const berlinZeit = d => new Intl.DateTimeFormat('de-DE', { timeZone: EV_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+// Damit „Für wen?“ auch wirkt: die Art wird aus Titel und Kurztext gelesen – nur wenn der Titel allein nicht reicht, kommt ein Hinweis davor
+const TYP_HINWEIS = { Mitglieder: 'Nur für Mitglieder.', Fraktion: 'Nur für die Fraktion.', Vorstand: 'Nur für den Vorstand.', Rat: 'Öffentliche Ratssitzung.' };
+const typHinweis = (titel, typ) => !typ || eventType(titel, '') === typ ? '' : (TYP_HINWEIS[typ] || '');
 async function createWixEvent(p) {
-  const zone = 'Europe/Berlin';
-  // Berliner Ortszeit → UTC-Zeitpunkt (Sommer-/Winterzeit über Intl)
-  const tzOffset = (tz, date) => { const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(date); const g = t => +parts.find(x => x.type === t).value; return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')) - date.getTime(); };
-  const toUtc = (dateStr, timeStr) => { const [y, m, d] = dateStr.split('-').map(Number); const [hh, mm] = (timeStr || '19:00').split(':').map(Number); const guess = new Date(Date.UTC(y, m - 1, d, hh, mm)); return new Date(guess.getTime() - tzOffset(zone, guess)); };
+  const zone = EV_ZONE;
   const start = toUtc(p.datum, p.von || '19:00');
   let end = toUtc(p.datum, p.bis || p.von || '21:00'); if (end <= start) end = new Date(start.getTime() + 2 * 3600 * 1000);
-  const typHinweis = p.typ && p.typ !== 'Öffentlich' ? `Nur für ${p.typ === 'Mitglieder' ? 'Mitglieder' : p.typ}.` : '';
+  const hinweis = typHinweis(p.titel, p.typ);
   const event = {
     title: p.titel,
     dateAndTimeSettings: { startDate: start, endDate: end, timeZoneId: zone },
     location: { type: 'VENUE', name: p.ort || 'Roter Bahnhof', locationTbd: false },
     registration: { initialType: 'RSVP' },
-    shortDescription: [typHinweis, p.beschreibung].filter(Boolean).join(' ').slice(0, 250),
+    shortDescription: [hinweis, p.beschreibung].filter(Boolean).join(' ').slice(0, 250),
   };
   if (DRY) { log('  (Trockenlauf) Event:', JSON.stringify(event)); return null; }
   return client.wixEventsV2.createEvent(event, { draft: false });
+}
+
+// Termin ändern: leere Felder bleiben, wie sie bei Wix stehen (z. B. Ende leer → Dauer bleibt gleich)
+async function updateWixEvent(p) {
+  if (!p.eventId) throw new Error('eventId fehlt');
+  const alt = await client.wixEventsV2.getEvent(p.eventId);
+  const zeiten = alt?.dateAndTimeSettings || {};
+  const altStart = zeiten.startDate ? new Date(zeiten.startDate) : null;
+  const altEnde = zeiten.endDate ? new Date(zeiten.endDate) : null;
+  const dauer = altStart && altEnde && altEnde > altStart ? altEnde - altStart : 2 * 3600 * 1000;
+  const datum = p.datum || (altStart ? berlinDatum(altStart) : '');
+  if (!datum) throw new Error('Datum fehlt');
+  const start = toUtc(datum, p.von || (altStart ? berlinZeit(altStart) : '19:00'));
+  let ende = p.bis ? toUtc(datum, p.bis) : new Date(start.getTime() + dauer);
+  if (ende <= start) ende = new Date(start.getTime() + 2 * 3600 * 1000);
+  const titel = (p.titel || alt?.title || '').trim();
+  const event = {
+    title: titel,
+    dateAndTimeSettings: { startDate: start, endDate: ende, timeZoneId: EV_ZONE },
+    location: { type: 'VENUE', name: p.ort || alt?.location?.name || 'Roter Bahnhof', locationTbd: false },
+    shortDescription: [typHinweis(titel, p.typ), p.beschreibung].filter(Boolean).join(' ').slice(0, 250),
+  };
+  if (DRY) { log('  (Trockenlauf) Termin ändern:', p.eventId, JSON.stringify(event)); return null; }
+  return client.wixEventsV2.updateEvent(p.eventId, { event });
 }
 
 // ---------- Wix Blog: Beitrag aus der App anlegen (Text → Ricos, Titelbild in die Medienverwaltung) ----------

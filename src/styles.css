@@ -769,6 +769,9 @@ body.sheet-open{overflow:hidden}
 .rsvp-body .meta{font-size:15px;color:var(--muted)}
 .rsvp-btns{display:flex;gap:8px;flex-wrap:wrap}
 .rsvp-grund{display:grid;gap:8px;max-width:520px}
+.ev-tools{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ev-form{margin:4px 0 6px;padding:14px;background:var(--grau);border-left:4px solid var(--rot)}
+.ev-form[hidden]{display:none}
 .rsvp-who b{color:var(--rot)}
 @container site (max-width:600px){.rsvp{grid-template-columns:minmax(0,1fr);gap:8px}.rsvp .event-date{display:flex;gap:10px;align-items:baseline}.rsvp .event-date b{font-size:40px}}
 .inbox-item{display:grid;gap:8px;padding:20px 0;border-top:2px solid var(--schwarz)}
@@ -1285,6 +1288,11 @@ html.from-app .header{top:calc(44px + env(safe-area-inset-top,0px))}
 
 /* ===== Termine als Monatskalender (Mitgliederbereich) ===== */
 .termine-ansicht{margin:-14px 0 20px}
+.termine-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-12px 0 20px}
+.tf-label{font:700 11px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chip-art{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;font-size:13px;letter-spacing:.06em}
+.chip-art i{width:9px;height:9px;border-radius:50%;display:block;flex:0 0 auto}
+.chip-art[aria-pressed="true"] i{box-shadow:0 0 0 1.5px #fff}
 .cal{background:var(--grau);padding:14px 14px 12px;display:grid;gap:10px;margin-bottom:22px}
 .cal-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cal-head b{font:800 22px/1 var(--display);text-transform:uppercase;min-width:170px;text-align:center}

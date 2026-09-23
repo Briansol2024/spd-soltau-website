@@ -744,6 +744,7 @@ function upcomingBirthdays(profiles, days) {
 // ---------- Termine: Zu-/Absagen, Helferlisten, Fahrgemeinschaften – als Liste oder Monatskalender ----------
 // Farben je Termintyp (Punkte im Kalender, Legende)
 const TYP_FARBE = { 'Öffentlich': '#3B6FB6', Rat: '#0F0F0F', Mitglieder: '#E3000F', Fraktion: '#F28C00', Vorstand: '#8A8484' };
+const ARTEN = Object.keys(TYP_FARBE); // Reihenfolge der Filter-Knoepfe
 const cal = { monat: null, tag: null }; // gemerkt, solange die App offen ist
 const monatVon = iso => String(iso).slice(0, 7);
 function monatsKalender(events, ansichtEvents) {
@@ -770,23 +771,33 @@ function monatsKalender(events, ansichtEvents) {
   </div>`;
 }
 async function secTermine(v) {
-  const events = visibleEvents().slice(0, 40);
+  // Nach Art filtern: die Auswahl bleibt auf dem Geraet gemerkt, keine Auswahl = alle Arten
+  const alleSichtbar = visibleEvents();
+  const artenDa = ARTEN.filter(a => alleSichtbar.some(e => (e.typ || 'Öffentlich') === a));
+  const arten = new Set(String(store.get('spd-termine-arten') || '').split(',').filter(a => artenDa.includes(a)));
+  const sichtbar = arten.size ? alleSichtbar.filter(e => arten.has(e.typ || 'Öffentlich')) : alleSichtbar;
+  const events = sichtbar.slice(0, 40);         // was gerade angezeigt wird
+  const alleEvents = alleSichtbar.slice(0, 40); // ohne Filter - fuer Auswahllisten
   const [zusagen, listen, helfer, fahrten, terminPolls, stimmen, mitfahrten] = await Promise.all([db.list('Zusagen').catch(() => []), db.list('Helferlisten').catch(() => []), db.list('Helfer').catch(() => []), db.list('Fahrgemeinschaften').catch(() => []), db.list('Umfragen', { eq: { nurZusagen: true } }).catch(() => []), db.list('Stimmen', { limit: 1000 }).catch(() => []), db.list('Mitfahrten', { limit: 1000 }).catch(() => [])]);
   secTermine.polls = { terminPolls: terminPolls.map(u => ({ ...u, col: 'Umfragen' })), stimmen };
   secTermine.mitfahrten = mitfahrten; // wer bei welchem Angebot mitfährt (Sammlung Mitfahrten: fahrtId, memberId, name)
   const today = todayIso();
   const ics = CFG.ics || {};
   // Listen, die an einem angezeigten Termin hängen, stehen direkt im Termin – der Rest unten
-  const loseListen = listen.filter(l => (!l.datum || l.datum >= today) && !events.some(e => e.id === l.eventId));
+  const loseListen = listen.filter(l => (!l.datum || l.datum >= today) && !alleEvents.some(e => e.id === l.eventId));
   orteList();
   if (location.hash === '#termine/monat') store.set('spd-termine-ansicht', 'monat');
   const ansicht = store.get('spd-termine-ansicht') === 'monat' ? 'monat' : 'liste';
-  const alleSichtbar = visibleEvents();
-  const calHtml = ansicht === 'monat' ? monatsKalender(events, alleSichtbar) : ''; // setzt cal.tag
-  const tagesEvents = ansicht === 'monat' ? alleSichtbar.filter(e => String(e.date).slice(0, 10) === cal.tag) : [];
+  const calHtml = ansicht === 'monat' ? monatsKalender(events, sichtbar) : ''; // setzt cal.tag
+  const tagesEvents = ansicht === 'monat' ? sichtbar.filter(e => String(e.date).slice(0, 10) === cal.tag) : [];
   v.innerHTML = `
   ${sectionHead('Termine – kommst du?', 'Zusagen sehen alle Mitglieder, Gründe nur der Vorstand')}
   <div class="mb-tabs termine-ansicht" role="tablist" aria-label="Ansicht"><button type="button" class="chip" data-ansicht="liste" aria-pressed="${ansicht === 'liste'}">Liste</button><button type="button" class="chip" data-ansicht="monat" aria-pressed="${ansicht === 'monat'}">Kalender</button></div>
+  ${artenDa.length > 1 ? `<div class="termine-filter" role="group" aria-label="Nach Art filtern">
+    <span class="tf-label">Art</span>
+    <button type="button" class="chip chip-art" data-art="" aria-pressed="${!arten.size}">Alle</button>
+    ${artenDa.map(a => `<button type="button" class="chip chip-art" data-art="${esc(a)}" aria-pressed="${arten.has(a)}"><i style="background:${TYP_FARBE[a]}"></i>${esc(a)}</button>`).join('')}
+  </div>` : ''}
   ${me.can('termine') || (me.can('helfer') && me.sees('helfer')) ? `<div class="mb-create">
   ${me.can('termine') ? `<details class="mb-details" id="ev-new"><summary>Termin anlegen</summary>
     <p class="small muted">Wird bei Wix Events eingetragen und erscheint je nach Typ auf der Website und im Kalender-Abo.</p>
@@ -799,17 +810,17 @@ async function secTermine(v) {
       </div>
       <div class="mb-2">
         <div class="field"><label for="ev-ort">Ort</label><input id="ev-ort" name="ort" type="text" list="orte-termin" required value="Roter Bahnhof, Am Bahnhof 1t"><datalist id="orte-termin">${ORTE_TERMIN.map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-        <div class="field"><label for="ev-typ">Für wen?</label><select id="ev-typ" name="typ"><option value="Öffentlich">Öffentlich (alle Interessierten)</option><option value="Rat">Ratstermin (öffentlich)</option><option value="Mitglieder">Nur Mitglieder</option><option value="Fraktion">Fraktion</option><option value="Vorstand">Vorstand</option></select></div>
+        <div class="field"><label for="ev-typ">Für wen?</label><select id="ev-typ" name="typ">${typOptionen()}</select></div>
       </div>
       <div class="field"><label for="ev-text">Kurzbeschreibung (optional)</label><textarea id="ev-text" name="beschreibung" rows="2" maxlength="300"></textarea></div>
       <p class="note" hidden></p>
       <div class="mb-actions"><button class="btn btn-rot" type="submit">Termin eintragen</button></div>
     </form></details>` : ''}
-  ${me.can('helfer') && me.sees('helfer') ? `<details class="mb-details" id="hl-new"><summary>Helferliste anlegen</summary>${helperForm(events)}</details>` : ''}
+  ${me.can('helfer') && me.sees('helfer') ? `<details class="mb-details" id="hl-new"><summary>Helferliste anlegen</summary>${helperForm(alleEvents)}</details>` : ''}
   </div>` : ''}
   ${ansicht === 'monat' ? `${calHtml}
-  <div class="cal-tag" id="cal-tag">${cal.tag ? `<h4 class="doc-cat">${esc(fmtDate(cal.tag))}</h4>${tagesEvents.length ? tagesEvents.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, alleSichtbar)).join('') : '<p class="muted">An diesem Tag ist nichts eingetragen.</p>'}` : '<p class="muted">Tippe auf einen Tag mit Punkt, um die Termine zu sehen.</p>'}</div>` : ''}
-  ${ansicht === 'liste' ? `<div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, events)).join('') : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>` : ''}
+  <div class="cal-tag" id="cal-tag">${cal.tag ? `<h4 class="doc-cat">${esc(fmtDate(cal.tag))}</h4>${tagesEvents.length ? tagesEvents.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, sichtbar)).join('') : '<p class="muted">An diesem Tag ist nichts eingetragen.</p>'}` : '<p class="muted">Tippe auf einen Tag mit Punkt, um die Termine zu sehen.</p>'}</div>` : ''}
+  ${ansicht === 'liste' ? `<div class="rsvp-list" id="rsvp-list">${events.length ? events.map(ev => eventCard(ev, zusagen, listen, helfer, fahrten, events)).join('') : arten.size ? '<p class="muted">Zu dieser Auswahl ist kein Termin eingetragen. <button type="button" class="linkbtn" data-art="">Alle Arten zeigen</button></p>' : '<p class="muted">Aktuell sind keine Termine eingetragen.</p>'}</div>` : ''}
   ${me.sees('helfer') && loseListen.length ? `<section class="mb-sub" id="helferlisten">
     ${sectionHead('Weitere Helferlisten', 'Ohne festen Termin')}
     <div id="hl-list">${loseListen.map(l => helperList(l, helfer, events)).join('')}</div>
@@ -826,6 +837,18 @@ async function secTermine(v) {
   wireEvents(v, alleSichtbar, zusagen, listen, helfer, fahrten);
   // Ansicht wechseln, Monat blättern, Tag wählen
   v.addEventListener('click', e => {
+    const f = e.target.closest('[data-art]');
+    if (f) {
+      const art = f.dataset.art;
+      if (!art) arten.clear();
+      else if (arten.has(art)) arten.delete(art);
+      else arten.add(art);
+      store.set('spd-termine-arten', [...arten].join(','));
+      // Im Kalender zum nächsten passenden Monat springen, damit die Auswahl nicht ins Leere zeigt
+      const rest = alleSichtbar.filter(x => !arten.size || arten.has(x.typ || 'Öffentlich'));
+      if (cal.monat && rest.length && !rest.some(x => monatVon(x.date) === cal.monat)) cal.monat = monatVon(rest[0].date);
+      cal.tag = null; route(); return;
+    }
     const a = e.target.closest('[data-ansicht]'); if (a) { store.set('spd-termine-ansicht', a.dataset.ansicht); if (location.hash === '#termine/monat') history.replaceState(null, '', location.pathname + location.search + '#termine'); route(); return; }
     const n = e.target.closest('[data-cal]');
     if (n) {
@@ -838,6 +861,31 @@ async function secTermine(v) {
 }
 const absUrl = rel => new URL(rel, location.href).href;
 const webcal = rel => absUrl(rel).replace(/^https?:/, 'webcal:');
+// Termin-Formulare: Auswahl „Für wen?“ und Werte aus einem bestehenden Termin
+const TYP_WAHL = [['Öffentlich', 'Öffentlich (alle Interessierten)'], ['Rat', 'Ratstermin (öffentlich)'], ['Mitglieder', 'Nur Mitglieder'], ['Fraktion', 'Fraktion'], ['Vorstand', 'Vorstand']];
+const typOptionen = (sel = 'Öffentlich') => TYP_WAHL.map(([w, t]) => `<option value="${w}"${w === sel ? ' selected' : ''}>${t}</option>`).join('');
+const zeitWert = z => { const m = String(z || '').match(/(\d{1,2}):(\d{2})/); return m ? `${m[1].padStart(2, '0')}:${m[2]}` : ''; };
+const ohneTypHinweis = t => String(t || '').replace(/^\s*(Nur für [^.]{0,30}|Öffentliche Ratssitzung)\.\s*/i, '');
+// Formular zum Bearbeiten – steht im Termin selbst, die Änderung geht als Auftrag an den Push-Dienst
+function eventForm(ev) {
+  const f = `evx-${ev.id}`;
+  return `<form class="form mb-form ev-form" hidden novalidate>
+    <div class="field"><label for="${f}-titel">Titel</label><input id="${f}-titel" name="titel" type="text" required maxlength="80" value="${esc(ev.title || '')}"></div>
+    <div class="mb-3">
+      <div class="field"><label for="${f}-datum">Datum</label><input id="${f}-datum" name="datum" type="date" required value="${esc(String(ev.date).slice(0, 10))}"></div>
+      <div class="field"><label for="${f}-von">Beginn</label><input id="${f}-von" name="von" type="time" value="${esc(zeitWert(ev.zeit))}"></div>
+      <div class="field"><label for="${f}-bis">Ende <span class="muted">(optional)</span></label><input id="${f}-bis" name="bis" type="time"></div>
+    </div>
+    <div class="mb-2">
+      <div class="field"><label for="${f}-ort">Ort</label><input id="${f}-ort" name="ort" type="text" list="orte-termin" required value="${esc(ev.ort || '')}"></div>
+      <div class="field"><label for="${f}-typ">Für wen?</label><select id="${f}-typ" name="typ">${typOptionen(ev.typ || 'Öffentlich')}</select></div>
+    </div>
+    <div class="field"><label for="${f}-text">Kurzbeschreibung (optional)</label><textarea id="${f}-text" name="beschreibung" rows="2" maxlength="300">${esc(ohneTypHinweis(ev.info))}</textarea></div>
+    <p class="small muted">Der Titel wirkt mit: steht dort „Fraktion“, „Vorstand“, „Rat“ oder „Ausschuss“, bleibt der Termin dabei. Ende leer lassen heißt: Dauer bleibt wie bisher.</p>
+    <p class="note" hidden></p>
+    <div class="mb-actions"><button class="btn btn-rot btn-sm" type="submit">Änderung speichern</button><button class="btn btn-line btn-sm" type="button" data-edit-abbruch>Abbrechen</button></div>
+  </form>`;
+}
 function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
   const list = zusagen.filter(z => z.eventId === ev.id);
   const mine = list.find(z => z.memberId === me.id);
@@ -862,7 +910,8 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
       <p class="rsvp-who small"><b>${ja.length}</b> Zusage${ja.length === 1 ? '' : 'n'}${ja.length ? ': ' + esc(ja.map(z => z.name).join(', ')) : ''}${nein.length ? ` · <span class="muted">${nein.length} Absage${nein.length === 1 ? '' : 'n'}</span>` : ''}</p>
       ${terminPoll(ev, mine)}
       ${me.sees('helfer') ? myLists.map(l => helperList(l, helfer, events, true)).join('') : ''}
-      ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? '<p class="small"><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>' : ''}
+      ${me.can('termine') && ev.id && !String(ev.id).startsWith('ev-demo') ? `<p class="small ev-tools"><button type="button" class="linkbtn" data-edit-event>Termin bearbeiten</button><span class="muted">·</span><button type="button" class="linkbtn" data-cancel-event>Termin absagen</button></p>
+      ${eventForm(ev)}` : ''}
       ${(() => {
         const mitf = secTermine.mitfahrten || [];
         const angebote = rides.filter(r => r.typ === 'biete'), gesuche = rides.filter(r => r.typ !== 'biete');
@@ -872,7 +921,8 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
         ${angebote.length ? `<div class="ride-list">${angebote.map(r => fahrtKarte(r, ev, mitf)).join('')}</div>` : ''}
         ${gesuche.length ? `<div class="ride-list">${gesuche.map(r => fahrtKarte(r, ev, mitf)).join('')}</div>` : ''}
         ${!rides.length ? '<p class="small muted">Noch niemand eingetragen – mach den Anfang.</p>' : ''}
-        <p class="fahrt-form-titel">Selbst eintragen</p>`;
+        <p class="fahrt-form-titel">Selbst eintragen</p>
+        <p class="small muted">Wer Plätze anbietet, bekommt eine Nachricht, sobald jemand einsteigt, und sieht die Namen. Alle anderen sehen nur, wie viele Plätze noch frei sind.</p>`;
       })()}
         <form class="form mb-form ride-form" novalidate>
           <div class="mb-3">
@@ -904,11 +954,14 @@ function fahrtKarte(r, ev, mitf) {
   const dabei = mitf.filter(m => m.fahrtId === r._id).slice(0, plaetze);
   const ich = dabei.find(m => m.memberId === me.id);
   const frei = Math.max(0, plaetze - dabei.length);
-  const sitze = Array.from({ length: plaetze }, (_, i) => { const m = dabei[i]; return `<span class="sitz ${m ? (m.memberId === me.id ? 'du' : 'belegt') : 'frei'}" title="${esc(m ? m.name : 'frei')}">${ICON.user}</span>`; }).join('');
+  // Wer mitfährt, sieht nur die Person, die die Fahrt anbietet – alle anderen sehen bloß belegt oder frei
+  const namenZeigen = own;
+  const sitzName = m => !m ? 'frei' : m.memberId === me.id ? 'du' : namenZeigen ? (m.name || 'Mitglied') : 'belegt';
+  const sitze = Array.from({ length: plaetze }, (_, i) => { const m = dabei[i]; return `<span class="sitz ${m ? (m.memberId === me.id ? 'du' : 'belegt') : 'frei'}" title="${esc(sitzName(m))}">${ICON.user}</span>`; }).join('');
   return `<article class="fahrt biete${frei ? '' : ' voll'}${ich ? ' dabei' : ''}" data-id="${esc(r._id)}"><div class="fahrt-avatar" aria-hidden="true">${initialen(r.name)}</div><div class="fahrt-body">
     <div class="fahrt-kopf"><b>${esc(r.name)}</b> fährt ab <b>${esc(r.ab || '?')}</b>${r.zeit ? ` · Abfahrt ${esc(r.zeit)} Uhr` : ''}${r.hinweis ? ` · ${esc(r.hinweis)}` : ''}</div>
     <div class="sitze" role="img" aria-label="${frei} von ${plaetze} Plätzen frei">${sitze}</div>
-    <p class="small fahrt-frei">${frei ? `<b>${frei}</b> von ${plaetze} ${plaetze === 1 ? 'Platz' : 'Plätzen'} frei` : '<b>Voll</b> – alle Plätze belegt'}${dabei.length ? ` · mit dabei: ${esc(dabei.map(m => m.memberId === me.id ? 'du' : m.name).join(', '))}` : ''}</p>
+    <p class="small fahrt-frei">${frei ? `<b>${frei}</b> von ${plaetze} ${plaetze === 1 ? 'Platz' : 'Plätzen'} frei` : '<b>Voll</b> – alle Plätze belegt'}${dabei.length ? (namenZeigen ? ` · mit dabei: ${esc(dabei.map(m => m.memberId === me.id ? 'du' : m.name || 'Mitglied').join(', '))} <span class="muted">(Namen siehst nur du)</span>` : ich ? ' · du bist dabei' : '') : ''}</p>
     <div class="fahrt-actions">${own ? `<span class="badge">Dein Angebot</span>${posten}<button type="button" class="linkbtn" data-del-ride>Angebot löschen</button>`
       : ich ? `<button type="button" class="chip" data-mitfahren aria-pressed="true">✓ Ich fahre mit</button><span class="small muted">Nochmal tippen zum Aussteigen</span>`
       : frei ? `<button type="button" class="btn btn-rot btn-sm" data-mitfahren>${ICON.plus}Ich fahre mit</button>` : '<span class="small muted">Vielleicht bietet noch jemand Plätze an.</span>'}</div>
@@ -1004,7 +1057,10 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
         if (meins) await db.remove('Mitfahrten', meins._id);
         else {
           if (alle.filter(m => m.fahrtId === fahrtId).length >= Math.max(1, +r.plaetze || 1)) { msg(mf.closest('.rsvp').querySelector(':scope > .rsvp-body > .note'), 'Gerade voll geworden – jemand war schneller.'); busy(mf, false); return; }
-          await db.insert('Mitfahrten', { fahrtId, eventId: r.eventId, eventTitel: r.eventTitel || '', memberId: me.id, name: me.name, title: `${me.name} fährt mit ${r.name}` });
+          // Ohne Namen sieht die Person am Steuer nicht, wer mitkommt – sie ist auch die Einzige, die ihn sieht
+          const wer = (me.name || myProfile?.name || '').trim() || (prompt('Wie heißt du? Nur wer die Fahrt anbietet, sieht den Namen.') || '').trim();
+          if (!wer) { msg(mf.closest('.rsvp').querySelector(':scope > .rsvp-body > .note'), 'Bitte einen Namen angeben – sonst weiß die Person am Steuer nicht, wer mitfährt.'); busy(mf, false); return; }
+          await db.insert('Mitfahrten', { fahrtId, eventId: r.eventId, eventTitel: r.eventTitel || '', memberId: me.id, name: wer, title: `${wer} fährt mit ${r.name}` });
           for (const g of fahrten.filter(x => x.eventId === r.eventId && x.typ === 'suche' && x.memberId === me.id)) await db.remove('Fahrgemeinschaften', g._id).catch(() => {});
         }
         route();
@@ -1030,6 +1086,25 @@ function wireEvents(v, events, zusagen, listen, helfer, fahrten) {
     try {
       await db.insert('Aktionen', { title: `Termin: ${payload.titel} ${payload.datum}`, typ: 'termin_erstellen', payload: JSON.stringify(payload), status: 'offen', von: me.name });
       f.reset(); msg(f.querySelector('.note'), DEMO ? 'In der echten App wird der Termin in den nächsten Minuten bei Wix eingetragen und erscheint dann auf der Website und in der App.' : 'Eingereicht – der Termin wird in den nächsten Minuten bei Wix eingetragen und erscheint dann auf der Website.', 'ok');
+    } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
+    busy(btn, false);
+  });
+  // Termin bearbeiten: Formular zeigen und wieder verstecken
+  v.addEventListener('click', e => {
+    const auf = e.target.closest('button[data-edit-event]');
+    if (auf) { const f = auf.closest('.rsvp-body')?.querySelector('form.ev-form'); if (f) { f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input[name=titel]')?.focus(); } return; }
+    const zu = e.target.closest('button[data-edit-abbruch]'); if (zu) { const f = zu.closest('form.ev-form'); if (f) f.hidden = true; }
+  });
+  // Geänderter Termin → Auftrag an den Push-Dienst (der ändert ihn bei Wix Events)
+  v.addEventListener('submit', async e => {
+    const f = e.target.closest('form.ev-form'); if (!f) return;
+    e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
+    const eventId = f.closest('.rsvp')?.dataset.id || '';
+    const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
+    const payload = { eventId, titel: fd.get('titel').trim(), datum: fd.get('datum'), von: fd.get('von'), bis: fd.get('bis'), ort: fd.get('ort').trim(), typ: fd.get('typ'), beschreibung: fd.get('beschreibung').trim() };
+    try {
+      await db.insert('Aktionen', { title: `Termin ändern: ${payload.titel} ${payload.datum}`, typ: 'termin_aendern', payload: JSON.stringify(payload), status: 'offen', von: me.name });
+      msg(f.querySelector('.note'), DEMO ? 'In der echten App wird der Termin in den nächsten Minuten bei Wix geändert.' : 'Eingereicht – die Änderung ist in wenigen Minuten bei Wix und erscheint dann auf der Website und in der App.', 'ok');
     } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
     busy(btn, false);
   });
