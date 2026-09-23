@@ -2127,3 +2127,27 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .poll-wer>summary{cursor:pointer;font:700 14px/1.3 var(--body);color:var(--rot);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .poll-wer-zeile{margin:10px 0 0;line-height:1.45}
 .poll-wer-zeile b{font:700 14px/1.2 var(--body)}
+
+/* ===== Mitgliederbereich: ruhigere, modernere Optik – weiche Ecken, leichtere Linien ===== */
+/* (nur die App; die Website bleibt beim kantigen Plakat-Stil) */
+.mb-app .btn,.mb-app .chip,.mb-app .badge,.mb-app .field input,.mb-app .field select,.mb-app .field textarea,
+.mb-app .t-zu,.mb-app .t-ja,.mb-app .t-nein,.mb-app .cal-nav,.mb-app .linkbtn{border-radius:10px}
+.mb-app .btn,.mb-app .chip,.mb-app .badge{border-width:1.5px}
+.mb-app .field input,.mb-app .field select,.mb-app .field textarea{border-width:1.5px;border-color:#C9C2BE}
+.mb-app .field input:focus,.mb-app .field select:focus,.mb-app .field textarea:focus{border-color:var(--rot)}
+.mb-app .btn-schwarz:hover,.mb-app .btn-line:hover{box-shadow:0 3px 12px rgba(15,15,15,.15)}
+.mb-app .chip:hover{box-shadow:0 2px 8px rgba(15,15,15,.1)}
+.mb-app .mb-card,.mb-app .mb-details,.mb-app .t-offen,.mb-app .t-fertig,.mb-app .abo-karte,.mb-app .cal,
+.mb-app .fahrt,.mb-app .note,.mb-app .st-kpi,.mb-app .hl,.mb-app .t-zeile,.mb-app .rsvp,.mb-app .ride-list>*{border-radius:12px}
+.mb-app .mb-details{border-width:1.5px}
+.mb-app .t-offen{border-width:1.5px}
+.mb-app .cal-day{border-radius:9px}
+.mb-app .poll-vote .stimme,.mb-app .poll-row,.mb-app .rsvp-grund,.mb-app .ride-form,.mb-app .dzusatz,.mb-app .helfer-zeile,.mb-app .schicht{border-radius:10px}
+.mb-app .poll-vote .stimme{border-width:1.5px}
+.mb-app .sitz{border-radius:9px}
+.mb-app .mb-sub{border-top:1px solid var(--linie)}
+.mb-app .doc{border-top-color:var(--linie)}
+.t-blatt,.mb-sheet-panel{border-radius:18px 18px 0 0}
+/* Der aufgeklappte Termin ist eine Karte, kein Absatz mit dicker Linie */
+.mb-app .rsvp{background:#fff;border:1px solid var(--linie);padding:16px;margin-bottom:8px;gap:16px}
+.mb-app .rsvp+.rsvp{border-top:1px solid var(--linie)}
