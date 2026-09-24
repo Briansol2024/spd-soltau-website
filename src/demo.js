@@ -129,7 +129,7 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
       ], von: people[1].name, title: 'Rat der Stadt Soltau', b: 'rat' },
     ],
     Profile: [
-      { _id: uid(), _owner: ME, memberId: ME, name: 'Max Mustermann', verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'weber.soltau@gmail.com', geburtstag: '', geburtstagSichtbar: false, eintritt: 2019, fahreAb: 'Kernstadt' },
+      { _id: uid(), _owner: ME, memberId: ME, name: 'Max Mustermann', verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'max.mustermann@example.de', geburtstag: '', geburtstagSichtbar: false, eintritt: 2019, fahreAb: 'Kernstadt' },
       { _id: uid(), _owner: ids[1], memberId: ids[1], name: people[1].name, verzeichnisSichtbar: true, ort: 'Kernstadt', telefon: '0171 0000000', telefonSichtbar: true, emailSichtbar: false, geburtstag: inDays(3).slice(5), geburtstagSichtbar: true, eintritt: 2001 },
       { _id: uid(), _owner: ids[2], memberId: ids[2], name: people[2].name, verzeichnisSichtbar: true, ort: 'Harber', telefon: '', telefonSichtbar: false, emailSichtbar: true, email: 'beispiel@example.com', geburtstag: inDays(20).slice(5), geburtstagSichtbar: true, eintritt: 2016 },
       { _id: uid(), _owner: ids[4], memberId: ids[4], name: people[4].name, verzeichnisSichtbar: false, ort: 'Wolterdingen', telefon: '', telefonSichtbar: false, emailSichtbar: false, geburtstag: '', geburtstagSichtbar: false, eintritt: 1986 },

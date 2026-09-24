@@ -37,7 +37,7 @@ a = await setzen(a, { status: 'laeuft', gestartetAm: a.gestartetAm || new Date()
 async function melden(titel, text, link) {
   try {
     if (!process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_PUBLIC_KEY || !a.memberId) return false;
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:weber.soltau@gmail.com', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:info@spd-soltau.de', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
     const subs = (await queryAll(client, 'PushSubscriptions', q => q.eq('memberId', a.memberId))).filter(s => s.aktiv !== false && s.endpoint && s.keys);
     let ok = 0;
     for (const s of subs) { try { await webpush.sendNotification({ endpoint: s.endpoint, keys: typeof s.keys === 'string' ? JSON.parse(s.keys) : s.keys }, JSON.stringify({ title: titel, body: text, tag: 'auftrag:' + id, url: link }), { TTL: 24 * 3600 }); ok++; } catch (e) { /* Gerät weg */ } }

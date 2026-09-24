@@ -14,6 +14,7 @@ import webpush from 'web-push';
 import { adminClient, memberClient, queryAll, env, isoDate, hourBerlin, fmtDe, log } from './lib.mjs';
 import { evaluateSettings, canSee } from '../src/lib/rights.mjs';
 import { eventType, isPublicType } from '../src/lib/wix.mjs';
+import { imFilmteam } from '../src/lib/film.mjs';
 import * as FB from '../src/lib/feedback.mjs';
 import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, encryptJson, verpacken } from '../src/lib/rat.mjs';
 import { stammtischConfig, istStammtisch, stammtischFrage } from '../src/lib/stammtisch.mjs';
@@ -32,7 +33,7 @@ const H = 3600 * 1000;
 const PUSH_HOSTS = /(^|\.)(push\.apple\.com|fcm\.googleapis\.com|android\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com|push\.mozilla\.com|web\.push\.apple\.com|wns2-.*\.notify\.windows\.com|.*\.push\.ovh\.net)$/i;
 
 if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) { console.error('VAPID-Schlüssel fehlen – bitte zuerst: node push/setup.mjs'); process.exit(1); }
-webpush.setVapidDetails(env.VAPID_SUBJECT || 'mailto:weber.soltau@gmail.com', env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
+webpush.setVapidDetails(env.VAPID_SUBJECT || 'mailto:info@spd-soltau.de', env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
 
 const client = adminClient();
 const stats = { gesendet: 0, fehler: 0, entfernt: 0 };
@@ -962,7 +963,7 @@ async function auftraege(subs, approved, emails, logKeys) {
     for (const a of liste) {
       const wer = approved.find(m => m.memberId === a.memberId);
       if (a.status === 'wartet') {
-        if (!wer || !TESTER_MAILS.includes((emails.get(a.memberId) || '').toLowerCase())) { log(`  Auftrag ${a._id}: nicht freigegeben (${emails.get(a.memberId) || 'unbekannt'})`); if (!DRY) await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
+        if (!wer || !darfFilm(wer, a.memberId, emails)) { log(`  Auftrag ${a._id}: nicht freigegeben (${emails.get(a.memberId) || 'unbekannt'})`); if (!DRY) await client.items.update('Auftraege', { ...a, status: 'fehler', fehler: 'Nicht freigegeben' }).catch(() => {}); continue; }
         // Fotos, die beim Bestellen noch nicht bei Wix lagen (material:<id>): Adresse nachtragen, sonst weiter warten
         const warten = await fotosNachtragen(a); if (warten) { if (!DRY) await client.items.update('Auftraege', { ...a, schritt: warten }).catch(() => {}); log(`  Auftrag ${a._id}: ${warten}`); continue; }
         if (DRY) { log(`  Auftrag ${a._id}: würde Overlay-Agent starten (Trockenlauf)`); continue; }
@@ -1030,7 +1031,12 @@ async function filmUploads(subs, logKeys) {
   } catch (e) { log('Filmdreh:', e.message); }
 }
 // ---------- Ratsberichte: freigegebene Sitzungen als öffentliche Kopie (nur öffentlich sagbare Felder) – danach Website neu bauen ----------
-const TESTER_MAILS = ['weber.soltau@gmail.com', 'birhat.kacar@web.de']; // dürfen den Overlay-Agenten bestellen (Filmteam)
+// Wer den Overlay-Agenten bestellen darf: die Rolle entscheidet (Owner/Contributor bei Wix),
+// damit keine privaten Adressen im öffentlichen Code stehen. Notfalls über FILM_TEAM_MAILS in der .env.
+const TESTER_MAILS = (env.FILM_TEAM_MAILS || '').toLowerCase().split(/[,; ]+/).filter(Boolean);
+// Freigabe: Rolle des Mitglieds (Owner/Contributor bei Wix) oder ausdrücklich in der .env eingetragen
+const darfFilm = (mitglied, memberId, emails) =>
+  imFilmteam(mitglied?.rollen) || TESTER_MAILS.includes((emails.get(memberId) || '').toLowerCase());
 async function ratsberichte() {
   try {
     const sitzungen = await queryAll(client, 'Ratsvorbereitung');

@@ -2,7 +2,9 @@
 // Push-Dienst (E-Mail an den Betreuer der Website). Jeder Eintrag landet in der Wix-Sammlung `Feedback`; der Dienst
 // schickt ihn per E-Mail an FEEDBACK_EMAIL (in .env überschreibbar) und setzt danach status = 'zugestellt'.
 
-export const FEEDBACK_EMAIL = 'weber.soltau@gmail.com';
+// Empfänger der Rückmeldungen. Steht bewusst nicht als private Adresse hier, sondern
+// kommt aus FEEDBACK_EMAIL in der .env des Push-Dienstes; ohne Eintrag geht es an die Vereinsadresse.
+export const FEEDBACK_EMAIL = 'info@spd-soltau.de';
 export const FEEDBACK_NAME = 'Brian Weber';
 
 export const WO = [['app', 'App (Mitgliederbereich)'], ['website', 'Website spd-soltau.de'], ['beides', 'Beides / weiß nicht']];

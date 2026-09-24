@@ -1,5 +1,9 @@
 // Filmdreh (Regie-Modus) – gemeinsam für App und Push-Dienst: wer dazugehört, Projektarten, Overlay-Bausteine
-export const FILM_TEAM = ['weber.soltau@gmail.com', 'birhat.kacar@web.de'];
+// Wer darf Filme bestellen? Das entscheidet die Wix-Rolle, nicht eine Liste von Adressen:
+// Wer den Wix-Auftritt bearbeiten darf (Owner oder Contributor), gehört zum Filmteam.
+// So steht keine private Adresse im Code, der an jeden Browser ausgeliefert wird.
+export const FILM_ROLLEN = ['owner', 'contributor'];
+export const imFilmteam = rollen => (rollen || []).some(r => FILM_ROLLEN.includes(String(r).toLowerCase()));
 export const FILM_ARTEN = [['reel', 'Reel / Kurzvideo'], ['story', 'Story'], ['ratsbericht', 'Ratsbericht-Video'], ['hilfe', 'Hilfe-/Erklärvideo'], ['sonstiges', 'Sonstiges']];
 export const FILM_STATUS = [['idee', 'Idee'], ['skript', 'Skript'], ['dreh', 'Dreh'], ['schnitt', 'Schnitt'], ['online', 'Online']];
 // Overlay-Bausteine der Bühne (video/insta/stage.html): Feld → Adressparameter

@@ -243,7 +243,7 @@ die drei Kästen am Seitenende sind Fotokästen, das Newsletter-Band ist hell. N
 ## Vorschau und Tests (nur für Tester)
 
 `?demo` (Mitgliederbereich mit Beispieldaten) läuft auf localhost immer, im Netz nur auf Geräten, auf denen sich zuvor eine Adresse aus `TESTER`
-(`src/members.js`, derzeit weber.soltau@gmail.com) echt angemeldet hat – das setzt das Merkmal `spd-tester` im Browser. Alle anderen landen bei `?demo`
+(`src/members.js`: wer bei Wix die Rolle „Owner“ hat) echt angemeldet hat – das setzt das Merkmal `spd-tester` im Browser. Alle anderen landen bei `?demo`
 in der normalen Anmeldung. Dasselbe Merkmal schaltet auf der Countdown-Seite den Testmodus frei: `/bald/?test=10` zeigt die letzten zehn Sekunden mit
 Konfetti, `/bald/?test=ende` die Willkommensseite nach dem Start – beides ohne dass sich das Gerät den Besuch merkt.
 

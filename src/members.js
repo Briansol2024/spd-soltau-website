@@ -16,7 +16,7 @@ import { makeDemoClient } from './demo.js';
 import { makeNotizen, strokesToPng } from './notizen.js';
 import { makeRueckblick } from './rueckblick.js';
 import { makeFilm } from './film.js';
-import { FILM_TEAM } from './lib/film.mjs';
+import { imFilmteam } from './lib/film.mjs';
 import { makeRatsarbeit } from './ratsarbeit.js';
 import { makeSchluessel } from './schluessel.js';
 import { makeVorstand } from './vorstand.js';
@@ -34,9 +34,11 @@ if (!app) throw new Error('Mitgliederbereich: Container fehlt');
 const $ = (s, r = app) => r.querySelector(s);
 const $$ = (s, r = app) => [...r.querySelectorAll(s)];
 // Demo-Modus (?demo, Beispieldaten) ist der Vorführschalter für Brians Konto: auf localhost immer, sonst nur solange
-// weber.soltau@gmail.com angemeldet ist (die Anmeldung setzt das Merkmal „spd-tester“, das Abmelden löscht es wieder).
+// der Eigentümer des Wix-Auftritts angemeldet ist (die Anmeldung setzt das Merkmal „spd-tester“, das Abmelden löscht es wieder).
 // Alle anderen landen bei ?demo in der normalen Anmeldung; einen öffentlichen Demo-Link gibt es nicht.
-const TESTER = ['weber.soltau@gmail.com'];
+// Testfunktionen sieht, wer den Wix-Auftritt besitzt - erkannt an der Rolle, nicht an der Adresse.
+const TESTER_ROLLE = 'owner';
+const hatRolle = (rollen, gesucht) => (rollen || []).some(r => String(r).toLowerCase() === gesucht);
 const istTester = () => { try { return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || localStorage.getItem('spd-tester') === '1'; } catch (e) { return false; } };
 const demoGewuenscht = /[?&]demo\b/.test(location.search);
 if (demoGewuenscht && !istTester()) location.replace(location.pathname + location.hash);
@@ -388,10 +390,10 @@ async function loadMe() {
   const c = member.contact || {}, p = member.profile || {};
   const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || p.nickname || member.loginEmail;
   me = { id: member._id, name, email: member.loginEmail, rollen: [], vorstand: false, can: r => !!settings?.rights[r]?.has(me.id), sees: k => canSee(settings, me.id, k) };
-  try { if (TESTER.includes(String(member.loginEmail || '').toLowerCase())) localStorage.setItem('spd-tester', '1'); else localStorage.removeItem('spd-tester'); } catch (e) { /* ohne Speicher */ }
   await loadSettings();
   const mine = people.find(x => x.memberId === me.id);
   if (mine) { me.rollen = mine.rollen || []; me.vorstand = !!mine.vorstand; if (mine.name) me.name = mine.name; }
+  try { if (hatRolle(me.rollen, TESTER_ROLLE)) localStorage.setItem('spd-tester', '1'); else localStorage.removeItem('spd-tester'); } catch (e) { /* ohne Speicher */ }
   try { myProfile = (await db.list('Profile', { eq: { memberId: me.id }, limit: 1 }))[0] || null; } catch (e) { myProfile = null; }
   return me;
 }
@@ -2225,7 +2227,7 @@ const bereiche = makeBereiche({ db, DEMO, store, esc, $, $$, msg, busy, route, s
 const statistikMod = makeStatistik({ db, esc, $, $$, store, ICON, SPD, sectionHead, todayIso });
 const post = makePost({ db, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, ich: () => me, errText, DEMO, leute: () => people, badgesNeu: () => updateBadges() });
 // Mitreden (Website): der Startseiten-Schalter ist allein Brians Sache – nicht Tester, nicht Vorstand
-const nurBrian = () => DEMO || String(me?.email || '').toLowerCase() === 'weber.soltau@gmail.com';
+const nurBrian = () => DEMO || hatRolle(me?.rollen, TESTER_ROLLE);
 const mitredenMod = makeMitreden({ db, esc, $, $$, msg, busy, errText, sectionHead, ICON, DEMO, BASE, istBrian: nurBrian, fmtWhen, get me() { return me; } });
 const vorstand = makeVorstand({ db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText, tafeln, mehr: { ...vorstandMehr, ...statistikMod }, mitreden: mitredenMod, get me() { return me; }, get people() { return people; }, get settings() { return settings; } });
 // Notizen im Sitzungsmodus – teilen in den Chat läuft über den Live-Chat der Sitzung
@@ -2236,9 +2238,9 @@ const chatSenden = async ({ text, bild }) => {
 };
 const notizen = makeNotizen({ db, store, esc, $, $$, msg, busy, errText, shareText, chatSenden, me: () => me });
 // Sitzungsrückblick (Video, Kacheln) – nur für Brian; im Demo für alle Rollen sichtbar
-const istBrian = () => DEMO || TESTER.includes(String(me?.email || '').toLowerCase());
+const istBrian = () => DEMO || hatRolle(me?.rollen, TESTER_ROLLE);
 // Filmdreh (Regie-Modus) – nur für das Filmteam (Brian, Birhat); im Demo für alle Rollen sichtbar
-const istFilmTeam = () => DEMO || FILM_TEAM.includes(String(me?.email || '').toLowerCase());
+const istFilmTeam = () => DEMO || imFilmteam(me?.rollen);
 const film = makeFilm({ db, esc, $, $$, msg, busy, errText, shareText, nl2br, sectionHead, fmtWhen, ICON, DEMO, BASE, me: () => me, echtesKonto, drehStart: () => { document.body.classList.add('fokus-modus'); wachBleiben(true).then(ok => { const el = document.getElementById('fo-wach'); if (el) el.hidden = !ok; }); } });
 // Drehmodus (Filmdreh) am Handy im Vollbild
 document.addEventListener('click', e => { const a = e.target.closest('a[href^="#filmdreh/dreh-"]'); if (a && matchMedia('(pointer: coarse)').matches && !matchMedia('(display-mode: standalone)').matches && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); });

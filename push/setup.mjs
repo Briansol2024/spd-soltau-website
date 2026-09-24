@@ -16,11 +16,11 @@ const add = (k, v) => { if (!envText.match(new RegExp(`^${k}=`, 'm'))) { envText
 if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
   const keys = webpush.generateVAPIDKeys();
   add('VAPID_PUBLIC_KEY', keys.publicKey); add('VAPID_PRIVATE_KEY', keys.privateKey);
-  add('VAPID_SUBJECT', 'mailto:weber.soltau@gmail.com');
+  add('VAPID_SUBJECT', 'mailto:info@spd-soltau.de');
   log('VAPID-Schlüssel erzeugt und in .env eingetragen.');
 } else log('VAPID-Schlüssel vorhanden.');
 add('WIX_SITE_ID', '2678f727-8329-4f07-95bd-755df04f685d');
-add('VORSTAND_EMAILS', 'weber.soltau@gmail.com');
+add('VORSTAND_EMAILS', '');   // Startvorstand: Adressen hier eintragen, sie bleiben in der .env
 add('ICS_TOKEN', [...Array(20)].map(() => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join(''));
 if (!env.WIX_API_KEY) add('WIX_API_KEY', '');
 writeFileSync(envFile, envText, 'utf8');
