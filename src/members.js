@@ -1181,6 +1181,7 @@ function eventCard(ev, zusagen, listen, helfer, fahrten, events = []) {
       <div class="meta">${esc(ev.zeit || '')}${ev.ort ? ' · ' + esc(ev.ort) : ''} · ${badge(ev.typ)}</div>
       ${ev.info ? `<p class="small">${esc(ev.info)}</p>` : ''}
       <div class="rsvp-btns">
+        ${ev.link ? `<a class="btn btn-line btn-sm" href="${esc(ev.link)}" target="_blank" rel="noopener">${esc(ev.linkText || 'Mehr erfahren')}</a>` : ''}
         <button type="button" class="chip" data-status="zusage" aria-pressed="${mine?.status === 'zusage'}">✓ Ich komme</button>
         <button type="button" class="chip" data-status="absage" aria-pressed="${mine?.status === 'absage'}">✕ Ich kann nicht</button>
         ${waBtn(`📅 ${ev.title}\n${fmtDate(ev.date)}${ev.zeit ? ', ' + ev.zeit : ''}${ev.ort ? ' · ' + ev.ort : ''}\nZu-/Absage und Mitfahren: ${appLink('#termine/ev-' + ev.id)}`)}

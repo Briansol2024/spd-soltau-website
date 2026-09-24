@@ -48,7 +48,7 @@ export function badge(t) {
 export function eventRow(e, withInfo) {
   const x = D(e.date);
   const title = e.url ? `<a href="${esc(e.url)}" style="color:inherit;text-decoration:none">${esc(e.title)}</a>` : esc(e.title);
-  return `<div class="event"><div class="event-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div><div><h3>${title}</h3><div class="meta">${esc(e.zeit)}${e.ort ? ' · ' + esc(e.ort) : ''}</div>${withInfo && e.info ? `<div class="info">${esc(e.info)}</div>` : ''}${withInfo && e.link ? `<a class="share" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.linkText || 'Mehr erfahren')}</a>` : ''}${withInfo ? `<a class="share" href="#" data-share="${esc(`📅 ${e.title}\n${fmt(e.date)}${e.zeit ? ', ' + e.zeit : ''}${e.ort ? ' · ' + e.ort : ''}`)}" target="_blank" rel="noopener">Per WhatsApp teilen</a>` : ''}</div>${badge(e.typ)}</div>`;
+  return `<div class="event"><div class="event-date"><b>${String(x.getDate()).padStart(2, '0')}</b><span>${WD[x.getDay()]} · ${MONS[x.getMonth()]}</span></div><div><h3>${title}</h3><div class="meta">${esc(e.zeit)}${e.ort ? ' · ' + esc(e.ort) : ''}</div>${withInfo && e.info ? `<div class="info">${esc(e.info)}</div>` : ''}${withInfo ? `<div class="event-links">${e.link ? `<a class="share" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.linkText || 'Mehr erfahren')}</a>` : ''}<a class="share" href="#" data-share="${esc(`📅 ${e.title}\n${fmt(e.date)}${e.zeit ? ', ' + e.zeit : ''}${e.ort ? ' · ' + e.ort : ''}`)}" target="_blank" rel="noopener">Per WhatsApp teilen</a></div>` : ''}</div>${badge(e.typ)}</div>`;
 }
 
 export function eventsGrouped(list, withInfo) {
