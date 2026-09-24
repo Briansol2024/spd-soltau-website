@@ -19,6 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as fallback from './src/data-fallback.mjs';
 import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
+import { TERMIN_ZUSATZ } from './src/termin-zusatz.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
 import * as M from './src/templates-mitreden.mjs';
@@ -87,7 +88,8 @@ function icsFeed(events, name) {
       lines.push(`DTSTART;TZID=Europe/Berlin:${d}T${String(h).padStart(2, '0')}${String(mi).padStart(2, '0')}00`, `DTEND;TZID=Europe/Berlin:${d}T${String(endH).padStart(2, '0')}${String(mi).padStart(2, '0')}00`);
     } else lines.push(`DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${nextDay(e.date)}`);
     if (e.ort) lines.push(`LOCATION:${t(e.ort)}`);
-    lines.push(`DESCRIPTION:${t([e.typ, e.info].filter(Boolean).join(' – '))}`, `CATEGORIES:${t(e.typ || 'Termin')}`, 'END:VEVENT');
+    if (e.link) lines.push(`URL:${t(e.link)}`);
+    lines.push(`DESCRIPTION:${t([e.typ, e.info, e.link].filter(Boolean).join(' – '))}`, `CATEGORIES:${t(e.typ || 'Termin')}`, 'END:VEVENT');
   }
   lines.push('END:VCALENDAR');
   // Zeilen über 75 Zeichen werden gefaltet (RFC 5545)
@@ -152,6 +154,8 @@ async function loadData() {
     try { d.mitreden = await wix.fetchMitreden(client); } catch (e) { console.log('[build] Mitreden: ' + e.message); }
     try { d.blogCats = await wix.fetchCategories(client); } catch (e) { d.blogCats = []; }
   }
+  // Hinweis und Anmeldelink zu einzelnen Terminen (siehe src/termin-zusatz.mjs)
+  d.events = d.events.map(e => (TERMIN_ZUSATZ[e.id] ? { ...e, ...TERMIN_ZUSATZ[e.id] } : e));
   // Ergänzungen aus dem Fallback (Rolle, Text, Themen), falls das CMS diese Felder (noch) nicht hat
   const fb = new Map(fallback.PEOPLE.map(p => [p.name.toLowerCase().replace(/ç/g, 'c'), p]));
   const key = n => String(n).toLowerCase().replace(/ç/g, 'c').replace(/\s+/g, ' ').trim();
