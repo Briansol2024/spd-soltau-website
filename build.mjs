@@ -68,8 +68,6 @@ const launchTs = Date.parse(LAUNCH_AT);
 const launched = !!env.LAUNCH_AT && launchTs <= Date.now();
 const welcomeEnd = launchTs + Number(env.WELCOME_HOURS || 24) * 3600000;
 const noindex = DEMO_SITE || (env.NOINDEX === '1' && !launched);
-// Geheimnis im Dateinamen des internen Kalender-Abos (ICS_TOKEN in .env, sonst abgeleitet)
-const icsToken = env.ICS_TOKEN || createHash('sha256').update('spd-ics-' + (env.WIX_CLIENT_ID || '')).digest('hex').slice(0, 20);
 
 // ---------- Kalender-Abo (iCalendar) ----------
 function icsFeed(events, name) {
@@ -122,6 +120,9 @@ async function zusagenKalender(events) {
       const ids = proMitglied.get(l.memberId) || new Set();
       const meine = events.filter(e => ids.has(e.id));
       await writeFile(path.join(OUT, 'assets', 'kalender', `${l.schluessel}.ics`), icsFeed(meine, 'SPD Soltau – meine Zusagen'), 'utf8');
+      // Alle Termine ebenfalls unter der persönlichen Adresse - so muss keine gemeinsame
+      // geheime Adresse in einer öffentlichen Seite stehen.
+      await writeFile(path.join(OUT, 'assets', 'kalender', `${l.schluessel}-alle.ics`), icsFeed(events, 'SPD Soltau – alle Termine'), 'utf8');
     }
     console.log('[build] Kalender „meine Zusagen“:', links.length, 'Datei(en)');
   } catch (e) { console.log('[build] Kalender „meine Zusagen“ übersprungen:', e.message); }
@@ -140,15 +141,23 @@ async function loadData() {
   } else {
     const wix = await import('./src/lib/wix.mjs');
     const client = wix.makeClient(env.WIX_CLIENT_ID);
+    // Personensammlungen (Kandidatinnen, Vorstand, Fraktion) enthalten private Kontaktdaten und sind
+    // deshalb nicht mehr öffentlich lesbar. Der Seitenbau liest sie mit dem Admin-Schlüssel; fehlt der,
+    // bleiben die Namen aus data-fallback.mjs stehen.
+    let personenClient = client;
+    if (env.WIX_API_KEY) {
+      try { const { adminClient } = await import('./push/lib.mjs'); personenClient = adminClient(); }
+      catch (e) { console.log('[build] Admin-Zugang für Personen nicht verfügbar:', e.message); }
+    }
     const tryLoad = async (key, fn) => {
       try { const v = await fn(); if (v && v.length) { d[key] = v; d.source[key] = 'wix'; } else console.log(`[build] ${key}: leer, Fallback bleibt`); }
       catch (e) { console.log(`[build] ${key}: Fehler (${e.message}), Fallback bleibt`); }
     };
     await tryLoad('news', () => wix.fetchNews(client));
     await tryLoad('events', () => wix.fetchEvents(client));
-    await tryLoad('people', () => wix.fetchPeople(client, env.WIX_TEAM_COLLECTION || 'KandidatinnenzurStadtratswahl'));
-    await tryLoad('vorstand', () => wix.fetchVorstand(client, env.WIX_VORSTAND_COLLECTION || 'Team'));
-    await tryLoad('fraktion', () => wix.fetchPeople(client, env.WIX_FRAKTION_COLLECTION || 'Team1'));
+    await tryLoad('people', () => wix.fetchPeople(personenClient, env.WIX_TEAM_COLLECTION || 'KandidatinnenzurStadtratswahl'));
+    await tryLoad('vorstand', () => wix.fetchVorstand(personenClient, env.WIX_VORSTAND_COLLECTION || 'Team'));
+    await tryLoad('fraktion', () => wix.fetchPeople(personenClient, env.WIX_FRAKTION_COLLECTION || 'Team1'));
     await tryLoad('insta', () => wix.fetchInstagram(client));
     try { d.ratsberichte = await wix.fetchRatsberichte(client); } catch (e) { console.log('[build] Ratsberichte: ' + e.message); d.ratsberichte = []; }
     try { d.mitreden = await wix.fetchMitreden(client); } catch (e) { console.log('[build] Mitreden: ' + e.message); }
@@ -328,11 +337,10 @@ async function main() {
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
     demo: DEMO_SITE,
-    app: { clientId: DEMO_SITE ? '' : (env.WIX_CLIENT_ID || ''), vapid: env.VAPID_PUBLIC_KEY || '', blogCats: d.blogCats || [], ics: { public: `${BASE}/assets/termine.ics`, intern: `${BASE}/assets/termine-intern-${icsToken}.ics` } },
+    app: { clientId: DEMO_SITE ? '' : (env.WIX_CLIENT_ID || ''), vapid: env.VAPID_PUBLIC_KEY || '', blogCats: d.blogCats || [], ics: { public: `${BASE}/assets/termine.ics` } },
   };
   // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
   await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat'), 'SPD Soltau – Termine'), 'utf8');
-  await writeFile(path.join(OUT, 'assets', `termine-intern-${icsToken}.ics`), icsFeed(d.events, 'SPD Soltau – alle Termine (Mitglieder)'), 'utf8');
   await zusagenKalender(d.events);
   d.mitreden = d.mitreden || { start: {}, anliegen: [], fragen: [], baustellen: [], umfragen: [] };
   if (env.MITREDEN_BEISPIEL || DEMO_SITE) { const { beispielMitreden } = await import('./src/lib/mitreden-beispiel.mjs'); d.mitreden = beispielMitreden(); } // Beispielinhalte: lokal zum Ansehen und in der Demo-Fassung

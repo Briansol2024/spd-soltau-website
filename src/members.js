@@ -936,7 +936,7 @@ async function secTermine(v) {
       <p class="small muted">Einmal einrichten – dein Kalender wird dann angelegt und steht nach wenigen Minuten bereit.</p>`}
     </div>
     <div class="mb-actions">
-      ${ics.intern ? `<a class="btn btn-schwarz btn-sm" href="${esc(webcal(ics.intern))}">Alle Termine (Mitglieder)</a><button class="btn btn-line btn-sm" type="button" data-copy="${esc(absUrl(ics.intern))}">Adresse kopieren</button>` : ''}
+      ${meinIcs ? `<a class="btn btn-schwarz btn-sm" href="${esc(webcal(meinIcs.replace(/\.ics$/, '-alle.ics')))}">Alle Termine (Mitglieder)</a><button class="btn btn-line btn-sm" type="button" data-copy="${esc(absUrl(meinIcs.replace(/\.ics$/, '-alle.ics')))}">Adresse kopieren</button>` : ''}
       ${ics.public ? `<a class="btn btn-line btn-sm" href="${esc(webcal(ics.public))}">Nur öffentliche Termine</a>` : ''}
     </div>
     <p class="note" id="ics-msg" hidden></p>
