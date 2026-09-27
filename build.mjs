@@ -183,9 +183,19 @@ async function loadData() {
   d.rat = WAHL.gewaehlt.map(enrich);
   const nr = nachruecker(WAHL, 3);
   d.nachruecker = { nachStimmen: nr.nachStimmen.map(enrich), nachListe: nr.nachListe.map(enrich) };
-  // Stichwahl-Aufruf nur bis zum Wahltag anzeigen
-  const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
-  d.stichwahl = heute <= STICHWAHL.datum ? STICHWAHL : null;
+  // Stichwahl-Aufruf nur, solange man noch wählen kann: bis 18 Uhr am Wahltag.
+  // Vorher stand hier ein reiner Datumsvergleich. Der liess den Aufruf "Am 27.09.
+  // Zinke zum Landrat wählen!" den ganzen Wahlabend stehen, obwohl die Wahllokale
+  // um 18 Uhr schliessen - sechs Stunden lang eine Aufforderung ins Leere.
+  const jetzt = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date());                       // "2026-09-27 18:05"
+  const heute = jetzt.slice(0, 10);
+  const stunde = Number(jetzt.slice(11, 13));
+  const nochWaehlbar = heute < STICHWAHL.datum || (heute === STICHWAHL.datum && stunde < 18);
+  d.stichwahl = nochWaehlbar ? STICHWAHL : null;
   d.nachStichwahl = heute > STICHWAHL.datum && heute <= '2026-10-04'; // Woche danach: Dankeschön im Laufband
   // Aus Rat & Rathaus: öffentliche Quellen der Stadt Soltau (ohne Wix); bei Ausfall bleibt der Block weg
   try {
