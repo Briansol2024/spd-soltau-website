@@ -4,6 +4,19 @@ import { stadtKacheln } from './lib/stadt.mjs';
 import { HELP_TOPICS, stepsFor } from './lib/hilfe.mjs';
 
 import { videoBlock, mitredenBlock } from './templates-mitreden.mjs';
+/* Honigfalle gegen Formular-Bots.
+ *
+ * Ein Feld, das kein Mensch je sieht: aus dem Sichtfeld geschoben, aus der
+ * Tabulator-Reihenfolge genommen, für Vorleseprogramme ausgeblendet und ohne
+ * automatisches Ausfüllen. Ein Bot füllt aber aus, was er findet. Steht dort
+ * etwas, wird die Einsendung still verworfen (site.js) - der Bot bekommt
+ * dieselbe Danke-Meldung wie ein Mensch und lernt nichts dazu.
+ *
+ * „website" heißt es, weil Bots auf diesen Namen besonders gern anspringen.
+ */
+const honigfalle = '<div class="hf" aria-hidden="true">'
+  + '<label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>';
+
 // Reihenfolge nach Wichtigkeit (Vorstandswunsch): Aktuelles, Fraktion, Vorstand, Ziele, Termine, Mitmachen, Kontakt
 const NAV = [
   ['/aktuelles/', 'Aktuelles'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'], ['/ziele/', 'Ziele'],
@@ -170,7 +183,7 @@ const pageEnd = () => `
       <h2 class="title">Nichts verpassen.</h2>
       <p style="font-size:19px">Etwa einmal im Monat: Was im Stadtrat entschieden wurde, was ansteht, wo wir uns treffen.</p>
     </div>
-    <form class="wix-form abo-form" id="form-news" data-collection="Abonnenten" novalidate>
+    <form class="wix-form abo-form" id="form-news" data-collection="Abonnenten" novalidate>${honigfalle}
       <div class="form-fields" style="display:contents">
         <label for="nl-mail" style="position:absolute;left:-9999px">E-Mail-Adresse</label>
         <input id="nl-mail" name="email" type="email" required placeholder="E-Mail-Adresse" autocomplete="email">
@@ -530,7 +543,7 @@ export function mitmachenPage(d) {
 <section>
   ${pageHead('Mitmachen', 'Soltau<br>mitgestalten', 'Ob Mitgliedschaft, Newsletter oder ein Nachmittag am Infostand – jede Unterstützung zählt.', 'infostand')}
   <div class="wrap section split">
-    <form class="form wix-form" id="form-mitglied" data-collection="Anfragen" novalidate>
+    <form class="form wix-form" id="form-mitglied" data-collection="Anfragen" novalidate>${honigfalle}
       <input type="hidden" name="typ" value="mitglied">
       <div class="form-fields" style="display:grid;gap:18px">
         <h2 class="title" style="font-size:40px">Interesse an einer Mitgliedschaft</h2>
@@ -551,7 +564,7 @@ export function mitmachenPage(d) {
     <div style="display:grid;gap:20px">
       <div class="box">
         <h3>Newsletter</h3>
-        <form class="wix-form abo-form" id="form-news-page" data-collection="Abonnenten" novalidate style="display:grid;gap:10px">
+        <form class="wix-form abo-form" id="form-news-page" data-collection="Abonnenten" novalidate style="display:grid;gap:10px">${honigfalle}
           <input type="hidden" name="typ" value="anmeldung"><input type="hidden" name="quelle" value="mitmachen">
           <div class="form-fields field"><label for="nl-mail-page">E-Mail-Adresse</label><input id="nl-mail-page" name="email" type="email" required autocomplete="email"><button class="btn btn-schwarz" type="submit" style="justify-self:start;margin-top:8px">Anmelden</button></div>
           <p class="form-ok" hidden>Danke! Bitte bestätigen Sie die Anmeldung per E-Mail.</p>
@@ -576,7 +589,7 @@ export function mitmachenPage(d) {
 
 // Das Kontaktformular – auf /kontakt/ und als Reiter „Ich habe ein Anliegen“ unter /mitreden/
 export function kontaktFormular(d) {
-  return `<form class="form wix-form" id="form-kontakt" data-collection="Anfragen" novalidate>
+  return `<form class="form wix-form" id="form-kontakt" data-collection="Anfragen" novalidate>${honigfalle}
       <input type="hidden" name="typ" value="kontakt"><input type="hidden" name="thema" id="k-thema" value="Straßen &amp; Verkehr">
       <div class="form-fields" style="display:grid;gap:18px">
         <div class="field"><label for="k-name">Name</label><input id="k-name" name="name" type="text" required autocomplete="name"></div>
@@ -638,7 +651,7 @@ export function newsletterPage(d) {
     <div id="abo-status" class="mb-card"><p>Einen Moment …</p></div>
     <div class="box" style="margin-top:28px">
       <h3>Neu anmelden</h3>
-      <form class="wix-form abo-form" id="form-news-nl" data-collection="Abonnenten" novalidate style="display:grid;gap:10px">
+      <form class="wix-form abo-form" id="form-news-nl" data-collection="Abonnenten" novalidate style="display:grid;gap:10px">${honigfalle}
         <input type="hidden" name="typ" value="anmeldung"><input type="hidden" name="quelle" value="newsletterseite">
         <div class="form-fields field"><label for="nl-mail-nl">E-Mail-Adresse</label><input id="nl-mail-nl" name="email" type="email" required autocomplete="email"><button class="btn btn-schwarz" type="submit" style="justify-self:start">Anmelden</button></div>
         <p class="note" hidden></p>
@@ -887,7 +900,7 @@ export function roterBahnhofPage(d) {
 <section>
   ${pageHead('Roter Bahnhof', 'Unseren Treffpunkt<br>anfragen', 'Am Bahnhof 1t, 29614 Soltau. Vereine, Initiativen und Gruppen können den Roten Bahnhof für Treffen und kleine Veranstaltungen anfragen.', 'bahnhofsgebaeude')}
   <div class="wrap section split">
-    <form class="form wix-form" id="form-buchung" data-collection="Buchungen" novalidate>
+    <form class="form wix-form" id="form-buchung" data-collection="Buchungen" novalidate>${honigfalle}
       <div class="form-fields" style="display:grid;gap:18px">
         <h2 class="title" style="font-size:40px">Buchungsanfrage</h2>
         <p class="small muted">Wir melden uns so schnell wie möglich per E-Mail oder Telefon und bestätigen den Termin. Die Anfrage ist unverbindlich.</p>

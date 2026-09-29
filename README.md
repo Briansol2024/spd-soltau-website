@@ -247,6 +247,74 @@ die drei Kästen am Seitenende sind Fotokästen, das Newsletter-Band ist hell. N
 in der normalen Anmeldung. Dasselbe Merkmal schaltet auf der Countdown-Seite den Testmodus frei: `/bald/?test=10` zeigt die letzten zehn Sekunden mit
 Konfetti, `/bald/?test=ende` die Willkommensseite nach dem Start – beides ohne dass sich das Gerät den Besuch merkt.
 
+## Sicherheit: Formular-Spam und was von außen erreichbar ist
+
+**Anlass (29.09.2026):** Zwei Bot-Einsendungen um 01:39 Uhr, über zwei Formulare
+gleichzeitig, jedes Freitextfeld Buchstabensalat, beide Male dieselbe
+Gmail-Adresse mit eingestreuten Punkten (Gmail überliest Punkte – ein Postfach,
+viele Schreibweisen). Kein Einbruch, sondern ein Bot, der prüft, ob die
+Formulare funktionieren.
+
+### Was geprüft wurde
+
+`node tools/sicherheitspruefung.mjs` holt sich mit dem **öffentlichen**
+Zugangsschlüssel aus dem Quelltext der Seite ein anonymes Besucher-Token – also
+genau das, was jeder Fremde auch kann – und probiert jede der 43 Sammlungen auf
+Lesen und Schreiben. Es liest dabei keine Inhalte aus, nur Feldnamen und Anzahl.
+
+Ergebnis am 29.09.2026:
+
+* **Keine einzige Mitglieder- oder Ratssammlung ist von außen lesbar.** `Profile`,
+  `AppMitglieder`, `Vorgaenge`, `Postfach`, `RatGeheim`, `RatSchluessel` und alle
+  übrigen antworten mit 403. Lesbar sind nur die sechs Sammlungen, die ohnehin
+  auf der Website stehen.
+* **Niemand von außen kann irgendwo etwas ändern oder löschen** – geprüft mit
+  einer Anfrage auf eine erfundene Kennung: überall 403, nirgends 404. Angelegt
+  werden kann nur dort, wo es sein muss.
+* `PushSubscriptions` nimmt Einträge von jedem an – **das ist Absicht**: Auch
+  Besucher ohne Anmeldung dürfen Push für Beiträge und Termine einschalten
+  (`members.js`, `pushSubscribe`). Die Sammlung ist damit ein Formular wie
+  `Anfragen`. Lesen ist verboten, alles Interne hängt an `memberId` samt
+  Rechteprüfung (`whoSees` / `byMembers`). Wer die Sammlung trotzdem dichtmachen
+  will, stellt in Wix „Hinzufügen" auf *Website-Mitglieder* – dann bekommen
+  Besucher ohne Konto keine Benachrichtigungen mehr.
+* Keine fest eingetragenen Schlüssel im Projekt, `.env` nicht im Git, keine
+  Geheimnisse im ausgelieferten Stand.
+
+Das Skript ist wiederholbar – nach jeder Änderung an den Sammlungen einmal
+laufen lassen. `--schreiben` prüft zusätzlich die Schreibrechte; Achtung, Wix
+erlaubt dem Besucher-Token das Anlegen, aber nicht das Löschen, also bleibt je
+beschreibbarer Sammlung eine Zeile `PRUEFUNG-<Zeitstempel>` stehen.
+
+### Drei Schutzschichten
+
+1. **Honigfalle** (`src/templates.mjs`, `src/site.js`) – ein Feld, das kein
+   Mensch sieht: aus dem Bild geschoben, aus der Tabulator-Reihenfolge genommen,
+   für Vorleseprogramme ausgeblendet. Ein Bot füllt aus, was er findet. Steht
+   dort etwas, wird still verworfen – mit derselben Danke-Meldung, damit der Bot
+   nichts dazulernt.
+2. **Zeitschloss** (`src/site.js`) – ein Formular, das in unter drei Sekunden
+   abgeschickt wurde, ist keines von einem Menschen. Ebenfalls stille Abweisung.
+3. **Spam-Filter beim Ankommen** (`src/lib/spam.mjs`, eingehängt in
+   `push/send.mjs`) – die beiden ersten Schichten greifen nur bei Bots, die
+   wirklich die Seite bedienen. Wer den öffentlichen Schlüssel aus dem Quelltext
+   liest, schreibt direkt in die Sammlung. Deshalb prüft der Push-Dienst jede
+   neue Anfrage, bevor jemand geweckt wird. Erkannt wird vor allem der
+   Groß-/Kleinwechsel mitten im Wort („uYzEzVwfKYFdFbAcwJrxEPV" wechselt 15-mal
+   auf 23 Zeichen) und dasselbe Postfach mehrfach am Tag.
+
+**Der Grundsatz: lieber einen Spam durchlassen als ein Anliegen wegwerfen.** Es
+müssen mindestens zwei unabhängige Merkmale zusammenkommen, und gelöscht wird
+nie – der Status wandert auf `spam`, die Zeile bleibt im Wix-Dashboard unter
+`Anfragen` nachlesbar, mit dem Grund im Feld `spamGrund`.
+
+`node tools/spam-probe.mjs` prüft beides: dass die echten Bot-Einsendungen
+erkannt werden **und** dass erfundene, aber realistische Bürgeranliegen
+durchkommen – darunter die unbequemen Fälle, die meine ersten Schwellen
+fälschlich gemeldet hatten: „Ratsentscheidung" (fünf Konsonanten am Stück),
+„Schwarmstedt" (17 Prozent Selbstlaute), „Fiona McDonald" (Binnengroßschreibung)
+und jemand, der am selben Tag zweimal schreibt.
+
 ## Rechtliches
 
 Impressum (§ 5 DDG, § 18 MStV), Datenschutzerklärung (Hosting GitHub Pages, Wix, Formulare, Newsletter, Mitgliederbereich inkl. Art. 9, Push, reCAPTCHA, Gerätespeicher,

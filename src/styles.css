@@ -2217,3 +2217,15 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .post-zeit{display:block;margin-top:5px;font-size:11.5px;opacity:.78}
 .post-hinweis{margin-top:18px}
 .post-link{color:var(--rot-dunkel);font-weight:600}
+
+/* Honigfalle: ein Feld, das kein Mensch sieht. Nicht display:none - manche Bots
+   überspringen ausgeblendete Felder gerade deshalb. Aus dem Bild geschoben
+   wirkt es für sie wie ein normales Feld. */
+.hf {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

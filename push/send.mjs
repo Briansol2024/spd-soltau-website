@@ -18,6 +18,7 @@ import { imFilmteam } from '../src/lib/film.mjs';
 import * as FB from '../src/lib/feedback.mjs';
 import { bereichVon, ERINNERUNG_TAGE, neuerFraktionsschluessel, importAes, decryptJson, encryptJson, verpacken } from '../src/lib/rat.mjs';
 import { stammtischConfig, istStammtisch, stammtischFrage } from '../src/lib/stammtisch.mjs';
+import { bewerten as spamBewerten } from '../src/lib/spam.mjs';
 import { mail, mailAn, mailBereit, newsletterHtml, textToHtml, postMailHtml } from './mail.mjs';
 import { randomBytes } from 'node:crypto';
 
@@ -49,6 +50,19 @@ async function loadSubscriptions() {
   }
   // ältere Einträge desselben Geräts aufräumen
   for (const s of stale.slice(0, 50)) { if (!DRY) await client.items.remove('PushSubscriptions', s._id).catch(() => {}); }
+
+  /* Zeilen wegräumen, die nie ein Gerät waren.
+     Die Sammlung nimmt Einträge von jedem an, und das mit Absicht: Auch
+     Besucher ohne Anmeldung dürfen Push für Beiträge und Termine einschalten.
+     Sie ist damit ein Formular wie `Anfragen` - und wie jedes Formular fängt
+     sie sich Müll ein. Schaden richtet er keinen an (ohne `keys` verwirft der
+     Filter unten ihn, alles Interne hängt an `memberId` samt Rechteprüfung),
+     er bläht nur die Sammlung auf. Also hier wegräumen. */
+  const muell = all.filter(s =>
+    /^PRUEFUNG-/.test(String(s.title || ''))
+    || (!s.keys && NOW - new Date(s._createdDate || 0).getTime() > 24 * H));
+  for (const s of muell.slice(0, 50)) { if (!DRY) await client.items.remove('PushSubscriptions', s._id).catch(() => {}); }
+  if (muell.length) log(`Abonnements: ${muell.length} leere Zeile(n) entfernt`);
   const subs = [...latest.values()].filter(s => s.aktiv !== false && s.keys && (() => { try { return PUSH_HOSTS.test(new URL(s.endpoint).hostname); } catch (e) { return false; } })());
   for (const s of subs) { try { s.keysObj = typeof s.keys === 'string' ? JSON.parse(s.keys) : s.keys; } catch (e) { s.keysObj = null; } }
   log(`Abonnements: ${subs.length} aktiv (${all.length} Einträge, ${stale.length} veraltet)`);
@@ -510,6 +524,19 @@ async function boardPushes(subs, pending, routing, logKeys) {
     for (const a of open) {
       const key = 'anfrage:' + a._id;
       if (NOW - new Date(a._createdDate).getTime() > 14 * 24 * H) continue;
+
+      // Formular-Spam aussortieren, BEVOR jemand geweckt wird (Anlass: 29.09.2026,
+      // 01:39 Uhr, zwei Bot-Einsendungen mit Buchstabensalat in jedem Feld).
+      // Gelöscht wird nichts - der Status wandert auf „spam", die Zeile bleibt
+      // im Wix-Dashboard unter Anfragen nachlesbar. Die Begründung steht im
+      // Protokoll, damit man einen Fehlgriff auch wiederfindet.
+      const urteil = spamBewerten(a, open);
+      if (urteil.spam) {
+        log(`  Spam aussortiert (${urteil.punkte} P.): ${a.name || '?'} – ${urteil.gruende.join('; ')}`);
+        if (!DRY) await client.items.update('Anfragen', { ...a, status: 'spam', spamGrund: urteil.gruende.join('; ') }).catch(e => log('  Spam-Status:', e.message));
+        continue;
+      }
+
       const art = a.typ === 'mitglied' ? 'Mitgliedsanfrage' : 'Kontaktanfrage';
       const text = a.nachricht || a.interesse || '';
       const details = { Art: art, Thema: a.thema || '', Name: a.name || '', 'E-Mail': a.email || '', Wohnort: a.ort || '', Interesse: a.interesse || '', Nachricht: a.nachricht || '', 'Darf veröffentlicht werden': a.oeffentlichOk === true || a.oeffentlichOk === 'ja' ? 'ja' : '' };

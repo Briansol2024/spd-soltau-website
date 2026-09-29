@@ -263,13 +263,33 @@ export async function wixInsert(collection, data) {
   if (!r.ok) throw new Error('Speichern fehlgeschlagen (' + r.status + ')');
   return (await r.json()).dataItem;
 }
+// Zeitpunkt, ab dem gemessen wird, ob ein Formular zu schnell ausgefüllt wurde.
+const SEITE_DA = Date.now();
+/* Ein Mensch braucht zum Ausfüllen Zeit - auch für ein einziges E-Mail-Feld
+   sind drei Sekunden die absolute Untergrenze. Ein Bot ist in Millisekunden
+   durch. Wer schneller ist, bekommt dieselbe Danke-Meldung wie alle anderen,
+   aber es wird nichts gesendet: Eine sichtbare Abweisung würde dem Bot nur
+   verraten, woran es lag. */
+const ZU_SCHNELL = 3000;
+
 $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   e.preventDefault();
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const btn = f.querySelector('[type=submit]'), note = f.querySelector('.note');
   btn.disabled = true; if (note) note.hidden = true;
+
+  // Honigfalle und Zeitschloss: still abweisen, nach außen wie ein Erfolg.
+  const falle = f.querySelector('[name=website]');
+  const geschwind = Date.now() - SEITE_DA < ZU_SCHNELL;
+  if ((falle && falle.value.trim() !== '') || geschwind) {
+    zaehlen('ereignis', 'formular:abgewehrt');
+    f.querySelector('.form-fields').hidden = true; f.querySelector('.form-ok').hidden = false;
+    return;
+  }
+
   const data = { status: f.dataset.collection === 'Abonnenten' ? 'neu' : 'offen' };
   new FormData(f).forEach((v, k) => { data[k] = String(v).trim(); });
+  delete data.website;   // die Honigfalle gehört nicht in die Sammlung
   data.title = f.dataset.collection === 'Abonnenten' ? `Anmeldung ${data.email || ''}` : [data.typ ? { kontakt: 'Kontakt', mitglied: 'Mitgliedsanfrage' }[data.typ] || data.typ : '', data.name || '', data.datum || '', data.von || ''].filter(Boolean).join(' – ');
   if (f.dataset.collection === 'Fragen') { data.title = 'Frage: ' + String(data.frage || '').slice(0, 60); data.anonym = data.anonym === 'ja'; delete data.typ; }
   if (data.oeffentlichOk !== undefined) data.oeffentlichOk = data.oeffentlichOk === 'ja';
