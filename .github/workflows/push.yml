@@ -61,6 +61,13 @@ jobs:
             sleep 20
             if node push/schnell.mjs; then node push/send.mjs || true; fi
           done
-          andere=$(gh run list --workflow=push.yml --status queued --json databaseId --jq 'length')
-          laufend=$(gh run list --workflow=push.yml --status in_progress --json databaseId --jq 'length')
-          if [ "$andere" = "0" ] && [ "$laufend" -le "1" ]; then gh workflow run push.yml; echo "nächster Lauf geplant"; else echo "ein anderer Lauf wartet schon ($andere wartend, $laufend laufend)"; fi
+          # Ein Netzaussetzer zu GitHub darf die Kette nicht abreißen (23.10.2026: Zeitüberschreitung → Dienst stand stundenlang).
+          # Darum mit Wiederholung, und im Zweifel trotzdem planen – einen doppelten Lauf fängt die concurrency-Gruppe ab.
+          andere=""; laufend=""
+          for v in 1 2 3; do
+            andere=$(gh run list --workflow=push.yml --status queued --json databaseId --jq 'length') && laufend=$(gh run list --workflow=push.yml --status in_progress --json databaseId --jq 'length') && break
+            andere=""; laufend=""; echo "Lauf-Liste nicht erreichbar – neuer Versuch"; sleep 10
+          done
+          if [ "${andere:-0}" = "0" ] && [ "${laufend:-1}" -le "1" ]; then
+            for v in 1 2 3 4 5; do gh workflow run push.yml && { echo "nächster Lauf geplant"; break; }; echo "Planen fehlgeschlagen – neuer Versuch"; sleep 15; done
+          else echo "ein anderer Lauf wartet schon ($andere wartend, $laufend laufend)"; fi

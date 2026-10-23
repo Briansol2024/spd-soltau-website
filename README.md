@@ -18,7 +18,7 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Wahlergebnis 2026 (Seite „Unsere 11 im Stadtrat“), Stichwahl-Aufruf | `src/data-wahl2026.mjs` – Fotos/Berufe kommen automatisch aus der Kandidat*innen-Sammlung | hier im Projekt |
 | Mitgliederbereich (`/mitglieder/`): Konten, Zu-/Absagen, Helferlisten, Fahrgemeinschaften, Umfragen, Dokumente, Ratsvorbereitung, Verzeichnis/Profile, Push, „Wer wird benachrichtigt?“, „Wer darf was?“ | Wix-Mitglieder + CMS-Sammlungen (`Zusagen`, `Helferlisten`, `Helfer`, `Fahrgemeinschaften`, `Umfragen`, `UmfragenOeffentlich`, `Stimmen`, `Dokumente`, `Ratsvorbereitung`, `Profile`, `PushSubscriptions`, `Benachrichtigungen`, `Aktionen`, `AppMitglieder`) | in der App; Dashboard → CMS zum Nachsehen |
 | Kontakt- und Mitmachen-Formular | CMS-Sammlung `Anfragen` | Push an den Vorstand, „Erledigt“ in der App |
-| Kalender-Abo (`assets/termine.ics`, intern mit Geheimnis) | aus den Wix-Events beim Bauen | automatisch |
+| Kalender-Abo (`assets/termine.ics`, intern mit Geheimnis) | aus den Wix-Events beim Bauen | automatisch – geänderte Zusagen sammelt der Push-Dienst und baut spätestens nach etwa 30 Minuten neu |
 | Buchungsanfragen Roter Bahnhof (`/roter-bahnhof/`) | CMS-Sammlung `Buchungen` | Push an den Vorstand, Annehmen/Ablehnen in der App |
 
 Die Seite wird **alle 30 Minuten** automatisch neu gebaut (GitHub Actions). Neue Beiträge oder Termine

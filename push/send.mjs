@@ -916,22 +916,56 @@ async function kalenderBauen(logKeys) {
     const warten = offen.filter(k => !fertig.includes(k));
     if (!warten.length) return;
     if (DRY) { log(`  Zusagen-Kalender: ${warten.length} neu – würde die Website neu bauen`); return; }
-    await workflowStarten('deploy.yml').catch(e => log('  Kalender-Bau:', e.message));
-    log(`  Zusagen-Kalender: ${warten.length} neu – Website wird gebaut`);
+    try { await bauStarten(); log(`  Zusagen-Kalender: ${warten.length} neu – Website wird gebaut`); } catch (e) { log('  Kalender-Bau:', e.message); }
   } catch (e) { log('Zusagen-Kalender:', e.message); }
 }
 
-// ---------- Meilensteine: Website neu bauen, sobald ein Zeitpunkt überschritten ist (Start der Website, Tag nach der Stichwahl) ----------
+// ---------- Website-Bau: wann zuletzt gebaut, und neu anstoßen ----------
 // Der halbstündliche Zeitplan-Bau kommt bei GitHub oft Stunden zu spät – hier läuft es zuverlässig alle 5 Minuten.
-let letzterBau = null; // Zeitpunkt des letzten Website-Baus (einmal je Lauf abgefragt)
+const BAU_TOKEN = env.GITHUB_TOKEN, BAU_REPO = env.GITHUB_REPOSITORY || 'Briansol2024/spd-soltau-website';
+let bau = null; // { zuletzt: letzter Bau überhaupt, gut: letzter Bau ohne Fehler } – einmal je Lauf abgefragt
+async function bauZeiten() {
+  if (bau === null) {
+    const r = await (await fetch(`https://api.github.com/repos/${BAU_REPO}/actions/workflows/deploy.yml/runs?per_page=10`, { headers: { Authorization: 'Bearer ' + BAU_TOKEN, Accept: 'application/vnd.github+json' } })).json();
+    if (!Array.isArray(r.workflow_runs)) throw new Error('Bau-Liste: ' + (r.message || 'keine Antwort'));
+    const zeit = l => Date.parse(l?.created_at || '') || 0;
+    bau = { zuletzt: zeit(r.workflow_runs[0]), gut: zeit(r.workflow_runs.find(l => !['failure', 'cancelled', 'timed_out'].includes(l.conclusion))) };
+  }
+  return bau;
+}
+// Ein frisch gestarteter Bau holt alles, was bis jetzt in Wix steht
+async function bauStarten() { await workflowStarten('deploy.yml'); bau = { zuletzt: NOW, gut: NOW }; }
+
+// ---------- Meilensteine: Website neu bauen, sobald ein Zeitpunkt überschritten ist (Start der Website, Tag nach der Stichwahl) ----------
 async function deployWenn(grund, zeitpunkt) {
-  const token = env.GITHUB_TOKEN, repo = env.GITHUB_REPOSITORY || 'Briansol2024/spd-soltau-website'; if (!token || !zeitpunkt || NOW < zeitpunkt) return false;
+  if (!BAU_TOKEN || !zeitpunkt || NOW < zeitpunkt) return false;
   try {
-    if (letzterBau === null) { const r = await (await fetch(`https://api.github.com/repos/${repo}/actions/workflows/deploy.yml/runs?per_page=1`, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } })).json(); letzterBau = Date.parse(r.workflow_runs?.[0]?.created_at || 0); }
-    if (letzterBau >= zeitpunkt) return false;
+    if ((await bauZeiten()).zuletzt >= zeitpunkt) return false;
     if (DRY) { log(`  ${grund}: würde die Website neu bauen`); return true; }
-    await workflowStarten('deploy.yml'); letzterBau = NOW; log(`  ${grund} – Website wird neu gebaut`); return true;
+    await bauStarten(); log(`  ${grund} – Website wird neu gebaut`); return true;
   } catch (e) { log('  Neu bauen:', e.message); return false; }
+}
+
+// ---------- Zusagen-Kalender aktuell halten: Zusagen sammeln, dann EIN Seitenbau ----------
+// Die Kalender-Dateien entstehen nur beim Seitenbau. Ändert jemand mit eigenem Kalender-Abo eine Zusage, wartet der Dienst
+// 10 Minuten auf weitere und baut höchstens alle 25 Minuten – so steht jede Zusage spätestens nach etwa einer halben Stunde
+// in der Datei, und zehn Zusagen hintereinander machen trotzdem nur einen Bau (Brian, 23.10.2026).
+const ZUSAGEN_SAMMELN = 10 * 60 * 1000, ZUSAGEN_ABSTAND = 25 * 60 * 1000;
+async function zusagenKalender() {
+  if (!BAU_TOKEN) return;
+  try {
+    const mitAbo = new Set((await queryAll(client, 'Kalenderlinks')).filter(k => k.schluessel && k.memberId).map(k => k.memberId));
+    if (!mitAbo.size) return;
+    const { zuletzt, gut } = await bauZeiten();
+    // Was nach dem letzten erfolgreichen Bau geändert wurde, fehlt noch in den Dateien
+    const neu = (await queryAll(client, 'Zusagen', q => q.gt('_updatedDate', new Date(gut))))
+      .filter(z => mitAbo.has(z.memberId)).map(z => new Date(z._updatedDate || z._createdDate).getTime()).filter(t => t > gut);
+    if (!neu.length) return;
+    const faellig = Math.max(Math.min(...neu) + ZUSAGEN_SAMMELN, zuletzt + ZUSAGEN_ABSTAND);
+    if (NOW < faellig) { log(`  Zusagen-Kalender: ${neu.length} Änderung(en) gesammelt – Bau ab ${new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' }).format(faellig)} Uhr`); return; }
+    if (DRY) { log(`  Zusagen-Kalender: ${neu.length} Änderung(en) – würde die Website neu bauen`); return; }
+    await bauStarten(); log(`  Zusagen-Kalender: ${neu.length} Änderung(en) – Website wird gebaut`);
+  } catch (e) { log('Zusagen-Kalender aktualisieren:', e.message); }
 }
 async function meilensteine() {
   for (const [name, t] of [['Start der Website', env.LAUNCH_AT], ['Tag nach der Stichwahl', '2026-09-28T00:05:00+02:00']]) { const z = Date.parse(t || ''); if (z && NOW - z < 6 * 3600 * 1000 && await deployWenn(`Meilenstein „${name}“ erreicht`, z)) break; }
@@ -1137,6 +1171,7 @@ const st = await loadSettings(approved);
   await weitereErinnerungen(st, subs, logKeys);
   await mitfahren(st, subs, logKeys);
   await kalenderBauen(logKeys);   // neue Zusagen-Kalender brauchen einen Seitenbau
+  await zusagenKalender();        // geänderte Zusagen gesammelt nachbauen
   await feedback(subs, approved, emails, logKeys);
   await filmUploads(subs, logKeys); // erst Fotos ablegen – dann können Aufträge, die darauf warten, sofort starten
   await auftraege(subs, approved, emails, logKeys);
