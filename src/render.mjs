@@ -37,7 +37,7 @@ export function photo(img, label, cls = '', inner = '') {
 }
 
 export function newsCard(n) {
-  return `<a class="card" href="${url(`/aktuelles/${n.slug}/`)}">${photo(n.img, n.imgLabel || n.title, '', `<span class="tag">${esc(n.cat)}</span>`)}<div class="card-body"><span class="date">${fmt(n.date)}</span><h3>${esc(n.title)}</h3>${n.teaser ? `<p>${esc(short(n.teaser, 180))}</p>` : ''}<span class="weiter">Weiterlesen</span></div></a>`;
+  return `<a class="card" href="${url(`/aktuelles/${n.slug}/`)}">${photo(n.img, n.imgLabel || n.title)}<div class="card-body"><span class="date">${fmt(n.date)}</span><h3>${esc(n.title)}</h3>${n.teaser ? `<p>${esc(short(n.teaser, 180))}</p>` : ''}<span class="weiter">Weiterlesen</span></div></a>`;
 }
 
 export function badge(t) {

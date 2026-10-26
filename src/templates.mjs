@@ -420,15 +420,18 @@ export function aktuellesPage(d) {
 </section>`;
 }
 
+// Ohne eigene Kurzfassung füllt Wix sie selbst mit dem Textanfang – als Vorspann stünde der erste Absatz dann doppelt da
+const nurBuchstaben = s => String(s || '').replace(/<[^>]+>/g, '').replace(/&[a-z]+;|&#\d+;/gi, '').replace(/[^\p{L}\p{N}]+/gu, '').toLowerCase();
+const vorspannDoppelt = n => { const t = nurBuchstaben(n.teaser).slice(0, 120); return t.length >= 20 && nurBuchstaben(n.bodyHtml).startsWith(t); };
+
 export function beitragPage(d, n) {
   return `
 <section>
   <div class="wrap article">
     <a class="back" href="${url('/aktuelles/')}">← Alle Beiträge</a>
-    <span class="tag">${esc(n.cat)}</span>
     <h1>${esc(n.title)}</h1>
     <span class="date">${fmt(n.date)}</span>
-    ${n.teaser ? `<p class="lead">${esc(n.teaser)}</p>` : ''}
+    ${n.teaser && !vorspannDoppelt(n) ? `<p class="lead">${esc(n.teaser)}</p>` : ''}
     ${photo(n.img, n.imgLabel || n.title)}
     <div class="body">${n.bodyHtml || ''}</div>
     <div class="box foto">${motiv('kirche')}<b style="font:800 26px/1 var(--display);text-transform:uppercase;color:#fff">Fragen zu diesem Beitrag?</b><p class="small">Schreiben Sie uns – wir antworten in der Regel innerhalb einer Woche.</p><a class="btn btn-rot" href="${url('/kontakt/')}" style="justify-self:start">Anliegen senden</a></div>

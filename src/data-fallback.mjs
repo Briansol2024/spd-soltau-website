@@ -47,7 +47,7 @@ export const PEOPLE = [
   P('Brian Weber', 'Elektriker & Servicetechniker', '', 'Vater von zwei Kindern und früher aktiver Feuerwehrmann. Ihm sind Sicherheit, Zusammenhalt und eine verlässliche Stadt für Familien wichtig.', ['Feuerwehr & Sicherheit']),
   P('Inna Herold', 'Diplomjuristin & Unternehmerin', '', 'Engagiert in Elternvertretung und Förderverein der Hermann-Billung-Schule. Bringt die Anliegen von Kindern, Eltern und Schulen ein.', ['Kita & Schule']),
   P('Reiner Klatt', 'Pädagoge', 'Rund 30 Jahre im Stadtrat', 'Kaum jemand kennt die Strukturen und Entscheidungen der Stadt über einen so langen Zeitraum.', ['Wohnen & Innenstadt']),
-  P('Bernd Ingendahl', 'Versicherungskaufmann', 'Ehem. Kreistagsmitglied', 'Fünf Jahre im Kreistag, besondere Erfahrung in Wirtschaftsfragen. Steht für sachliche Entscheidungen und einen starken Standort.', ['Wirtschaft & Arbeit']),
+  P('Bernd Ingendahl', 'IT- und Organisationsberater', 'Ehem. Kreistagsmitglied', 'Fünf Jahre im Kreistag, besondere Erfahrung in Wirtschaftsfragen. Steht für sachliche Entscheidungen und einen starken Standort.', ['Wirtschaft & Arbeit']),
   P('Harald Garbers', 'Diplom-Wirtschaftsingenieur', '15 Jahre Fraktionsvorsitzender', 'Gehört zu den erfahrensten Kommunalpolitikern im Team. Die Entwicklung der Ortschaften liegt ihm besonders am Herzen.', ['Ortschaften']),
   P('Siegfried Belz', 'Finanzbeamter a.D.', '25 Jahre im Stadtrat', 'Verbindet kommunalpolitische Erfahrung mit einem genauen Blick auf die Finanzen und langfristig tragfähige Entscheidungen.', ['Finanzen']),
   P('Igor Mamanow', 'Unternehmer', 'parteilos', 'Unabhängiger Blick, wirtschaftliche Erfahrung und der Anspruch, gute Ideen umzusetzen statt nur zu diskutieren.', ['Wirtschaft & Arbeit']),
