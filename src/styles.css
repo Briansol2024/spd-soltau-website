@@ -802,6 +802,32 @@ body.sheet-open{overflow:hidden}
 .inbox-tabs .chip b{display:inline-block;min-width:18px;padding:2px 5px;margin-left:4px;border-radius:9px;background:var(--rot);color:#fff;font:700 11px/1 var(--display);text-align:center}
 .inbox-tabs .chip[aria-pressed="true"] b{background:#fff;color:var(--schwarz)}
 .inbox-tabs .check{margin-left:auto;gap:6px}
+/* Belegungsplan Roter Bahnhof (Vorstand → Mietanfragen → Belegungsplan) */
+.bp-legende{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;color:var(--muted);margin:0 0 6px}
+.bp-legende span{display:inline-flex;align-items:center;gap:6px}
+.bp-farbe{display:inline-block;width:14px;height:14px;border:2px solid var(--schwarz)}
+.bp-farbe.bp-zugesagt{background:var(--rot);border-color:var(--rot)}
+.bp-farbe.bp-abgesagt{border-color:var(--linie);background:var(--grau)}
+.bp-monat{display:grid;gap:14px;padding:20px 0;border-top:2px solid var(--schwarz)}
+.bp-monat h4{font:700 24px/1 var(--display);text-transform:uppercase}
+.bp-kal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:400px}
+.bp-kal>span,.bp-kal>button{aspect-ratio:1;display:grid;place-items:center;font-size:14px;font-variant-numeric:tabular-nums;color:var(--text);background:none;border:2px solid transparent;padding:0}
+.bp-kal>.bp-wt{aspect-ratio:auto;padding-bottom:2px;font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.bp-kal>button{cursor:pointer;font-weight:700}
+.bp-kal>.bp-zugesagt{background:var(--rot);border-color:var(--rot);color:#fff}
+.bp-kal>.bp-offen{border-color:var(--schwarz);color:var(--schwarz)}
+.bp-kal>.bp-abgesagt{border-color:var(--linie);background:var(--grau);color:var(--muted);text-decoration:line-through}
+.bp-kal>.bp-heute{box-shadow:inset 0 -3px 0 var(--schwarz)}
+.bp-liste{list-style:none;margin:0;padding:0}
+.bp-eintrag{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 6px;border-top:1px solid var(--linie);transition:background .6s}
+.bp-tag{display:grid;justify-items:center;gap:3px}
+.bp-tag b{font:800 26px/1 var(--display);font-variant-numeric:tabular-nums}
+.bp-tag span{font:700 11px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.bp-text{display:grid;gap:3px;min-width:0}
+.bp-abgesagt .bp-wer{text-decoration:line-through;color:var(--muted)}
+.bp-warn{justify-self:start;font:700 11px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--rot);border:2px solid var(--rot);padding:4px 6px 3px}
+.bp-eintrag.bp-blink{background:var(--grau)}
+@media (max-width:520px){.bp-eintrag{grid-template-columns:40px minmax(0,1fr)}.bp-eintrag>.badge{grid-column:2;justify-self:start}}
 .vis-list{display:grid;gap:10px;margin:12px 0}
 .vis-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:10px 12px;border:1px solid var(--linie);background:#fff}
 .vis-label{display:flex;flex-direction:column;gap:2px;min-width:0}

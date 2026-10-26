@@ -5,6 +5,7 @@
 const uid = () => 'demo-' + Math.random().toString(36).slice(2, 10);
 const iso = (d = new Date()) => d.toISOString();
 const daysAgo = n => iso(new Date(Date.now() - n * 864e5));
+const inTagen = n => new Date(Date.now() + n * 864e5).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 // Beispiel-Statistik: 70 Tage mit plausiblen, festen Zahlen (kein Zufall, damit die Vorschau immer gleich aussieht)
 function statistikDemo() {
   const out = [];
@@ -170,6 +171,9 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
     Vorgaenge: [
       { _id: 'demo-vg1', _createdDate: daysAgo(0.2), typ: 'registrierung', key: 'demo-in-1', status: 'offen', zustaendig: '', zustaendigName: '', daten: JSON.stringify({ title: 'Neue Registrierungsanfrage', body: 'Nina Beispiel (nina@example.com) möchte in den Mitgliederbereich.', details: { Name: 'Nina Beispiel', 'E-Mail': 'nina@example.com', Registriert: 'heute, 09:12 Uhr' }, payload: { memberId: 'demo-neu', name: 'Nina Beispiel' } }) },
       { _id: 'demo-vg2', _createdDate: daysAgo(0.4), typ: 'buchung', key: 'demo-in-2', status: 'offen', zustaendig: ids[1], zustaendigName: people[1].name, daten: JSON.stringify({ title: 'Buchungsanfrage Roter Bahnhof', body: 'TSV Soltau (Jugendabteilung): 10.10.2026 18:00–21:00 Uhr – Elternabend', details: { Name: 'Petra Muster', 'Verein/Gruppe': 'TSV Soltau', Wann: '10.10.2026 18:00–21:00 Uhr', Anlass: 'Elternabend', Personen: '25', 'E-Mail': 'petra@example.com', Telefon: '05191 000000' }, payload: { buchungId: 'demo-b1' } }) },
+      // Belegungsplan Roter Bahnhof: ein zugesagter und ein abgesagter Wunsch für denselben Tag
+      { _id: 'demo-vg5', _createdDate: daysAgo(4), typ: 'buchung', key: 'demo-in-5', status: 'bestätigt von Max Mustermann', erledigtAm: daysAgo(2), daten: JSON.stringify({ title: 'Buchungsanfrage Roter Bahnhof', body: 'Chor Soltau-Süd: Probennachmittag', details: { Name: 'Jens Probe', 'Verein/Gruppe': 'Chor Soltau-Süd', Wann: inTagen(12) + ' 15:00–18:00 Uhr', Anlass: 'Probennachmittag', Personen: '20' }, payload: {} }) },
+      { _id: 'demo-vg6', _createdDate: daysAgo(3), typ: 'buchung', key: 'demo-in-6', status: 'abgelehnt von Max Mustermann', erledigtAm: daysAgo(1), daten: JSON.stringify({ title: 'Buchungsanfrage Roter Bahnhof', body: 'Kindergeburtstag', details: { Name: 'Karla Test', Wann: inTagen(12) + ' 10:00–13:00 Uhr', Anlass: 'Kindergeburtstag', Personen: '12' }, payload: {} }) },
       { _id: 'demo-vg3', _createdDate: daysAgo(3), typ: 'anfrage', key: 'demo-in-4', status: 'in Arbeit', zustaendig: ME, zustaendigName: 'Max Mustermann', notiz: JSON.stringify({ text: 'Mit Lea telefoniert – kommt zum nächsten Stammtisch.' }), daten: JSON.stringify({ title: 'Mitgliedsantrag über die Website', body: 'Lea Neumann möchte SPD-Mitglied werden.', details: { Art: 'Mitglied werden', Name: 'Lea Neumann', 'E-Mail': 'lea@example.com', Telefon: '0170 0000000', Nachricht: 'Ich bin neu in Soltau und möchte mich einbringen.' }, payload: { anfrageId: 'demo-a2' } }) },
       { _id: 'demo-vg4', _createdDate: daysAgo(9), typ: 'anfrage', key: 'demo-in-3', status: 'beantwortet von Max Mustermann', erledigtAm: daysAgo(6), zustaendig: ME, zustaendigName: 'Max Mustermann', daten: JSON.stringify({ title: 'Anfrage über die Website', body: 'Wann wird der Radweg nach Harber saniert?', details: { Art: 'Kontakt', Thema: 'Verkehr', Name: 'Peter Beispiel', 'E-Mail': 'peter@example.com' }, payload: { anfrageId: 'demo-a1' } }) },
     ],

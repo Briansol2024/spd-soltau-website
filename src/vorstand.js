@@ -5,7 +5,7 @@
 export function makeVorstand(ctx) {
   const { db, DEMO, esc, $, $$, msg, busy, route, sectionHead, fmtWhen, nl2br, ICON, schluessel, inboxAll, inboxPut, errText } = ctx;
   const me = () => ctx.me, people = () => ctx.people, settings = () => ctx.settings;
-  const state = { showDone: false, timer: null, tab: null };
+  const state = { showDone: false, timer: null, tab: null, planAlt: false };
   const KACHELN = [
     ['anliegen', 'Anliegen & Anfragen', 'Registrierungen, Mietanfragen, Kontakt', 'freigaben', ICON.inbox],
     ['nachricht', 'Nachricht an alle', 'Push an alle Mitglieder', 'nachrichten', ICON.share],
@@ -62,6 +62,58 @@ export function makeVorstand(ctx) {
     }
     return list;
   }
+  // ---- Belegungsplan Roter Bahnhof: alle Mietanfragen nach gebuchtem Tag – wer, wann angefragt, wann zu- oder abgesagt (Brian, 26.10.2026) ----
+  const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const buchungTag = it => { const w = String(it.details?.Wann || ''); const iso = w.match(/\d{4}-\d{2}-\d{2}/); if (iso) return iso[0]; const de = w.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); return de ? `${de[3]}-${de[2].padStart(2, '0')}-${de[1].padStart(2, '0')}` : ''; };
+  const buchungStand = it => /bestätigt|annehmen/i.test(it.status || '') ? 'zugesagt' : /abgelehnt|ablehnen/i.test(it.status || '') ? 'abgesagt' : 'offen';
+  const bearbeiter = it => (String(it.status || '').match(/\bvon (.+)$/)?.[1] || it.row?.geaendertVon || '').trim();
+  const zeitpunkt = t => t ? new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : '';
+  const STAND_BADGE = { zugesagt: 'badge-mit', offen: 'badge-off', abgesagt: '' };
+  function belegungInhalt(list) {
+    const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
+    const alle = list.filter(it => it.typ === 'buchung').map(it => ({ it, tag: buchungTag(it), stand: buchungStand(it) }));
+    const ohneTag = alle.filter(b => !b.tag).length;
+    const zeigen = alle.filter(b => b.tag && (state.planAlt || b.tag.slice(0, 7) >= heute.slice(0, 7)))
+      .sort((a, b) => a.tag.localeCompare(b.tag) || (a.it.receivedAt || 0) - (b.it.receivedAt || 0));
+    const zugesagtAm = tag => alle.filter(b => b.tag === tag && b.stand === 'zugesagt').length;
+    if (!zeigen.length) return `<p class="muted">${state.planAlt ? 'Noch keine Mietanfragen.' : 'Keine Buchungen ab diesem Monat.'}</p>`;
+    return [...new Set(zeigen.map(b => b.tag.slice(0, 7)))].map(monat => {
+      const imMonat = zeigen.filter(b => b.tag.startsWith(monat));
+      const [j, m] = monat.split('-').map(Number);
+      const tage = new Date(j, m, 0).getDate(), versatz = (new Date(j, m - 1, 1).getDay() + 6) % 7;
+      // Ein Tag zeigt den „stärksten“ Stand: zugesagt vor offen vor abgesagt
+      const standAm = tag => ['zugesagt', 'offen', 'abgesagt'].find(s => imMonat.some(b => b.tag === tag && b.stand === s));
+      const zellen = Array.from({ length: tage }, (_, i) => {
+        const tag = `${monat}-${String(i + 1).padStart(2, '0')}`, s = standAm(tag), h = tag === heute ? ' bp-heute' : '';
+        return s ? `<button type="button" class="bp-${s}${h}" data-bp-tag="${tag}" aria-label="${i + 1}. ${MONATE[m - 1]}: ${s}">${i + 1}</button>` : `<span class="${h.trim()}">${i + 1}</span>`;
+      });
+      return `<section class="bp-monat">
+        <h4>${MONATE[m - 1]} ${j}</h4>
+        <div class="bp-kal">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(t => `<span class="bp-wt">${t}</span>`).join('')}${'<span></span>'.repeat(versatz)}${zellen.join('')}</div>
+        <ul class="bp-liste">${imMonat.map(({ it, tag, stand }) => {
+          const d = it.details || {}, uhr = String(d.Wann || '').replace(/\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{4}/, '').trim();
+          const erledigt = stand === 'offen' ? '' : ` · <b>${stand}</b> ${esc(zeitpunkt(it.row?.erledigtAm))}${bearbeiter(it) ? ' von ' + esc(bearbeiter(it)) : ''}`;
+          const warnung = (stand === 'zugesagt' && zugesagtAm(tag) > 1) ? '<span class="bp-warn">doppelt zugesagt</span>' : (stand === 'offen' && zugesagtAm(tag)) ? '<span class="bp-warn">Tag schon vergeben</span>' : '';
+          return `<li class="bp-eintrag bp-${stand}" data-bp-eintrag="${tag}">
+            <div class="bp-tag"><b>${Number(tag.slice(8))}</b><span>${WT[new Date(tag + 'T12:00:00').getDay()]}</span></div>
+            <div class="bp-text"><b class="bp-wer">${esc(d.Name || '?')}${d['Verein/Gruppe'] ? ' (' + esc(d['Verein/Gruppe']) + ')' : ''}</b>${warnung}
+              <span class="small">${[uhr, d.Anlass, d.Personen ? d.Personen + ' Personen' : ''].filter(Boolean).map(esc).join(' · ')}</span>
+              <span class="small muted">angefragt ${esc(zeitpunkt(it.receivedAt))}${erledigt}</span></div>
+            <span class="badge ${STAND_BADGE[stand]}">${stand}</span>
+          </li>`; }).join('')}</ul>
+      </section>`; }).join('') + (ohneTag ? `<p class="small muted">${ohneTag} Anfrage(n) ohne erkennbares Datum – siehe „Anfragen“.</p>` : '');
+  }
+  function belegungsplan(box, list) {
+    const ziel = $('#bp', box);
+    ziel.innerHTML = belegungInhalt(list);
+    $('#bp-alt', box).onchange = e => { state.planAlt = e.target.checked; belegungsplan(box, list); };
+    ziel.onclick = e => {
+      const b = e.target.closest('[data-bp-tag]'); if (!b) return;
+      const li = $(`[data-bp-eintrag="${b.dataset.bpTag}"]`, ziel); if (!li) return;
+      li.scrollIntoView({ behavior: 'smooth', block: 'center' }); li.classList.add('bp-blink'); setTimeout(() => li.classList.remove('bp-blink'), 1600);
+    };
+  }
   async function anliegen(box, sub) {
     const status = await schluessel.laden('vorstand').catch(() => 'fehler');
     if (status !== 'ok') {
@@ -80,8 +132,16 @@ export function makeVorstand(ctx) {
     state.tab = tab;
     const shown = list.filter(it => it.typ === tab && (state.showDone || !it.done));
     const zust = people().filter(p => settings().rights.freigaben?.has(p.memberId) || settings().board.has(p.memberId));
-    box.innerHTML = `${sectionHead('Anliegen & Anfragen', `${list.filter(it => !it.done).length} offen`)}
-    <nav class="inbox-tabs">${TABS.map(([k, l]) => `<a href="#vorstand/anliegen-${k}" class="chip" aria-pressed="${k === tab}">${l}${count(k) ? ` <b>${count(k)}</b>` : ''}</a>`).join('')}<label class="check small"><input type="checkbox" id="inbox-done" ${state.showDone ? 'checked' : ''}> <span>Erledigte anzeigen</span></label></nav>
+    const plan = tab === 'buchung' && (sub || '').split('-')[2] === 'plan';
+    const kopf = `${sectionHead('Anliegen & Anfragen', `${list.filter(it => !it.done).length} offen`)}
+    <nav class="inbox-tabs">${TABS.map(([k, l]) => `<a href="#vorstand/anliegen-${k}" class="chip" aria-pressed="${k === tab}">${l}${count(k) ? ` <b>${count(k)}</b>` : ''}</a>`).join('')}${plan ? '' : `<label class="check small"><input type="checkbox" id="inbox-done" ${state.showDone ? 'checked' : ''}> <span>Erledigte anzeigen</span></label>`}</nav>
+    ${tab === 'buchung' ? `<nav class="inbox-tabs" aria-label="Ansicht"><a href="#vorstand/anliegen-buchung" class="chip" aria-pressed="${!plan}">Anfragen</a><a href="#vorstand/anliegen-buchung-plan" class="chip" aria-pressed="${plan}">Belegungsplan</a>${plan ? `<label class="check small"><input type="checkbox" id="bp-alt" ${state.planAlt ? 'checked' : ''}> <span>Vergangene Monate anzeigen</span></label>` : ''}</nav>` : ''}`;
+    if (plan) {
+      box.innerHTML = `${kopf}<p class="bp-legende small"><span><i class="bp-farbe bp-zugesagt"></i>zugesagt</span><span><i class="bp-farbe bp-offen"></i>offen</span><span><i class="bp-farbe bp-abgesagt"></i>abgesagt</span><span>Tag antippen → Eintrag</span></p><div id="bp"></div>`;
+      belegungsplan(box, list);
+      return;
+    }
+    box.innerHTML = `${kopf}
     ${shown.length ? '' : `<p class="muted">${state.showDone ? 'Nichts in diesem Bereich.' : 'Nichts Offenes in diesem Bereich.'}</p>`}
     ${shown.map(it => {
       const aktionen = it.done ? '' : it.typ === 'registrierung'
