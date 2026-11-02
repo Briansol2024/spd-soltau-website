@@ -111,7 +111,7 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
     ],
     Ratsvorbereitung: [
       { _id: 'demo-r-rat', _owner: ids[1], _createdDate: daysAgo(1), sitzung: inDays(12), gremium: 'Rat der Stadt Soltau', titel: 'Konstituierende Sitzung', protokoll: ids[1], link: 'https://www.soltau.de/', tops: [
-        { nr: '3', titel: 'Wahl der stellvertretenden Bürgermeister*innen', position: 'dafür', einordnung: 'Wir schlagen Birhat Kaçar vor.' },
+        { nr: '3', titel: 'Wahl der stellvertretenden Bürgermeister*innen', position: 'dafür', einordnung: 'Wir schlagen Manuela Bartels vor.' },
         { nr: '5', titel: 'Besetzung der Ausschüsse', position: 'offen', einordnung: 'Verteilung nach Hare/Niemeyer – Details in der Fraktionssitzung.' },
         { nr: '7', titel: 'Haushaltssatzung 2027 – Einbringung', position: 'offen', einordnung: 'Erst Einbringung, Beschluss im Dezember.', redner: people[5].name, diskussion: 'Kämmerei fragt nach Prioritäten – wir nennen Kita, Radwege, Marktstraße.' },
       ], von: people[1].name, title: 'Konstituierende Sitzung', typ: 'Rat', ort: 'Alte Reithalle', b: 'rat', dokumente: [{ top: '7', titel: 'Vorlage Haushalt 2027 (Bürgerinfosystem)', url: 'https://www.soltau.de/' }, { top: '5', titel: 'Sitzverteilung nach Hare/Niemeyer (PDF)', url: 'https://www.soltau.de/' }, { top: '', titel: 'Geschäftsordnung des Rates', url: '#ratsarbeit/d-demo-d4' }] },

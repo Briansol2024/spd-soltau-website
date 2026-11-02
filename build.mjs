@@ -19,6 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as fallback from './src/data-fallback.mjs';
 import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
+import { FRAKTION, fraktionDaten, textBerichtigen } from './src/data-fraktion.mjs';
 import { TERMIN_ZUSATZ } from './src/termin-zusatz.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
@@ -183,6 +184,16 @@ async function loadData() {
   d.rat = WAHL.gewaehlt.map(enrich);
   const nr = nachruecker(WAHL, 3);
   d.nachruecker = { nachStimmen: nr.nachStimmen.map(enrich), nachListe: nr.nachListe.map(enrich) };
+  // Ratsfraktion 2026–2031 erst ab der konstituierenden Ratssitzung (FRAKTION.ab) – vorher bleibt alles wie es war,
+  // auch im eingebetteten SPD-Objekt. FRAKTION_VORSCHAU=1 zeigt sie lokal schon vorher (nie auf GitHub setzen).
+  if (env.FRAKTION_VORSCHAU === '1' || Date.now() >= Date.parse(FRAKTION.ab)) {
+    d.fr = fraktionDaten(d.people);
+    d.fraktion = d.fr.mitglieder.map(m => ({ name: m.name, job: m.job, role: m.titel, text: m.text, themen: m.themen, photo: m.photo }));
+    // Dieselben Kurztexte stehen auch im Team und bei „Unsere 11 im Stadtrat“
+    d.people = d.people.map(p => ({ ...p, text: textBerichtigen(p.text) }));
+    d.rat = d.rat.map(p => ({ ...p, text: textBerichtigen(p.text) }));
+    console.log('[build] Fraktion 2026–2031:', d.fr.mitglieder.length, 'Mitglieder,', d.fr.mitglieder.filter(m => !m.photo).length, 'ohne Foto');
+  } else d.fr = null;
   // Stichwahl-Aufruf nur, solange man noch wählen kann: bis 18 Uhr am Wahltag.
   // Vorher stand hier ein reiner Datumsvergleich. Der liess den Aufruf "Am 27.09.
   // Zinke zum Landrat wählen!" den ganzen Wahlabend stehen, obwohl die Wahllokale
@@ -373,7 +384,10 @@ async function main() {
     ['aktuelles/index.html', '/aktuelles/', 'Aktuelles', 'Neues aus Rat und Ortsverein: Berichte aus der Fraktion, Pressemitteilungen und Einblicke in unsere Arbeit.', T.aktuellesPage(d)],
     ['termine/index.html', '/termine/', 'Termine', 'Ratssitzungen, Fraktions- und Vorstandssitzungen, Infostände – wann und wo wir uns treffen.', T.terminePage(d)],
     ['stadtrat-2026/index.html', '/stadtrat-2026/', 'Unsere 11 im Stadtrat', 'Kommunalwahl 2026: Die elf gewählten SPD-Ratsmitglieder für Soltau, die Sitzverteilung im neuen Rat und wer nachrückt.', T.stadtratPage(d)],
-    ['fraktion/index.html', '/fraktion/', 'Fraktion', 'Die SPD-Ratsfraktion im Stadtrat Soltau: Mitglieder, Anträge und Entscheidungen erklärt.', T.fraktionPage(d)],
+    d.fr ? ['fraktion/index.html', '/fraktion/', 'Fraktion', `Die SPD-Ratsfraktion Soltau ${d.fr.wahlperiode}: elf Ratsmitglieder, Fraktionsführung, Ämter im Rat, Ausschüsse und Ansprechpartner nach Thema.`, T.fraktion2026Page(d)]
+      : ['fraktion/index.html', '/fraktion/', 'Fraktion', 'Die SPD-Ratsfraktion im Stadtrat Soltau: Mitglieder, Anträge und Entscheidungen erklärt.', T.fraktionPage(d)],
+    // Ein Profil je Ratsmitglied
+    ...(d.fr ? d.fr.mitglieder.map(m => [`fraktion/${m.slug}/index.html`, `/fraktion/${m.slug}/`, m.name, `${m.name} (${m.titel}) – Ratsmitglied der SPD-Fraktion Soltau: Ämter, Ausschüsse und Gremien.`, T.fraktionProfilPage(d, m), m.photo?.url ? { ogImage: m.photo.url } : {}]) : []),
     ['ortsverein/index.html', '/ortsverein/', 'Vorstand', 'Der Vorstand des SPD Ortsvereins Soltau: Wer den Ortsverein führt, Treffpunkt Roter Bahnhof, Kontakt.', T.ortsvereinPage(d)],
     ['ziele/index.html', '/ziele/', 'Unsere Ziele', 'Der 10-Punkte-Plan der SPD Soltau für die Wahlperiode 2026 bis 2031.', T.zielePage(d)],
     ['mitmachen/index.html', '/mitmachen/', 'Mitmachen', 'Mitglied werden, Newsletter oder ein Nachmittag am Infostand – so können Sie Soltau mitgestalten.', T.mitmachenPage(d)],

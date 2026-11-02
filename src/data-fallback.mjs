@@ -42,7 +42,7 @@ export const EVENTS = [
 
 const P = (name, job, role, text, themen = []) => ({ name, job, role, text, themen, photo: null });
 export const PEOPLE = [
-  P('Birhat Kaçar', 'Sozialarbeiter', 'Vorsitzender · Fraktionsvorsitzender · stellv. Bürgermeister', 'Seit 2016 im Stadtrat, seit 2021 im Kreistag. Als Sozialarbeiter bringt er den Blick für die Menschen mit – und den Anspruch, Soltau nicht nur zu verwalten, sondern zu gestalten.', ['Verkehr & Bahn', 'Wohnen & Innenstadt']),
+  P('Birhat Kaçar', 'Sozialarbeiter', 'Vorsitzender · Fraktionsvorsitzender', 'Seit 2016 im Stadtrat, seit 2021 im Kreistag. Als Sozialarbeiter bringt er den Blick für die Menschen mit – und den Anspruch, Soltau nicht nur zu verwalten, sondern zu gestalten.', ['Verkehr & Bahn', 'Wohnen & Innenstadt']),
   P('Manuela Bartels', 'Sozialversicherungsfachangestellte', 'Ratsfrau seit 2021 · Sozialausschuss', 'Mutter von drei Kindern, seit 2021 im Stadtrat. Ihre Schwerpunkte: Kitas, Schulen, Familien und ein starkes soziales Netz.', ['Kita & Schule']),
   P('Brian Weber', 'Elektriker & Servicetechniker', '', 'Vater von zwei Kindern und früher aktiver Feuerwehrmann. Ihm sind Sicherheit, Zusammenhalt und eine verlässliche Stadt für Familien wichtig.', ['Feuerwehr & Sicherheit']),
   P('Inna Herold', 'Diplomjuristin & Unternehmerin', '', 'Engagiert in Elternvertretung und Förderverein der Hermann-Billung-Schule. Bringt die Anliegen von Kindern, Eltern und Schulen ein.', ['Kita & Schule']),

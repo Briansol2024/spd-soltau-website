@@ -237,6 +237,8 @@ export function laufband(spans, sekProElement = 6, extraKlasse = '') {
 }
 export function startPage(d) {
   const upcoming = d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat').slice(0, 4); // Website: nur öffentliche Termine
+  // Ab der konstituierenden Sitzung führt der Knopf im Hero zur Fraktion, vorher zum Wahlergebnis
+  const [ratLink, ratText] = d.fr ? [url('/fraktion/'), 'Unsere Fraktion'] : [url('/stadtrat-2026/'), 'Unsere 11 Gewählten'];
   // Laufband: bis zur Stichwahl der Wahlaufruf; in der Woche danach ein Dankeschön zwischen den Terminen; sonst die nächsten Termine
   const termine = tickerItems(d.events).split('</span>').filter(Boolean).map(x => x + '</span>');
   const band = d.stichwahl ? laufband(['<span>Am 27.09. Zinke zum Landrat wählen!</span>'], 12)
@@ -250,7 +252,7 @@ export function startPage(d) {
         <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span><svg class="moin-strich" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><filter id="moin-rau" x="-6%" y="-40%" width="112%" height="180%"><feTurbulence type="fractalNoise" baseFrequency="0.035 0.07" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/></filter></defs><g filter="url(#moin-rau)"><path class="zug1" d="M9 16 C 70 8, 150 22, 226 12 C 258 8, 276 14, 291 10" stroke-width="10"/><path class="zug2" d="M285 31 C 232 35, 168 27, 104 33 C 76 36, 56 32, 32 35" stroke-width="7.5"/></g></svg></h1>
         <div class="hero-box">
           <p>${d.startVariante === 'mitreden' ? 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wie Sie mitreden können.' : 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wer für Sie im Stadtrat sitzt.'}</p>
-          ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a></div>` : `<a class="btn btn-rot" href="${url('/stadtrat-2026/')}">Unsere 11 Gewählten</a>`}
+          ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${ratLink}">${ratText}</a></div>` : `<a class="btn btn-rot" href="${ratLink}">${ratText}</a>`}
         </div>
       </div>
       ${heroPhoto(d.site)}
@@ -500,6 +502,105 @@ export function fraktionPage(d) {
       </div>`,
     news: (d.news.filter(n => n.cat === 'Fraktion').slice(0, 3).length ? d.news.filter(n => n.cat === 'Fraktion') : d.news).slice(0, 3), newsTitle: 'Aus dem Rat',
   });
+}
+
+// ---------- Ratsfraktion 2026–2031 (alle Ämter und Sitze aus src/data-fraktion.mjs, aufbereitet in d.fr) ----------
+const frFoto = (m, cls) => `<div class="${cls}">${m.photo?.url ? `<img src="${esc(m.photo.url)}" alt="${esc(m.name)}" loading="lazy" decoding="async">` : `<span>${esc(m.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span>`}</div>`;
+const frLink = m => url(`/fraktion/${m.slug}/`);
+const frKarte = m => `<a class="tm" href="${frLink(m)}">${frFoto(m, 'tm-photo')}<div class="tm-name">${esc(m.name)}</div><div class="tm-role">${esc(m.titel)}</div>${m.job ? `<div class="tm-job">${esc(m.job)}</div>` : ''}<span class="tm-mehr">Zum Profil</span></a>`;
+const frPerson = (m, rolle) => `<a class="person" href="${frLink(m)}">${frFoto(m, `avatar${m.photo?.url ? ' has-img' : ''}`)}<div class="plate"><b>${esc(m.name)}</b>${rolle ? `<span class="rolle">${esc(rolle)}</span>` : ''}</div></a>`;
+const frZeile = (m, rolle) => `<li><a href="${frLink(m)}">${frFoto(m, 'gr-foto')}<span><b>${esc(m.name)}</b>${rolle ? `<small>${esc(rolle)}</small>` : ''}</span></a></li>`;
+
+function frGremium(titel, meta, inhalt, offen = false) {
+  return `<details class="ziel gr"${offen ? ' open' : ''}><summary><span>${titel}</span><span class="gr-meta">${meta}</span></summary><div class="gr-body">${inhalt}</div></details>`;
+}
+
+export function fraktion2026Page(d) {
+  const fr = d.fr, P = fr.person;
+  const neun = fr.ausschuesse.filter(a => a.vorher);
+  const feuer = fr.ausschuesse.find(a => a.frueher);
+  const aemter = [...fr.ratsaemter.map(r => [r.amt, P(r.name)]), ...fr.vorsitze.map(v => [`Vorsitz ${v.ausschuss.name}`, P(v.name)])];
+  const news = d.news.filter(n => n.cat === 'Fraktion');
+  return `
+<section>
+  ${pageHead('SPD-Ratsfraktion', 'Unsere Fraktion.<br>Für Soltau.', `Elf Ratsmitglieder, stärkste Fraktion im Stadtrat Soltau. Hier sehen Sie, wer in der Wahlperiode ${fr.wahlperiode} welche Aufgabe übernimmt – und wen Sie zu welchem Thema ansprechen können.`, 'altesrathaus')}
+  <div class="band-rot foto foto-rot">${motiv('drohne')}<div class="wrap" style="padding-block:40px">
+    <div class="stats">
+      <div class="stat"><b>${fr.sitze}</b><span>Ratsmitglieder · ${fr.sitze} von ${fr.sitzeRat} Sitzen</span></div>
+      <div class="stat"><b class="wort">Stärkste Fraktion</b><span>im Stadtrat Soltau</span></div>
+      <div class="stat"><b class="wort">${esc(fr.wahlperiode)}</b><span>Wahlperiode</span></div>
+    </div>
+  </div></div>
+
+  <div class="wrap section" id="fuehrung">
+    <div class="section-head"><h2 class="title">Fraktions&shy;führung</h2><span class="muted">Gewählt für ${esc(fr.vorstandAmtszeit)}</span></div>
+    <div class="fv-grid">${fr.fuehrung.map(v => `<a class="fv" href="${frLink(v.person)}">${frFoto(v.person, 'fv-foto')}<span class="fv-funktion">${esc(v.funktion)}</span><b class="fv-name">${esc(v.name)}</b></a>`).join('')}</div>
+    <h3 class="fr-h3">Ämter im Rat</h3>
+    <ul class="aemter">${aemter.map(([amt, m]) => `<li><span>${esc(amt)}</span><a href="${frLink(m)}">${esc(m.name)}</a></li>`).join('')}</ul>
+  </div>
+
+  <div class="band-grau" id="mitglieder"><div class="wrap section">
+    <div class="section-head"><h2 class="title">Alle elf<br>Ratsmitglieder</h2><span class="muted">Sortiert nach Funktion · Klick öffnet das Profil</span></div>
+    <div class="team">${fr.mitglieder.map(frKarte).join('')}</div>
+  </div></div>
+
+  <div class="wrap section" id="ausschuesse">
+    <div class="section-head"><h2 class="title">Ausschüsse<br>und Gremien</h2></div>
+    <p class="fr-intro">Die Ausschüsse beraten die Entscheidungen des Rates vor. ${neun.length ? `Neun statt sieben Sitze haben jetzt: ${esc(neun.map(a => a.name).join(', ').replace(/, ([^,]*)$/, ' und $1'))}.` : ''} ${feuer ? `Der frühere ${esc(feuer.frueher)} heißt jetzt ${esc(feuer.name)}.` : ''}</p>
+    <h3 class="fr-h3">Fachausschüsse</h3>
+    <div class="gr-liste">${fr.ausschuesse.map(a => frGremium(esc(a.name), `${a.sitze} Sitze · ${a.spd.length} SPD${a.vorsitz ? ' · <em>Vorsitz SPD</em>' : ''}`,
+      `<ul class="gr-namen">${a.spd.map(n => frZeile(P(n), a.vorsitz?.name === n ? 'Vorsitz' : 'Mitglied')).join('')}</ul>`)).join('')}</div>
+    <h3 class="fr-h3">Verwaltungsausschuss</h3>
+    <div class="gr-liste">${frGremium('Beigeordnete der SPD', `${fr.verwaltungsausschuss.beigeordnete} Beigeordnete und der Bürgermeister · ${fr.verwaltungsausschuss.spd.length} SPD`,
+      `<p class="small">Der Verwaltungsausschuss bereitet die Ratsbeschlüsse vor und entscheidet alles, was weder dem Rat noch dem Bürgermeister zugewiesen ist. Für jedes Mitglied gibt es eine persönliche Vertretung.</p>
+      <table class="gr-tabelle"><thead><tr><th>Mitglied</th><th>Persönliche Vertretung</th></tr></thead><tbody>${fr.verwaltungsausschuss.spd.map(b => `<tr><td><a href="${frLink(P(b.name))}">${esc(b.name)}</a></td><td><a href="${frLink(P(b.vertretung))}">${esc(b.vertretung)}</a></td></tr>`).join('')}</tbody></table>`)}</div>
+    <h3 class="fr-h3">Aufsichtsräte und weitere Gremien</h3>
+    <div class="gr-liste">${fr.gremien.map(g => frGremium(esc(g.name), `${g.spd.length} SPD`,
+      `${g.zusatz ? `<p class="small muted">${esc(g.zusatz)}</p>` : ''}<ul class="gr-namen">${g.spd.map(n => frZeile(P(n), '')).join('')}</ul>`)).join('')}</div>
+  </div>
+
+  <div class="band-grau" id="ansprechpartner"><div class="wrap section">
+    <div class="section-head"><h2 class="title">Ansprechpartner<br>nach Thema</h2><span class="muted">Die SPD-Mitglieder im zuständigen Ausschuss</span></div>
+    <div class="filter" id="fr-themen" role="group" aria-label="Thema wählen">${fr.ansprech.map((t, i) => `<button class="chip" type="button" data-thema="${esc(t.thema)}" aria-pressed="${i === 0}">${esc(t.thema)}</button>`).join('')}</div>
+    ${fr.ansprech.map(t => `<div class="fx-panel" data-thema-panel="${esc(t.thema)}">
+      <h3 class="fx-titel">${esc(t.thema)} <small>${t.ausschuesse.map(a => esc(a.name)).join(' · ')}</small></h3>
+      <div class="ansprech">${t.personen.map(m => { const a = t.ausschuesse.find(x => x.spd.includes(m.name)); return frPerson(m, a.vorsitz?.name === m.name ? `Vorsitz ${a.name}` : a.name); }).join('')}</div>
+    </div>`).join('')}
+  </div></div>
+
+  <div class="band-schwarz foto">${motiv('hagen')}<div class="wrap section">
+    <div class="section-head"><h2 class="title">Aus dem Rat</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
+    <div class="news">${(news.length ? news : d.news).slice(0, 3).map(newsCard).join('')}</div>
+  </div></div>
+</section>`;
+}
+
+// Profil je Ratsmitglied: alle veröffentlichten Funktionen an einer Stelle
+export function fraktionProfilPage(d, m) {
+  const fr = d.fr, i = fr.mitglieder.indexOf(m);
+  const vor = fr.mitglieder[(i - 1 + fr.mitglieder.length) % fr.mitglieder.length], nach = fr.mitglieder[(i + 1) % fr.mitglieder.length];
+  const gruppen = [['Fraktion', 'In der Fraktion'], ['Rat', 'Im Rat'], ['Ausschüsse', 'In den Ausschüssen'], ['Gremien', 'Aufsichtsräte und Gremien']]
+    .map(([g, h]) => [h, m.funktionen.filter(f => f.gruppe === g)]).filter(([, l]) => l.length);
+  return `
+<section>
+  ${pageHead('SPD-Ratsfraktion', esc(m.name), m.titel, 'altesrathaus')}
+  <div class="wrap section">
+    <div class="fp">
+      ${frFoto(m, 'fp-foto')}
+      <div class="fp-info">
+        ${m.job ? `<p class="fp-job">${esc(m.job)}</p>` : ''}
+        ${m.text ? `<p class="fp-text">${esc(m.text)}</p>` : ''}
+        ${gruppen.map(([h, l]) => `<div class="fp-gruppe"><h2>${esc(h)}</h2><ul>${l.map(f => `<li${f.vorsitz ? ' class="vorsitz"' : ''}>${esc(f.text)}</li>`).join('')}</ul></div>`).join('')}
+        ${m.themen.length ? `<div class="fp-gruppe"><h2>Ansprechpartner für</h2><p class="fp-themen">${m.themen.map(t => `<span class="badge">${esc(t)}</span>`).join('')}</p></div>` : ''}
+        <div class="hero-actions"><a class="btn btn-rot" href="${url('/kontakt/')}">Anliegen an die Fraktion</a><a class="btn btn-line" href="${url('/fraktion/#mitglieder')}">Alle Ratsmitglieder</a></div>
+      </div>
+    </div>
+  </div>
+  <div class="band-grau"><div class="wrap section fp-weiter">
+    <a href="${frLink(vor)}"><small>Vorheriges Profil</small><b>${esc(vor.name)}</b></a>
+    <a href="${frLink(nach)}"><small>Nächstes Profil</small><b>${esc(nach.name)}</b></a>
+  </div></div>
+</section>`;
 }
 
 export function ortsvereinPage(d) {
@@ -802,6 +903,12 @@ export function stadtratPage(d) {
         <ul class="seats">${w.sitze.map(([p, n]) => `<li><span class="seats-name">${esc(p)}</span><span class="seats-bar"><i style="width:${Math.round(n / max * 100)}%"></i></span><span class="seats-n">${n}</span></li>`).join('')}</ul>
         <p class="small" style="opacity:.8">34 Sitze insgesamt · Wahlbeteiligung 58,8 %</p>
       </div>
+      ${d.fr ? `<div class="box box-rot">
+        <span class="tag tag-schwarz" style="justify-self:start">Wahlperiode ${esc(d.fr.wahlperiode)}</span>
+        <h3>Die neue Fraktion</h3>
+        <p class="small">Wer welches Amt übernommen hat, wer in welchem Ausschuss sitzt und wen Sie zu welchem Thema ansprechen können.</p>
+        <a class="btn btn-weiss" href="${url('/fraktion/')}" style="justify-self:start">Zur Fraktion</a>
+      </div>` : ''}
       <div class="box">
         <h3>Zum Ergebnis</h3>
         <p class="small">Vorläufiges amtliches Endergebnis der Stadt Soltau, Stand ${esc(w.stand)}. Die verbindliche Reihenfolge der Ersatzpersonen stellt der Wahlausschuss mit dem amtlichen Endergebnis fest.</p>

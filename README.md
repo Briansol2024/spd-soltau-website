@@ -12,7 +12,7 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Termine | Wix Events | Dashboard → Veranstaltungen |
 | Vorstand | CMS-Sammlung „Vorstand“ (ID `Team`) | Dashboard → CMS |
 | Team (27 Personen), „Wer kümmert sich um was?“ | CMS-Sammlung „Kandidat*innen zur Stadtratswahl“ | Dashboard → CMS |
-| Ratsfraktion | CMS-Sammlung „Stadtrat“ (ID `Team1`) | Dashboard → CMS |
+| Ratsfraktion 2026–2031 (`/fraktion/` und ein Profil je Ratsmitglied unter `/fraktion/<name>/`): Reihenfolge, Fraktionsvorstand, Ämter im Rat, Ausschüsse, Verwaltungsausschuss, Gremien | `src/data-fraktion.mjs` – Fotos, Berufe, Kurztexte aus der Kandidat*innen-Sammlung; bis zum 03.11.2026, 19 Uhr die alte Seite aus `Team1` | hier im Projekt |
 | Instagram-Kacheln | Zwischenspeicher der Wix-Instagram-App (`@vanyadoing/instagram/ig-media`) – Bilder werden beim Bauen auf den eigenen Host kopiert | Instagram posten, Wix-App bleibt verbunden |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
 | Wahlergebnis 2026 (Seite „Unsere 11 im Stadtrat“), Stichwahl-Aufruf | `src/data-wahl2026.mjs` – Fotos/Berufe kommen automatisch aus der Kandidat*innen-Sammlung | hier im Projekt |
@@ -232,6 +232,7 @@ nicht mehr existierende Microsoft-365-Postfach und wird mit dem neuen Postfach e
 ## Zeitgesteuert
 
 - Der Aufruf zur Landrats-Stichwahl (Sebastian Zinke) erscheint automatisch nur bis einschließlich 27.09.2026 (`STICHWAHL.datum`).
+- Die Fraktionsseite 2026–2031 erscheint erst ab `FRAKTION.ab` (03.11.2026, 19:00 Uhr) – davor baut der Build die alte Seite, auch im eingebetteten `SPD`-Objekt. Lokal vorher ansehen: `FRAKTION_VORSCHAU=1 node build.mjs`. Nicht veröffentlicht werden die fachkundigen Personen im Aufsichtsrat der Stadtwerke und die Kita-Kuratorien.
 
 ## Gestaltung: Symbolbilder statt Farbbänder
 
