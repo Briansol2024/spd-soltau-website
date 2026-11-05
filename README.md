@@ -12,7 +12,7 @@ werden beim Bauen der Seite abgeholt. Ihr pflegt alles weiter im gewohnten Wix-D
 | Termine | Wix Events | Dashboard → Veranstaltungen |
 | Vorstand | CMS-Sammlung „Vorstand“ (ID `Team`) | Dashboard → CMS |
 | Team (27 Personen), „Wer kümmert sich um was?“ | CMS-Sammlung „Kandidat*innen zur Stadtratswahl“ | Dashboard → CMS |
-| Ratsfraktion 2026–2031 (`/fraktion/` und ein Profil je Ratsmitglied unter `/fraktion/<name>/`): Reihenfolge, Fraktionsvorstand, Ämter im Rat, Ausschüsse, Verwaltungsausschuss, Gremien | `src/data-fraktion.mjs` – Fotos, Berufe, Kurztexte aus der Kandidat*innen-Sammlung; bis zum 03.11.2026, 19 Uhr die alte Seite aus `Team1` | hier im Projekt |
+| Ratsfraktion 2026–2031 (`/fraktion/` und ein Profil je Ratsmitglied unter `/fraktion/<name>/`): Reihenfolge, Hauptfunktion, weitere Funktionen und Mitgliedschaften, Seitenüberschrift und Einleitung | `src/data-fraktion.mjs` – Fotos, Berufe, Kurztexte aus der Kandidat*innen-Sammlung; keine Stimmenzahlen | hier im Projekt |
 | Instagram-Kacheln | Zwischenspeicher der Wix-Instagram-App (`@vanyadoing/instagram/ig-media`) – Bilder werden beim Bauen auf den eigenen Host kopiert | Instagram posten, Wix-App bleibt verbunden |
 | 10-Punkte-Plan, Texte der festen Seiten | im Code (`src/data-fallback.mjs`, `src/templates.mjs`) | hier im Projekt |
 | Wahlergebnis 2026 (Seite „Unsere 11 im Stadtrat“), Stichwahl-Aufruf | `src/data-wahl2026.mjs` – Fotos/Berufe kommen automatisch aus der Kandidat*innen-Sammlung | hier im Projekt |
@@ -232,7 +232,7 @@ nicht mehr existierende Microsoft-365-Postfach und wird mit dem neuen Postfach e
 ## Zeitgesteuert
 
 - Der Aufruf zur Landrats-Stichwahl (Sebastian Zinke) erscheint automatisch nur bis einschließlich 27.09.2026 (`STICHWAHL.datum`).
-- Die Fraktionsseite 2026–2031 erscheint erst ab `FRAKTION.ab` (03.11.2026, 19:00 Uhr) – davor baut der Build die alte Seite, auch im eingebetteten `SPD`-Objekt. Lokal vorher ansehen: `FRAKTION_VORSCHAU=1 node build.mjs`. Nicht veröffentlicht werden die fachkundigen Personen im Aufsichtsrat der Stadtwerke und die Kita-Kuratorien.
+- Die Fraktionsseite 2026–2031 gilt ab `FRAKTION.ab` (03.11.2026, 19:00 Uhr). Die Angaben in `src/data-fraktion.mjs` sind wortgleich aus Brians Vorgabe vom 05.11.2026; nichts ergänzen, was dort nicht steht. Kurzprofile (Klick auf eine Person) zeigen bei den elf Ratsmitgliedern die aktuelle Funktion statt der Wahldaten.
 
 ## Gestaltung: Symbolbilder statt Farbbänder
 

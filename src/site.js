@@ -71,18 +71,6 @@ if (themenEl && ansprechEl && SPD.people) {
   }));
 }
 
-// ---------- Fraktion: Ansprechpartner nach Thema (ohne JavaScript stehen alle Themen untereinander) ----------
-const frThemen = $('#fr-themen');
-if (frThemen) {
-  const zeige = t => {
-    $$('.chip', frThemen).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.thema === t)));
-    // Ausgeblendete Panels meldet der Einblend-Beobachter nicht – beim Zeigen gleich sichtbar machen
-    $$('[data-thema-panel]').forEach(p => { p.hidden = p.dataset.themaPanel !== t; if (!p.hidden) $$('.rv', p).forEach(el => el.classList.add('in', 'done')); });
-  };
-  frThemen.addEventListener('click', e => { const c = e.target.closest('.chip'); if (c) zeige(c.dataset.thema); });
-  zeige($('.chip', frThemen).dataset.thema);
-}
-
 // ---------- Umfrage (lokal gespeichert, nur in diesem Browser) ----------
 const pollEl = $('#poll');
 if (pollEl && SPD.poll) {
@@ -107,7 +95,8 @@ kt?.addEventListener('click', e => {
 
 // ---------- Personen-Fenster ----------
 const dlg = $('#person-dialog');
-const findPerson = name => [...(SPD.rat || []), ...(SPD.people || []), ...(SPD.vorstand || []), ...(SPD.fraktion || [])].find(p => p.name === name);
+// Fraktion zuerst: Für die elf Ratsmitglieder zeigt das Kurzprofil die aktuelle Funktion, keine Stimmenzahlen aus der Wahl
+const findPerson = name => [...(SPD.fraktion || []), ...(SPD.rat || []), ...(SPD.people || []), ...(SPD.vorstand || [])].find(p => p.name === name);
 document.addEventListener('click', e => {
   const b = e.target.closest('.person,.tm'); if (!b || !dlg || b.matches('a')) return;
   const p = findPerson(b.dataset.name); if (!p) return;

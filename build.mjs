@@ -188,7 +188,7 @@ async function loadData() {
   // auch im eingebetteten SPD-Objekt. FRAKTION_VORSCHAU=1 zeigt sie lokal schon vorher (nie auf GitHub setzen).
   if (env.FRAKTION_VORSCHAU === '1' || Date.now() >= Date.parse(FRAKTION.ab)) {
     d.fr = fraktionDaten(d.people);
-    d.fraktion = d.fr.mitglieder.map(m => ({ name: m.name, job: m.job, role: m.titel, text: m.text, themen: m.themen, photo: m.photo }));
+    d.fraktion = d.fr.mitglieder.map(m => ({ name: m.name, job: m.job, role: m.haupt, text: m.text, themen: [], photo: m.photo }));
     // Dieselben Kurztexte stehen auch im Team und bei „Unsere 11 im Stadtrat“
     d.people = d.people.map(p => ({ ...p, text: textBerichtigen(p.text) }));
     d.rat = d.rat.map(p => ({ ...p, text: textBerichtigen(p.text) }));
@@ -384,10 +384,10 @@ async function main() {
     ['aktuelles/index.html', '/aktuelles/', 'Aktuelles', 'Neues aus Rat und Ortsverein: Berichte aus der Fraktion, Pressemitteilungen und Einblicke in unsere Arbeit.', T.aktuellesPage(d)],
     ['termine/index.html', '/termine/', 'Termine', 'Ratssitzungen, Fraktions- und Vorstandssitzungen, Infostände – wann und wo wir uns treffen.', T.terminePage(d)],
     ['stadtrat-2026/index.html', '/stadtrat-2026/', 'Unsere 11 im Stadtrat', 'Kommunalwahl 2026: Die elf gewählten SPD-Ratsmitglieder für Soltau, die Sitzverteilung im neuen Rat und wer nachrückt.', T.stadtratPage(d)],
-    d.fr ? ['fraktion/index.html', '/fraktion/', 'Fraktion', `Die SPD-Ratsfraktion Soltau ${d.fr.wahlperiode}: elf Ratsmitglieder, Fraktionsführung, Ämter im Rat, Ausschüsse und Ansprechpartner nach Thema.`, T.fraktion2026Page(d)]
+    d.fr ? ['fraktion/index.html', '/fraktion/', 'Fraktion', `Unsere Fraktion im Rat der Stadt Soltau, Wahlperiode ${d.fr.wahlperiode}: elf Ratsmitglieder mit ihren Funktionen und Ausschüssen.`, T.fraktion2026Page(d)]
       : ['fraktion/index.html', '/fraktion/', 'Fraktion', 'Die SPD-Ratsfraktion im Stadtrat Soltau: Mitglieder, Anträge und Entscheidungen erklärt.', T.fraktionPage(d)],
     // Ein Profil je Ratsmitglied
-    ...(d.fr ? d.fr.mitglieder.map(m => [`fraktion/${m.slug}/index.html`, `/fraktion/${m.slug}/`, m.name, `${m.name} (${m.titel}) – Ratsmitglied der SPD-Fraktion Soltau: Ämter, Ausschüsse und Gremien.`, T.fraktionProfilPage(d, m), m.photo?.url ? { ogImage: m.photo.url } : {}]) : []),
+    ...(d.fr ? d.fr.mitglieder.map(m => [`fraktion/${m.slug}/index.html`, `/fraktion/${m.slug}/`, m.name, `${m.name}${m.haupt ? ` (${m.haupt})` : ''} – Ratsmitglied der SPD-Fraktion Soltau: Funktionen und Mitgliedschaften.`, T.fraktionProfilPage(d, m), m.photo?.url ? { ogImage: m.photo.url } : {}]) : []),
     ['ortsverein/index.html', '/ortsverein/', 'Vorstand', 'Der Vorstand des SPD Ortsvereins Soltau: Wer den Ortsverein führt, Treffpunkt Roter Bahnhof, Kontakt.', T.ortsvereinPage(d)],
     ['ziele/index.html', '/ziele/', 'Unsere Ziele', 'Der 10-Punkte-Plan der SPD Soltau für die Wahlperiode 2026 bis 2031.', T.zielePage(d)],
     ['mitmachen/index.html', '/mitmachen/', 'Mitmachen', 'Mitglied werden, Newsletter oder ein Nachmittag am Infostand – so können Sie Soltau mitgestalten.', T.mitmachenPage(d)],
