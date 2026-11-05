@@ -509,8 +509,8 @@ export function fraktionPage(d) {
 const frFoto = (m, cls) => `<div class="${cls}">${m.photo?.url ? `<img src="${esc(m.photo.url)}" alt="${esc(m.name)}" loading="lazy" decoding="async">` : `<span>${esc(m.name.split(' ').map(x => x[0]).slice(0, 2).join(''))}</span>`}</div>`;
 const frLink = m => url(`/fraktion/${m.slug}/`);
 const frListe = (m, cls) => `<ul class="${cls}">${m.weitere.map(f => `<li${/^Vorsitzende/.test(f) ? ' class="vorsitz"' : ''}>${esc(f)}</li>`).join('')}</ul>`;
-const frKarte = m => `<article class="fk${m.fuehrung ? ' fk-fuehrung' : ''}">
-      <a class="fk-bild" href="${frLink(m)}" aria-label="Profil von ${esc(m.name)}">${frFoto(m, 'fk-foto')}${m.fuehrung ? '<span class="fk-marke">Fraktionsführung</span>' : ''}</a>
+const frKarte = m => `<article class="fk">
+      <a class="fk-bild" href="${frLink(m)}" aria-label="Profil von ${esc(m.name)}">${frFoto(m, 'fk-foto')}</a>
       <div class="fk-text">
         <h3 class="fk-name"><a href="${frLink(m)}">${esc(m.name)}</a></h3>
         ${m.haupt ? `<p class="fk-haupt">${esc(m.haupt)}</p>` : ''}

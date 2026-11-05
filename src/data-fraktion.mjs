@@ -19,13 +19,12 @@ export const FRAKTION = {
   ],
 
   // Reihenfolge auf allen Seiten. haupt = politische Hauptfunktion (leer = keine), weitere = Funktionen und Mitgliedschaften.
-  // fuehrung = Fraktionsvorsitz und Stellvertretung (wird auf den Karten markiert, ohne die anderen kleiner zu machen)
   mitglieder: [
-    { name: 'Birhat Kaçar', haupt: 'Fraktionsvorsitzender', fuehrung: true,
+    { name: 'Birhat Kaçar', haupt: 'Fraktionsvorsitzender',
       weitere: ['Mitglied des Verwaltungsausschusses', 'Mitglied des Aufsichtsrates der Stadtwerke Soltau', 'Vorsitzender des Feuerschutzausschusses'] },
-    { name: 'Reiner Klatt', haupt: 'Stellvertretender Fraktionsvorsitzender', fuehrung: true,
+    { name: 'Reiner Klatt', haupt: 'Stellvertretender Fraktionsvorsitzender',
       weitere: ['Mitglied des Finanzausschusses', 'Mitglied des Bauausschusses', 'Mitglied des Aufsichtsrates der AWS'] },
-    { name: 'Manuela Bartels', haupt: 'Stellvertretende Bürgermeisterin und stellvertretende Fraktionsvorsitzende', fuehrung: true,
+    { name: 'Manuela Bartels', haupt: 'Stellvertretende Bürgermeisterin und stellvertretende Fraktionsvorsitzende',
       weitere: ['Mitglied des Sozialausschusses', 'Mitglied des Verwaltungsausschusses'] },
     { name: 'Harald Garbers', haupt: 'Ratsvorsitzender und Finanzverantwortlicher der Fraktion',
       weitere: ['Mitglied des Kulturausschusses'] },
@@ -63,7 +62,7 @@ export function fraktionDaten(people = [], F = FRAKTION) {
   const mitglieder = F.mitglieder.map(m => {
     const p = byName.get(norm(m.name)) || {};
     return {
-      name: m.name, slug: slugOf(m.name), haupt: m.haupt || '', weitere: [...m.weitere], fuehrung: !!m.fuehrung,
+      name: m.name, slug: slugOf(m.name), haupt: m.haupt || '', weitere: [...m.weitere],
       job: p.job || '', text: textBerichtigen(p.text, F), photo: p.photo || null,
     };
   });
