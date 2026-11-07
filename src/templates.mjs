@@ -521,11 +521,15 @@ const frKarte = m => `<article class="fk">
 export function fraktion2026Page(d) {
   const fr = d.fr;
   const news = d.news.filter(n => n.cat === 'Fraktion');
+  // Wahlergebnis der SPD bei der Kommunalwahl (aus src/data-wahl2026.mjs), zählt beim Erscheinen hoch
+  const prozent = Math.round(d.wahl.spd.prozent * 10) / 10;
+  const prozentText = prozent.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
   return `
 <section>
   ${pageHead('SPD-Ratsfraktion', 'Unsere Fraktion<br>im Rat der Stadt Soltau', fr.einleitung[0], 'altesrathaus')}
   <div class="band-rot foto foto-rot">${motiv('drohne')}<div class="wrap" style="padding-block:40px">
     <div class="stats">
+      <div class="stat"><b data-zahl="${prozent}" data-stellen="1" data-nach=" %">${prozentText}</b><span>Wahlergebnis · Kommunalwahl ${esc(d.wahl.datum.slice(0, 4))}</span></div>
       <div class="stat"><b>${fr.sitze}</b><span>Ratsmitglieder · ${fr.sitze} von ${fr.sitzeRat} Sitzen</span></div>
       <div class="stat"><b class="wort">Stärkste Fraktion</b><span>im Stadtrat Soltau</span></div>
       <div class="stat"><b class="wort">${esc(fr.wahlperiode)}</b><span>Wahlperiode</span></div>

@@ -189,8 +189,19 @@ const cio = new IntersectionObserver(es => es.forEach(e => {
   const step = t => { const p = Math.min(1, (t - t0) / dur); el.textContent = Math.round(n * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }), { threshold: .5 });
+// Zahlen mit Nachkommastellen und Zusatz, z. B. „30,8 %“: <b data-zahl="30.8" data-stellen="1" data-nach=" %">
+const zFormat = (v, st, nach) => v.toLocaleString('de-DE', { minimumFractionDigits: st, maximumFractionDigits: st }) + (nach || '');
+const zio = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return; zio.unobserve(e.target);
+  const el = e.target, ziel = +el.dataset.zahl, st = +(el.dataset.stellen || 0), nach = el.dataset.nach || '', f = Math.pow(10, st);
+  if (REDUCED) { el.textContent = zFormat(ziel, st, nach); return; }
+  const t0 = performance.now(), dur = 1700;
+  const step = t => { const p = Math.min(1, (t - t0) / dur); el.textContent = zFormat(Math.round(ziel * (1 - Math.pow(1 - p, 4)) * f) / f, st, nach); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}), { threshold: .5 });
 function armCounters() {
-  site.querySelectorAll('.stat b').forEach(el => { if (el.dataset.count !== undefined) return; const t = el.textContent.trim(); if (!/^\d+$/.test(t)) return; el.dataset.count = t; el.textContent = '0'; cio.observe(el); });
+  site.querySelectorAll('.stat b[data-zahl]').forEach(el => { if (el.dataset.bereit) return; el.dataset.bereit = '1'; if (!REDUCED) el.textContent = zFormat(0, +(el.dataset.stellen || 0), el.dataset.nach); zio.observe(el); });
+  site.querySelectorAll('.stat b').forEach(el => { if (el.dataset.count !== undefined || el.dataset.zahl !== undefined) return; const t = el.textContent.trim(); if (!/^\d+$/.test(t)) return; el.dataset.count = t; el.textContent = '0'; cio.observe(el); });
 }
 
 // Scrollen: Header, Fortschritt, Parallaxe, nach oben
