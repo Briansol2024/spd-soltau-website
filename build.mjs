@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as fallback from './src/data-fallback.mjs';
 import { WAHL, STICHWAHL, nachruecker } from './src/data-wahl2026.mjs';
-import { FRAKTION, fraktionDaten, textBerichtigen } from './src/data-fraktion.mjs';
+import { FRAKTION, fraktionDaten, textBerichtigen, slugOf } from './src/data-fraktion.mjs';
 import { TERMIN_ZUSATZ } from './src/termin-zusatz.mjs';
 import { setBase } from './src/render.mjs';
 import * as T from './src/templates.mjs';
@@ -172,6 +172,12 @@ async function loadData() {
   d.people = d.people.map(p => { const f = fb.get(key(p.name)); return f ? { ...p, role: p.role || f.role, text: p.text || f.text, themen: p.themen.length ? p.themen : f.themen } : p; });
   // Fraktion: die Funktion steht ausschließlich im CMS (Team1) – Text und Themen dürfen aus dem Fallback kommen
   d.fraktion = d.fraktion.map(p => { const f = fb.get(key(p.name)); return f ? { ...p, text: p.text || f.text, themen: p.themen?.length ? p.themen : f.themen } : { themen: [], ...p }; });
+  // Fraktionsfotos in besserer Qualität (src/images/fraktion/<name>.jpg) ersetzen das Wix-Foto im Team, bei der Fraktion
+  // und auf der Wahlseite (die holt sich das Foto aus dem Team). Der Vorstand hat eigene Bilder und bleibt, wie er ist.
+  const fotoDatei = new Map(FRAKTION.mitglieder.filter(m => existsSync(path.join(__dirname, 'src', 'images', 'fraktion', slugOf(m.name) + '.jpg')))
+    .map(m => [key(m.name), `${BASE}/assets/images/fraktion/${slugOf(m.name)}.jpg`]));
+  const besseresFoto = p => (fotoDatei.has(key(p.name)) ? { ...p, photo: { ...(p.photo || {}), url: fotoDatei.get(key(p.name)) } } : p);
+  d.people = d.people.map(besseresFoto); d.fraktion = d.fraktion.map(besseresFoto);
   // Themenliste: feste Reihenfolge, nur Themen mit mindestens einer Person
   const used = new Set(d.people.flatMap(p => p.themen));
   d.themen = [...fallback.THEMEN_ORDER.filter(t => used.has(t)), ...[...used].filter(t => !fallback.THEMEN_ORDER.includes(t))];
@@ -389,7 +395,7 @@ async function main() {
     d.fr ? ['fraktion/index.html', '/fraktion/', 'Fraktion', `Unsere Fraktion im Rat der Stadt Soltau, Wahlperiode ${d.fr.wahlperiode}: elf Ratsmitglieder mit ihren Funktionen und Ausschüssen.`, T.fraktion2026Page(d)]
       : ['fraktion/index.html', '/fraktion/', 'Fraktion', 'Die SPD-Ratsfraktion im Stadtrat Soltau: Mitglieder, Anträge und Entscheidungen erklärt.', T.fraktionPage(d)],
     // Ein Profil je Ratsmitglied
-    ...(d.fr ? d.fr.mitglieder.map(m => [`fraktion/${m.slug}/index.html`, `/fraktion/${m.slug}/`, m.name, `${m.name}${m.haupt ? ` (${m.haupt})` : ''} – Ratsmitglied der SPD-Fraktion Soltau: Funktionen und Mitgliedschaften.`, T.fraktionProfilPage(d, m), m.photo?.url ? { ogImage: m.photo.url } : {}]) : []),
+    ...(d.fr ? d.fr.mitglieder.map(m => [`fraktion/${m.slug}/index.html`, `/fraktion/${m.slug}/`, m.name, `${m.name}${m.haupt ? ` (${m.haupt})` : ''} – Ratsmitglied der SPD-Fraktion Soltau: Funktionen und Mitgliedschaften.`, T.fraktionProfilPage(d, m), m.photo?.url ? { ogImage: /^https?:/.test(m.photo.url) ? m.photo.url : (site.url ? site.url + m.photo.url : null) } : {}]) : []),
     ['ortsverein/index.html', '/ortsverein/', 'Vorstand', 'Der Vorstand des SPD Ortsvereins Soltau: Wer den Ortsverein führt, Treffpunkt Roter Bahnhof, Kontakt.', T.ortsvereinPage(d)],
     ['ziele/index.html', '/ziele/', 'Unsere Ziele', 'Der 10-Punkte-Plan der SPD Soltau für die Wahlperiode 2026 bis 2031.', T.zielePage(d)],
     ['mitmachen/index.html', '/mitmachen/', 'Mitmachen', 'Mitglied werden, Newsletter oder ein Nachmittag am Infostand – so können Sie Soltau mitgestalten.', T.mitmachenPage(d)],
