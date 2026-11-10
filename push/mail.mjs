@@ -52,7 +52,7 @@ export function newsletterHtml({ betreff, vorwort, beitraege, termine, siteUrl, 
   <div style="padding:24px">
     <h1 style="font:800 26px/1.1 'Arial Narrow',Arial,sans-serif;text-transform:uppercase;margin:0 0 16px;color:#0F0F0F">${esc(betreff)}</h1>
     ${vorwort ? `<p>${esc(vorwort).replace(/\n/g, '<br>')}</p>` : ''}
-    ${beitraege.length ? block('Aktuelles', beitraege.map(n => `<p style="margin:0 0 14px"><b>${esc(n.title)}</b><br>${esc(n.teaser || '')}<br><a href="${siteUrl}/aktuelles/${n.slug}/" style="color:#E3000F">Weiterlesen →</a></p>`).join('')) : ''}
+    ${beitraege.length ? block('News', beitraege.map(n => `<p style="margin:0 0 14px"><b>${esc(n.title)}</b><br>${esc(n.teaser || '')}<br><a href="${siteUrl}/aktuelles/${n.slug}/" style="color:#E3000F">Weiterlesen →</a></p>`).join('')) : ''}
     ${termine.length ? block('Termine', termine.map(e => `<p style="margin:0 0 10px"><b style="color:#E3000F">${esc(e.wann)}</b> ${esc(e.title)}${e.zeit ? ', ' + esc(e.zeit) : ''}${e.ort ? ' · ' + esc(e.ort) : ''}</p>`).join('') + `<p><a href="${siteUrl}/termine/" style="color:#E3000F">Alle Termine →</a></p>`) : ''}
   </div>
   <div style="padding:16px 24px;border-top:1px solid #ddd;font-size:12px;color:#666">SPD Ortsverein Soltau · Am Bahnhof 1t · 29614 Soltau · <a href="${siteUrl}/impressum/" style="color:#666">Impressum</a> · <a href="${siteUrl}/datenschutz/" style="color:#666">Datenschutz</a>${abmeldeUrl ? ` · <a href="${abmeldeUrl}" style="color:#666">Newsletter abbestellen</a>` : ''}</div>

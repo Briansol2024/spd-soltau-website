@@ -54,7 +54,7 @@ const DEMO_ROLLE = !DEMO ? '' : (r => DEMO_ROLLEN.some(([k]) => k === r) ? r : V
 const demoName = r => (DEMO_ROLLEN.find(([k]) => k === r) || [])[1] || '';
 const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
 const BASE = SPD.base || '.';
-const TOPICS = { news: 'Aktuelles (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Mitfahrgesuche, Dokumente, Nachrichten)' };
+const TOPICS = { news: 'News (neue Beiträge)', termine: 'Termine (neu + Erinnerung am Vortag)', mitglieder: 'Mitglieder-Infos (Umfragen, Helferlisten, Mitfahrgesuche, Dokumente, Nachrichten)' };
 const ORTE = ['Kernstadt', 'Ahlften', 'Brock', 'Deimern', 'Dittmern', 'Friedrichseck', 'Harber', 'Hötzingen', 'Leitzingen', 'Marbostel', 'Meinern', 'Mittelstendorf', 'Moide', 'Oeningen', 'Tetendorf', 'Wolterdingen', 'Woltem'];
 const SECTIONS = [
   ['start', 'Start'], ['termine', 'Termine'], ['umfragen', 'Umfragen'], ['dokumente', 'Dokumente'],
@@ -1864,21 +1864,17 @@ function fokusSitzung(v, r, vomPoll = false) {
   }).catch(() => {});
 }
 
-// ---------- Beiträge für „Aktuelles“ (Wix Blog) ----------
+// ---------- Beiträge für die „News“ (Wix Blog), ohne Kategorien ----------
 async function secBeitraege(v) {
-  const cats = CFG.blogCats || [];
   let mine = [];
   try { mine = (await db.list('Aktionen', { desc: '_createdDate', limit: 50 })).filter(a => a.typ === 'beitrag_erstellen'); } catch (e) { mine = []; }
   v.innerHTML = `
-  ${sectionHead('Beitrag schreiben', 'Erscheint unter „Aktuelles“ auf der Website – Wix bleibt der Speicherort')}
+  ${sectionHead('Beitrag schreiben', 'Erscheint in den „News“ auf der Website – Wix bleibt der Speicherort')}
   <form class="form mb-form" id="f-post" novalidate>
     <div class="field"><label for="po-titel">Überschrift</label><input id="po-titel" name="titel" type="text" required maxlength="120" placeholder="z. B. Radweg nach Harber: Sanierung kommt"></div>
     <div class="field"><label for="po-teaser">Anrisstext (1–2 Sätze, erscheint in der Übersicht)</label><textarea id="po-teaser" name="teaser" rows="2" maxlength="300"></textarea></div>
     <div class="field"><label for="po-text">Text</label><textarea id="po-text" name="text" rows="12" required placeholder="Absätze durch Leerzeile trennen.&#10;## Zwischenüberschrift&#10;- Aufzählungspunkt"></textarea><span class="small muted">Leerzeile = neuer Absatz · „## “ am Zeilenanfang = Zwischenüberschrift · „- “ = Aufzählung</span></div>
-    <div class="mb-2">
-      <div class="field"><label for="po-kat">Kategorie</label><select id="po-kat" name="kategorie">${cats.length ? cats.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('') : '<option value="">(Kategorien werden beim Bauen der Website geladen)</option>'}</select></div>
-      <div class="field"><label for="po-bild">Titelbild (optional, wird verkleinert)</label><input id="po-bild" name="bild" type="file" accept="image/*"></div>
-    </div>
+    <div class="field"><label for="po-bild">Titelbild (optional, wird verkleinert)</label><input id="po-bild" name="bild" type="file" accept="image/*"></div>
     <div id="po-preview" class="po-preview" hidden></div>
     <label class="check"><input type="checkbox" name="veroeffentlichen" checked> <span>Sofort veröffentlichen (sonst als Entwurf bei Wix ablegen)</span></label>
     <p class="note" hidden></p>
@@ -1896,12 +1892,12 @@ async function secBeitraege(v) {
   $('#f-post').addEventListener('submit', async e => {
     const f = e.target; e.preventDefault(); if (!f.checkValidity()) { f.reportValidity(); return; }
     const fd = new FormData(f); const btn = f.querySelector('[type=submit]'); busy(btn, true);
-    const payload = { titel: fd.get('titel').trim(), teaser: fd.get('teaser').trim(), text: fd.get('text'), kategorieId: fd.get('kategorie') || '', kategorie: $('#po-kat').selectedOptions[0]?.textContent || '', veroeffentlichen: !!fd.get('veroeffentlichen'), bild, autor: me.name, autorId: me.id };
+    const payload = { titel: fd.get('titel').trim(), teaser: fd.get('teaser').trim(), text: fd.get('text'), veroeffentlichen: !!fd.get('veroeffentlichen'), bild, autor: me.name, autorId: me.id };
     if (JSON.stringify(payload).length > 480000) { msg(f.querySelector('.note'), 'Das Bild ist zu groß – bitte ein kleineres Foto wählen.'); busy(btn, false); return; }
     try {
       await db.insert('Aktionen', { title: `Beitrag: ${payload.titel}`, typ: 'beitrag_erstellen', payload: JSON.stringify(payload), status: 'offen', von: me.name });
       f.reset(); bild = ''; $('#po-preview').hidden = true;
-      msg(f.querySelector('.note'), DEMO ? 'In der echten App wird der Beitrag in den nächsten Minuten bei Wix angelegt und erscheint dann unter „Aktuelles“.' : 'Eingereicht – der Beitrag wird in den nächsten Minuten bei Wix angelegt und erscheint spätestens nach dem nächsten Website-Bau unter „Aktuelles“.', 'ok');
+      msg(f.querySelector('.note'), DEMO ? 'In der echten App wird der Beitrag in den nächsten Minuten bei Wix angelegt und erscheint dann in den „News“.' : 'Eingereicht – der Beitrag wird in den nächsten Minuten bei Wix angelegt und erscheint spätestens nach dem nächsten Website-Bau in den „News“.', 'ok');
     } catch (err) { msg(f.querySelector('.note'), 'Nicht gespeichert: ' + errText(err)); }
     busy(btn, false);
   });

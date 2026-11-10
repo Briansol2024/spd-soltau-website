@@ -18,9 +18,9 @@ import { SOLTAU_UMRISS, SOLTAU_ORT, HERZ_PFAD } from './data-soltau-umriss.mjs';
 const honigfalle = '<div class="hf" aria-hidden="true">'
   + '<label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>';
 
-// Reihenfolge nach Wichtigkeit (Vorstandswunsch): Aktuelles, Fraktion, Vorstand, Ziele, Termine, Mitmachen, Kontakt
+// Reihenfolge nach Wichtigkeit (Vorstandswunsch): News, Fraktion, Vorstand, Ziele, Termine, Mitmachen, Kontakt
 const NAV = [
-  ['/aktuelles/', 'Aktuelles'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'], ['/ziele/', 'Ziele'],
+  ['/aktuelles/', 'News'], ['/fraktion/', 'Fraktion'], ['/ortsverein/', 'Vorstand'], ['/ziele/', 'Ziele'],
   ['/termine/', 'Termine'], ['/mitmachen/', 'Mitmachen'], ['/kontakt/', 'Kontakt'],
 ];
 // Variante „Mitreden“ der Startseite (Schalter im Mitgliederbereich): eigener Menüpunkt zwischen Termine und Mitmachen
@@ -102,7 +102,7 @@ ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new D
         <p style="margin-top:16px;max-width:36ch">SPD Ortsverein Soltau<br>Am Bahnhof 1t · 29614 Soltau</p>
         <p style="margin-top:12px"><a href="https://www.instagram.com/spd_soltau/" target="_blank" rel="noopener">Instagram @spd_soltau</a></p>
       </div>
-      <div><h4>Politik</h4><ul><li><a href="${url('/aktuelles/')}">Aktuelles</a></li><li><a href="${url('/fraktion/')}">Ratsfraktion</a></li><li><a href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a></li><li><a href="${url('/ziele/')}">10-Punkte-Plan</a></li><li><a href="${url('/termine/')}">Termine</a></li></ul></div>
+      <div><h4>Politik</h4><ul><li><a href="${url('/aktuelles/')}">News</a></li><li><a href="${url('/fraktion/')}">Ratsfraktion</a></li><li><a href="${url('/stadtrat-2026/')}">Unsere 11 im Stadtrat</a></li><li><a href="${url('/ziele/')}">10-Punkte-Plan</a></li><li><a href="${url('/termine/')}">Termine</a></li></ul></div>
       <div><h4>Ortsverein</h4><ul><li><a href="${url('/ortsverein/')}">Vorstand</a></li><li><a href="${url('/mitmachen/')}">Mitglied werden</a></li><li><a href="${url('/roter-bahnhof/')}">Roter Bahnhof buchen</a></li><li><a href="${url('/kontakt/')}">Kontakt</a></li><li><a href="${url('/mitglieder/')}">Mitgliederbereich &amp; App</a></li></ul></div>
       <div><h4>SPD</h4><ul><li><a href="https://www.spd.de" target="_blank" rel="noopener">SPD Deutschland</a></li><li><a href="https://www.spd-niedersachsen.de" target="_blank" rel="noopener">SPD Niedersachsen</a></li></ul></div>
     </div>
@@ -331,8 +331,8 @@ export function startPage(d) {
 
   <div class="wrap section">
     <div class="section-head">
-      <h2 class="title">Aktuelles</h2>
-      <a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a>
+      <h2 class="title">News</h2>
+      <a class="more" href="${url('/aktuelles/')}">Alle News</a>
     </div>
     <div class="news" id="start-news">${d.news.slice(0, 5).map(newsCard).join('')}</div>
   </div>
@@ -436,23 +436,18 @@ export function ratRathausPage(d) {
       </div>
     </div>
     ${(d.ratsberichte || []).length ? `<div class="rb-block"><div class="section-head"><h2 class="title">So hat der Rat entschieden</h2><a class="linkbtn" href="${url('/ratsbericht/')}">Alle Ratsberichte →</a></div><div class="rb-grid">${(d.ratsberichte || []).slice(0, 2).map(b => ratsberichtKarte(b, true)).join('')}</div></div>` : ''}
-    <div class="rr-meinung"><b>Unsere Meinung dazu?</b><span>Zu den Themen aus Rat und Rathaus schreibt die Fraktion unter „Aktuelles“.</span><a class="btn btn-rot" href="${url('/aktuelles/')}">Aktuelles lesen</a></div>
+    <div class="rr-meinung"><b>Unsere Meinung dazu?</b><span>Zu den Themen aus Rat und Rathaus schreiben wir in unseren News.</span><a class="btn btn-rot" href="${url('/aktuelles/')}">News lesen</a></div>
     <p class="small muted">Stand ${esc(standText(s.stand))}. Diese Seite füllt sich automatisch aus den öffentlichen Seiten der Stadt Soltau; wir zeigen Überschriften, Termine und Links – die Inhalte selbst liegen bei der Stadt.</p>
   </div>
 </section>`;
 }
 
+// Alle Beiträge in einer Liste, ohne Kategorien (Wunsch Vorstand 10.11.2026: überall „News“, keine Kennzeichnung)
 export function aktuellesPage(d) {
-  const cats = [...new Set(d.news.map(n => n.cat))];
-  const labels = { Fraktion: 'Aus der Fraktion', Ortsverein: 'Ortsverein', Pressemitteilung: 'Presse' };
   return `
 <section>
-  ${pageHead('Aktuelles', 'Neues aus Rat<br>und Ortsverein', '', 'zeitungen')}
+  ${pageHead('SPD Soltau', 'News', '', 'zeitungen')}
   <div class="wrap section">
-    <div class="filter" role="group" aria-label="Beiträge filtern">
-      <button class="chip" data-cat="alle" aria-pressed="true">Alle</button>
-      ${cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="false">${esc(labels[c] || c)}</button>`).join('')}
-    </div>
     <div class="news" id="all-news">${d.news.map(newsCard).join('')}</div>
   </div>
 </section>`;
@@ -466,7 +461,7 @@ export function beitragPage(d, n) {
   return `
 <section>
   <div class="wrap article">
-    <a class="back" href="${url('/aktuelles/')}">← Alle Beiträge</a>
+    <a class="back" href="${url('/aktuelles/')}">← Alle News</a>
     <h1>${esc(n.title)}</h1>
     <span class="date">${fmt(n.date)}</span>
     ${n.teaser && !vorspannDoppelt(n) ? `<p class="lead">${esc(n.teaser)}</p>` : ''}
@@ -501,8 +496,8 @@ export function terminePage(d) {
 </section>`;
 }
 
-// Ortsverein und Fraktion haben dieselbe Struktur (Wunsch Vorsitz): Kopf → Zahlenband → Team nach Funktion → zwei Kästen → Beiträge
-function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, boxA, boxB, news, newsTitle }) {
+// Ortsverein und Fraktion haben dieselbe Struktur (Wunsch Vorsitz): Kopf → Zahlenband → Team nach Funktion → zwei Kästen → News
+function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, boxA, boxB, news }) {
   return `
 <section>
   ${pageHead(tag, h1, lead, foto)}
@@ -517,7 +512,7 @@ function teamPage({ tag, h1, lead, foto, stats, people, teamTitle, teamHint, box
     <div class="cols${boxA ? ' cols-2' : ''}">${boxA}${boxB}</div>
   </div>
   <div class="band-schwarz foto">${motiv('hagen')}<div class="wrap section">
-    <div class="section-head"><h2 class="title">${newsTitle}</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
+    <div class="section-head"><h2 class="title">News</h2><a class="more" href="${url('/aktuelles/')}">Alle News</a></div>
     <div class="news">${news.map(newsCard).join('')}</div>
   </div></div>
 </section>`;
@@ -536,7 +531,7 @@ export function fraktionPage(d) {
         <p class="small">Bei der Kommunalwahl am 13. September wurden elf SPD-Ratsmitglieder gewählt – erstmals stärkste Fraktion im Rat.</p>
         <a class="btn btn-weiss" href="${url('/stadtrat-2026/')}" style="justify-self:start">Unsere 11 Gewählten</a>
       </div>`,
-    news: (d.news.filter(n => n.cat === 'Fraktion').slice(0, 3).length ? d.news.filter(n => n.cat === 'Fraktion') : d.news).slice(0, 3), newsTitle: 'Aus dem Rat',
+    news: d.news.slice(0, 3),
   });
 }
 
@@ -556,7 +551,6 @@ const frKarte = m => `<article class="fk">
 
 export function fraktion2026Page(d) {
   const fr = d.fr;
-  const news = d.news.filter(n => n.cat === 'Fraktion');
   // Wahlergebnis der SPD bei der Kommunalwahl (aus src/data-wahl2026.mjs), zählt beim Erscheinen hoch
   const prozent = Math.round(d.wahl.spd.prozent * 10) / 10;
   const prozentText = prozent.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
@@ -580,8 +574,8 @@ export function fraktion2026Page(d) {
   </div>
 
   <div class="band-schwarz foto">${motiv('hagen')}<div class="wrap section">
-    <div class="section-head"><h2 class="title">Aus dem Rat</h2><a class="more" href="${url('/aktuelles/')}">Alle Beiträge</a></div>
-    <div class="news">${(news.length ? news : d.news).slice(0, 3).map(newsCard).join('')}</div>
+    <div class="section-head"><h2 class="title">News</h2><a class="more" href="${url('/aktuelles/')}">Alle News</a></div>
+    <div class="news">${d.news.slice(0, 3).map(newsCard).join('')}</div>
   </div></div>
 </section>`;
 }
@@ -632,7 +626,7 @@ export function ortsvereinPage(d) {
         <p class="small">Mitgestalten statt zuschauen. Im Rat, am Infostand oder im Hintergrund – es gibt viele Wege.</p>
         <a class="btn btn-weiss" href="${url('/mitmachen/')}" style="justify-self:start">Jetzt mitmachen</a>
       </div>`,
-    news: (d.news.filter(n => n.cat === 'Ortsverein').slice(0, 3).length ? d.news.filter(n => n.cat === 'Ortsverein') : d.news).slice(0, 3), newsTitle: 'Aus dem Ortsverein',
+    news: d.news.slice(0, 3),
   });
 }
 
@@ -798,7 +792,7 @@ export function impressumPage(d) {
     <h2>Urheberrecht</h2>
     <p>Texte, Fotos und Grafiken auf diesen Seiten unterliegen dem deutschen Urheberrecht. Fotos: SPD Ortsverein Soltau, sofern nicht anders angegeben; das Bildmaterial zur Landratswahl wird mit Erlaubnis von Sebastian Zinke verwendet. Amtliche Werke der Stadt Soltau (Amtsblatt, Bekanntmachungen) sind gemeinfrei (§ 5 UrhG); von Meldungen der Stadt übernehmen wir lediglich Überschrift und Anriss mit Quellenangabe und Link. Eine Nutzung unserer Inhalte über das Zitatrecht hinaus bedarf der Zustimmung.</p>
     <h2>Bildnachweise</h2>
-    <p>Hintergrund- und Symbolbilder stammen, soweit nicht anders angegeben, vom SPD Ortsverein Soltau (eigene Fotos und Drohnenaufnahmen). Das Luftbild auf der Kontaktseite: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN, 2026), Digitale Orthophotos, <a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>. Der Zeitungsstapel auf der Seite „Aktuelles“ stammt von der Hochschulbibliothek Wildau (Wikimedia Commons, CC0). Folgende Fotos stammen von Wikimedia Commons und stehen unter <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>:</p>
+    <p>Hintergrund- und Symbolbilder stammen, soweit nicht anders angegeben, vom SPD Ortsverein Soltau (eigene Fotos und Drohnenaufnahmen). Das Luftbild auf der Kontaktseite: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN, 2026), Digitale Orthophotos, <a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>. Der Zeitungsstapel auf der Seite „News“ stammt von der Hochschulbibliothek Wildau (Wikimedia Commons, CC0). Folgende Fotos stammen von Wikimedia Commons und stehen unter <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>:</p>
     <ul class="bildnachweise">${MOTIV_CREDITS.map(([, titel, autor, link]) => `<li><a href="${esc(link)}" target="_blank" rel="noopener">${esc(titel)}</a> – ${esc(autor)}</li>`).join('')}</ul>
     <p>Stadtumriss auf der Startseite: Geodaten © GeoBasis-DE / BKG (2026), Verwaltungsgebiete 1:250 000, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">Datenlizenz Deutschland – Namensnennung – Version 2.0</a>, vereinfacht.</p>
     <h2>Technik</h2>

@@ -45,7 +45,7 @@ setBase(BASE);
 const site = {
   name: 'SPD Soltau',
   claim: 'Aus Liebe zu Soltau',
-  description: 'SPD Ortsverein und Ratsfraktion Soltau: Aktuelles aus dem Stadtrat, Termine, unser Team, der 10-Punkte-Plan und Ihr direkter Draht zu uns.',
+  description: 'SPD Ortsverein und Ratsfraktion Soltau: News aus dem Stadtrat, Termine, unser Team, der 10-Punkte-Plan und Ihr direkter Draht zu uns.',
   url: (env.SITE_URL || '').replace(/\/$/, ''),
   email: env.SITE_EMAIL || '',
   heroImage: env.HERO_IMAGE || '',
@@ -162,7 +162,6 @@ async function loadData() {
     await tryLoad('insta', () => wix.fetchInstagram(client));
     try { d.ratsberichte = await wix.fetchRatsberichte(client); } catch (e) { console.log('[build] Ratsberichte: ' + e.message); d.ratsberichte = []; }
     try { d.mitreden = await wix.fetchMitreden(client); } catch (e) { console.log('[build] Mitreden: ' + e.message); }
-    try { d.blogCats = await wix.fetchCategories(client); } catch (e) { d.blogCats = []; }
   }
   // Hinweis und Anmeldelink zu einzelnen Terminen (siehe src/termin-zusatz.mjs)
   d.events = d.events.map(e => (TERMIN_ZUSATZ[e.id] ? { ...e, ...TERMIN_ZUSATZ[e.id] } : e));
@@ -287,7 +286,7 @@ async function buildApp() {
     shortcuts: [
       { name: 'Mitgliederbereich', url: './mitglieder/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Termine', url: './mitglieder/#termine', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
-      { name: 'Aktuelles', url: './aktuelles/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'News', url: './aktuelles/', icons: [{ src: 'assets/icons/icon-192.png', sizes: '192x192' }] },
     ],
   };
   await writeFile(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2), 'utf8');
@@ -362,11 +361,11 @@ async function main() {
     events: d.events,
     // Sitzungen der Stadt (Bürgerinformationssystem) mit Tagesordnung – für die Ratsvorbereitung in der App
     sitzungen: (d.stadt?.sitzungen || []).slice(0, 8).map(s => ({ datum: s.datum, zeit: s.zeit, gremium: s.gremiumLang, ort: s.ort, url: s.url, tops: s.tops || [] })),
-    news: d.news.map(n => ({ slug: n.slug, cat: n.cat, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
+    news: d.news.map(n => ({ slug: n.slug, date: n.date, title: n.title, teaser: n.teaser, img: n.img, imgLabel: n.imgLabel })),
     insta: d.insta.map(i => ({ id: i.id, url: i.url, images: i.images || [], caption: i.caption, date: i.date, likes: i.likes, comments: i.comments })),
     heroVideo: site.heroVideoId ? { base: `https://video.wixstatic.com/video/${site.heroVideoId}`, poster: site.heroPoster } : null,
     demo: DEMO_SITE,
-    app: { clientId: DEMO_SITE ? '' : (env.WIX_CLIENT_ID || ''), vapid: env.VAPID_PUBLIC_KEY || '', blogCats: d.blogCats || [], ics: { public: `${BASE}/assets/termine.ics` } },
+    app: { clientId: DEMO_SITE ? '' : (env.WIX_CLIENT_ID || ''), vapid: env.VAPID_PUBLIC_KEY || '', ics: { public: `${BASE}/assets/termine.ics` } },
   };
   // Kalender-Abos (ICS): öffentlich nur die öffentlichen Termine, intern alle (Adresse mit Geheimnis, nur im Mitgliederbereich verlinkt)
   await writeFile(path.join(OUT, 'assets', 'termine.ics'), icsFeed(d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat'), 'SPD Soltau – Termine'), 'utf8');
@@ -389,7 +388,7 @@ async function main() {
 
   const pages = [
     ['index.html', '/', 'Start', '', T.startPage(d), { welcome: env.LAUNCH_AT && Date.now() < welcomeEnd ? [launchTs, welcomeEnd] : null }],
-    ['aktuelles/index.html', '/aktuelles/', 'Aktuelles', 'Neues aus Rat und Ortsverein: Berichte aus der Fraktion, Pressemitteilungen und Einblicke in unsere Arbeit.', T.aktuellesPage(d)],
+    ['aktuelles/index.html', '/aktuelles/', 'News', 'News der SPD Soltau: was wir im Stadtrat und in der Stadt bewegen – Berichte, Pressemitteilungen und Einblicke in unsere Arbeit.', T.aktuellesPage(d)],
     ['termine/index.html', '/termine/', 'Termine', 'Ratssitzungen, Fraktions- und Vorstandssitzungen, Infostände – wann und wo wir uns treffen.', T.terminePage(d)],
     ['stadtrat-2026/index.html', '/stadtrat-2026/', 'Unsere 11 im Stadtrat', 'Kommunalwahl 2026: Die elf gewählten SPD-Ratsmitglieder für Soltau, die Sitzverteilung im neuen Rat und wer nachrückt.', T.stadtratPage(d)],
     d.fr ? ['fraktion/index.html', '/fraktion/', 'Fraktion', `Unsere Fraktion im Rat der Stadt Soltau, Wahlperiode ${d.fr.wahlperiode}: elf Ratsmitglieder mit ihren Funktionen und Ausschüssen.`, T.fraktion2026Page(d)]

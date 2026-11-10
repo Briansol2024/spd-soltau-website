@@ -12,7 +12,7 @@ export const WAS = [['fehlt', 'Funktion fehlt'], ['fehler', 'Fehler'], ['kompliz
 export const PRIO = [['nett', 'Wäre nett'], ['wichtig', 'Wichtig'], ['dringend', 'Dringend']];
 export const BEREICHE = [
   ['App', ['Start', 'Termine & Kalender', 'Mitfahren', 'Umfragen', 'Ideen', 'Versammlungen', 'Dokumente & Grundwissen', 'Mitgliederverzeichnis', 'Sitzungen', 'Ratsarbeit', 'Vorstand', 'Profil & Push', 'Hilfe & Anleitungen']],
-  ['Website', ['Startseite', 'Aktuelles', 'Termine', 'Rat & Rathaus', 'Ziele', 'Mitmachen', 'Kontakt', 'Newsletter', 'Sonstiges']],
+  ['Website', ['Startseite', 'News', 'Termine', 'Rat & Rathaus', 'Ziele', 'Mitmachen', 'Kontakt', 'Newsletter', 'Sonstiges']],
 ];
 // Was der Textkasten je nach Auswahl fragt
 export const HINWEIS = {

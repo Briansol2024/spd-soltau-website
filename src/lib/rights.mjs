@@ -13,7 +13,7 @@
 //     Verwalter gespeichert hat – so kann sich niemand über Umwege selbst Rechte geben.
 
 export const RIGHTS = [
-  ['beitraege', 'Beiträge für „Aktuelles“ schreiben und veröffentlichen'],
+  ['beitraege', 'Beiträge für die „News“ schreiben und veröffentlichen'],
   ['termine', 'Termine anlegen und absagen'],
   ['umfragen', 'Umfragen anlegen und schließen'],
   ['helfer', 'Helferlisten anlegen'],

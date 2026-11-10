@@ -116,7 +116,7 @@ export function makeRatsarbeit(ctx) {
       ${sectionHead('Anträge', 'Entwurf → Abstimmung in der Fraktion → eingereicht → entschieden')}
       <button class="btn btn-rot rz-breit" type="button" data-neu="antrag">${ICON.plus}Neuer Antrag</button>
       ${grp(['abstimmung'], 'In der Fraktion abstimmen') + grp(['entwurf'], 'Entwürfe') + grp(['eingereicht'], 'Eingereicht') + grp(['beschlossen', 'abgelehnt', 'zurueckgezogen'], 'Entschieden') || '<div class="rz-leer">Noch kein Antrag. Der erste dauert fünf Minuten: Titel, Beschlussvorschlag, Begründung – fertig.</div>'}
-      <p class="small muted">Ein Antrag wird hier geschrieben und in der Fraktion abgestimmt (Daumen hoch), dann als PDF gedruckt und bei der Verwaltung eingereicht. Mit „Als Beitrag vorbereiten“ wird daraus mit einem Klick der Entwurf für „Aktuelles“.</p>
+      <p class="small muted">Ein Antrag wird hier geschrieben und in der Fraktion abgestimmt (Daumen hoch), dann als PDF gedruckt und bei der Verwaltung eingereicht. Mit „Als Beitrag vorbereiten“ wird daraus mit einem Klick der Entwurf für die „News“.</p>
     </div>`;
   }
   const antragText = a => `Antrag der SPD-Fraktion: ${a.titel}\n${a.gremium || ''}${a.sitzung ? ', Sitzung am ' + fmtTag(a.sitzung) : ''}\nBeschlussvorschlag: ${a.beschluss || ''}\nIn der App: ${appLink('#ratsarbeit/a-' + a._id)}`;

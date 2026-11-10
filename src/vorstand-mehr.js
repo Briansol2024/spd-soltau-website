@@ -35,7 +35,7 @@ export function makeVorstandMehr(ctx) {
     const vorschau = v => {
       const ns = news.filter(n => v.beitraege.includes(n.slug)), es = events.filter(e => v.termine.includes(e.id));
       return `<div class="nl-mail"><div class="nl-mail-kopf">SPD Soltau · Aus Liebe zu Soltau</div><h3>${esc(v.betreff || 'Betreff')}</h3>${v.vorwort ? `<p>${nl2br(v.vorwort)}</p>` : ''}
-        ${ns.length ? `<h4>Aktuelles</h4>${ns.map(n => `<p><b>${esc(n.title)}</b><br>${esc(n.teaser || '')}<br><a href="${esc(siteUrl() + '/aktuelles/' + n.slug + '/')}">Weiterlesen</a></p>`).join('')}` : ''}
+        ${ns.length ? `<h4>News</h4>${ns.map(n => `<p><b>${esc(n.title)}</b><br>${esc(n.teaser || '')}<br><a href="${esc(siteUrl() + '/aktuelles/' + n.slug + '/')}">Weiterlesen</a></p>`).join('')}` : ''}
         ${es.length ? `<h4>Termine</h4>${es.map(e => `<p><b>${esc(fmtShort(e.date))}</b> ${esc(e.title)}${e.zeit ? ', ' + esc(e.zeit) : ''}${e.ort ? ' · ' + esc(e.ort) : ''}</p>`).join('')}` : ''}
         <p class="small muted">SPD Ortsverein Soltau · Am Bahnhof 1t · 29614 Soltau · <a href="#">Abmelden</a></p></div>`;
     };

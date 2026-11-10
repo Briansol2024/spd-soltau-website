@@ -301,7 +301,6 @@ export function makeDemoClient(SPD, { rolle = 'vorstand', mitglied = false } = {
     async remove(col, id) { const list = data[col] || []; const i = list.findIndex(x => x._id === id); if (i >= 0) list.splice(i, 1); return {}; },
     async get(col, id) { return (data[col] || []).find(x => x._id === id); },
   };
-  SPD.app = SPD.app || {}; if (!(SPD.app.blogCats || []).length) SPD.app.blogCats = [{ id: 'c1', label: 'Fraktion' }, { id: 'c2', label: 'Ortsverein' }, { id: 'c3', label: 'Pressemitteilung' }];
   const members = { async getCurrentMember() { return { member: { _id: ME, loginEmail: 'max.mustermann@example.de', status: 'APPROVED', contact: { firstName: 'Max', lastName: 'Mustermann' }, profile: { nickname: 'Max Mustermann' } } }; } };
   const auth = { loggedIn: () => true, getTokens: () => ({}), setTokens() {}, async logout() { return { logoutUrl: null }; } };
   // Beispiel-Eingang (Registrierung, Buchung, Anfrage) – wie er nach Push-Nachrichten aussähe

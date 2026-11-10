@@ -1,5 +1,5 @@
 // Client-Skript: Interaktion + Bewegung (nach Referenz-Entwurf D). Inhalte kommen aus window.SPD (im Build eingebettet).
-import { setBase, url, newsCard, eventsGrouped, personCard, pollButtons, esc } from './render.mjs';
+import { setBase, url, eventsGrouped, personCard, pollButtons, esc } from './render.mjs';
 
 const SPD = window.SPD || {};
 setBase(SPD.base || '');
@@ -40,17 +40,6 @@ burger?.addEventListener('click', () => {
   burger.setAttribute('aria-expanded', o);
   burger.setAttribute('aria-label', o ? 'Menü schließen' : 'Menü öffnen');
 });
-
-// ---------- Aktuelles: Filter ----------
-const allNews = $('#all-news');
-if (allNews && SPD.news) {
-  $$('.filter .chip').forEach(b => b.addEventListener('click', () => {
-    $$('.filter .chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
-    b.setAttribute('aria-pressed', 'true');
-    const cat = b.dataset.cat;
-    allNews.innerHTML = SPD.news.filter(n => cat === 'alle' || n.cat === cat).map(newsCard).join('') || '<p class="muted">Keine Beiträge in dieser Kategorie.</p>';
-  }));
-}
 
 // ---------- Termine: nur öffentliche ----------
 const onlyPublic = $('#only-public'), allEv = $('#all-events');
@@ -366,7 +355,7 @@ $$('form.wix-form').forEach(f => f.addEventListener('submit', async e => {
   try {
     await wixInsert('Abonnenten', { title: typ, typ, token, status: 'neu' });
     history.replaceState(null, '', location.pathname);
-    box.innerHTML = typ === 'bestaetigung' ? '<h3>Vielen Dank – Ihre Anmeldung ist bestätigt.</h3><p>Die nächste Ausgabe kommt automatisch. Bis dahin: <a href="../aktuelles/">Aktuelles</a>.</p>' : '<h3>Sie sind abgemeldet.</h3><p>Schade – aber jederzeit gern wieder. Sie bekommen keine weiteren Ausgaben.</p>';
+    box.innerHTML = typ === 'bestaetigung' ? '<h3>Vielen Dank – Ihre Anmeldung ist bestätigt.</h3><p>Die nächste Ausgabe kommt automatisch. Bis dahin: <a href="../aktuelles/">unsere News</a>.</p>' : '<h3>Sie sind abgemeldet.</h3><p>Schade – aber jederzeit gern wieder. Sie bekommen keine weiteren Ausgaben.</p>';
   } catch (e) { box.innerHTML = '<p class="note note-err">Das hat gerade nicht geklappt (' + e.message + '). Bitte später noch einmal versuchen.</p>'; }
 })();
 
