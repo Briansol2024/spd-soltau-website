@@ -22,8 +22,17 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return; // Wix-Bilder, Video, APIs: unangetastet
   if (/\.(mp4|webm|m4a|mp3)$/.test(url.pathname) || req.headers.has('range')) return; // Hilfevideos: direkt vom Netz (Bereichsanfragen, groß)
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
-    e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })
-      .catch(() => caches.match(req).then(r => r || caches.match('./offline.html'))));
+    // Bei schwachem Netz scheitert der erste Versuch oft nur kurz: einmal nachfassen, erst dann Cache oder Offline-Seite
+    e.respondWith((async () => {
+      let res;
+      try { res = await fetch(req); }
+      catch (err) {
+        try { await new Promise(r => setTimeout(r, 900)); res = await fetch(req); }
+        catch (err2) { return (await caches.match(req)) || (await caches.match('./offline.html')) || Response.error(); }
+      }
+      if (res.ok && res.type === 'basic') { const copy = res.clone(); e.waitUntil(caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {})); }
+      return res;
+    })());
     return;
   }
   // Skripte, Styles, Manifest: Netz zuerst (damit Änderungen sofort ankommen), sonst Cache

@@ -248,10 +248,16 @@ document.addEventListener('click', e => {
 // ---------- App: Service Worker (installierbar, offline, Push) ----------
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => {
+    // Nur ein echtes Update zählt (vorher schon ein Service Worker aktiv), nicht der erste Besuch
+    const hatteSW = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register(new URL(`${SPD.base || '.'}/sw.js`, location.href)).then(reg => {
-      // Neue Fassung sofort übernehmen und die Seite einmal neu laden – sonst läuft die App mit altem Stand weiter
+      // Neue Fassung sofort übernehmen. Neu laden nur im Mitgliederbereich (läuft lange offen); öffentliche Seiten holen
+      // HTML, Skripte und Styles ohnehin frisch aus dem Netz – ein Neuladen würde dort nur einen Seitenwechsel abbrechen.
       let neuGeladen = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => { if (neuGeladen) return; neuGeladen = true; location.reload(); });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (neuGeladen || !hatteSW || !/\/mitglieder\//.test(location.pathname)) return;
+        neuGeladen = true; location.reload();
+      });
       const pruefen = () => reg.update().catch(() => {});
       reg.addEventListener('updatefound', () => { const neu = reg.installing; if (!neu) return; neu.addEventListener('statechange', () => { if (neu.state === 'installed' && navigator.serviceWorker.controller) neu.postMessage('skipWaiting'); }); });
       pruefen(); addEventListener('focus', pruefen);
