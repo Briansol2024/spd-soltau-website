@@ -57,7 +57,7 @@ ${path === '/' ? `<script>(function(){try{if((matchMedia('(display-mode: standal
 <link rel="stylesheet" href="${url('/assets/fonts.css')}">
 <link rel="stylesheet" href="${url('/assets/styles.css')}">
 <script>window.SPD=${JSON.stringify({ base: url(''), ...clientData }).replace(/</g, '\\u003c')};</script>
-${startNeu ? `<script>(function(){var h=document.documentElement;h.classList.add('hn-js');try{if(!sessionStorage.getItem('spd-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!location.hash){sessionStorage.setItem('spd-intro','1');h.classList.add('intro-an')}}catch(e){}})();</script>` : ''}
+${startNeu ? `<script>(function(){var h=document.documentElement;h.classList.add('hn-js');try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&!location.hash)h.classList.add('intro-an')}catch(e){}})();</script>` : ''}
 </head>
 <body>
 <div id="site">

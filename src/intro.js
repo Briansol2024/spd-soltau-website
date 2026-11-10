@@ -2,12 +2,16 @@
    den Umriss des Stadtgebiets, die Stadt wird markiert. Dann fließt der Umriss zum Herz, das sich rot füllt und schlägt;
    darunter erscheint „Aus Liebe zu Soltau ♥“. Im Herz läuft das Drohnenvideo – man fliegt hindurch, Logo und Spruch fliegen
    an ihren Platz in der Kopfzeile, und die Startseite („Moin!“) baut sich auf.
-   Ob es läuft, entscheidet das kleine Skript im Seitenkopf (templates.mjs → layout): nur einmal pro Sitzung, nicht bei
-   „Bewegung reduzieren“ und nicht, wenn die Adresse auf einen Abschnitt zeigt (#…). Dann trägt <html> die Klasse intro-an.
+   Ob es läuft, entscheidet das kleine Skript im Seitenkopf (templates.mjs → layout): bei jedem Laden der Startseite
+   (Wunsch Vorstand 10.11.2026), nur nicht bei „Bewegung reduzieren“ und nicht, wenn die Adresse auf einen Abschnitt
+   zeigt (#…). Dann trägt <html> die Klasse intro-an.
    Die Umrisspunkte setzt build.mjs aus src/data-soltau-umriss.mjs ein. */
 (function () {
   const d = document, w = window, html = d.documentElement;
   if (!html.classList.contains('intro-an') || !d.querySelector('.hero-neu')) { html.classList.remove('intro-an'); return; }
+  // Beim Neuladen nicht an die alte Stelle springen: das Intro beginnt und endet immer oben an der Startseite
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { /* egal */ }
+  w.scrollTo(0, 0);
   const SOLTAU = /*PUNKTE*/[];
   const ORT = [-0.0211, 0.076];                       // Ortspunkt (BKG), relativ zur Umrissbreite
   const KOORD = [52.987347, 9.837525];                // Stadt Soltau, BKG-Punkt
