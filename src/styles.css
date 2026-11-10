@@ -2277,12 +2277,15 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 @container site (max-width:900px){.fk-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 16px}}
 @container site (max-width:560px){
   .fk-grid{grid-template-columns:minmax(0,1fr);gap:14px}
-  .fk{grid-template-columns:118px minmax(0,1fr);grid-template-rows:auto}
-  .fk-bild{align-self:start}
-  .fk-foto{aspect-ratio:1/1;font-size:30px}
-  .fk-text{border-top:0;border-left:4px solid var(--rot);padding:14px 14px 16px;gap:8px}
-  .fk-name{font-size:22px}
-  .fk-haupt{font-size:15.5px}
+  /* Visitenkarte: Foto und Name als Kopfzeile, immer gleich hoch; Funktion und Liste darunter über die volle Breite */
+  .fk{grid-template-columns:104px minmax(0,1fr);grid-template-rows:auto}
+  .fk-text{display:contents}
+  .fk-bild{grid-column:1;grid-row:1}
+  .fk-foto{aspect-ratio:1/1;font-size:28px}
+  .fk-name{grid-column:2;grid-row:1;align-self:center;padding:0 16px;font-size:24px;line-height:1.02}
+  .fk-haupt{grid-column:1/-1;grid-row:2;margin:0;padding:14px 16px 0;border-top:4px solid var(--rot);font-size:16px}
+  .fk-liste{grid-column:1/-1;grid-row:3;margin:0;padding:10px 16px 18px}
+  .fk:not(:has(.fk-haupt)) .fk-liste{grid-row:2;border-top:4px solid var(--rot);padding-top:14px}
   .fk-liste li{font-size:14.5px}
 }
 .fp{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:48px;align-items:start}
