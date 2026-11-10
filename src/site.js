@@ -233,6 +233,41 @@ if (heroVideo && SPD.heroVideo && !REDUCED) {
 const hero = $('.hero');
 hero?.addEventListener('mousemove', e => { const r = hero.getBoundingClientRect(); hero.style.setProperty('--mx', (e.clientX - r.left) + 'px'); hero.style.setProperty('--my', (e.clientY - r.top) + 'px'); });
 
+// ---------- Neue erste Ansicht der Startseite (heroNeu in templates.mjs) ----------
+// Nächster Termin in der Faktenleiste, Wahlergebnis zählt hoch, leichte Tiefe bei Maus und Scrollen.
+// Der Auftritt (.hn-los) startet sofort – oder am Ende des Intros (src/intro.js ruft StartNeu.auftritt()).
+(function () {
+  const hn = $('.hero-neu'); if (!hn) return;
+  // Nächster öffentlicher Termin (wie im Laufband: nur Öffentlich und Rat)
+  const t = hn.querySelector('.hn-termin');
+  const j = new Date(), heute = `${j.getFullYear()}-${String(j.getMonth() + 1).padStart(2, '0')}-${String(j.getDate()).padStart(2, '0')}`;
+  const ev = (SPD.events || []).filter(e => (e.typ === 'Öffentlich' || e.typ === 'Rat') && e.date >= heute).sort((a, b) => a.date.localeCompare(b.date))[0];
+  if (t && ev) {
+    const tag = new Date(ev.date + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '').replace('.', '');
+    const b = t.querySelector('b'); const em = document.createElement('em'); em.textContent = tag;
+    b.append(em, ev.title + (ev.zeit ? ' · ' + ev.zeit : ''));
+  } else if (t) t.remove();
+  // Wahlergebnis zählt hoch
+  const zaehlen = () => hn.querySelectorAll('b[data-zahl]').forEach(el => {
+    const ziel = +el.dataset.zahl, st = +(el.dataset.stellen || 0), nach = el.dataset.nach || '';
+    const f = v => v.toLocaleString('de-DE', { minimumFractionDigits: st, maximumFractionDigits: st }) + nach;
+    if (REDUCED) { el.textContent = f(ziel); return; }
+    el.textContent = f(0);
+    setTimeout(() => { const t0 = performance.now(); (function s(n) { const p = Math.min(1, (n - t0) / 1300); el.textContent = f(Math.round(ziel * (1 - Math.pow(1 - p, 4)) * 10 ** st) / 10 ** st); if (p < 1) requestAnimationFrame(s); })(t0); }, 850);
+  });
+  // Tiefe: Karte folgt der Maus ein wenig, Video läuft beim Scrollen langsamer mit
+  if (!REDUCED) {
+    hn.addEventListener('mousemove', e => {
+      const r = hn.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width - .5, my = (e.clientY - r.top) / r.height - .5;
+      hn.style.setProperty('--hn-kx', (-mx * 22).toFixed(1) + 'px'); hn.style.setProperty('--hn-ky', (-my * 14).toFixed(1) + 'px');
+    });
+    let wartet = false;
+    addEventListener('scroll', () => { if (wartet) return; wartet = true; requestAnimationFrame(() => { wartet = false; hn.style.setProperty('--hn-par', (Math.min(scrollY, innerHeight) * .28).toFixed(1) + 'px'); }); }, { passive: true });
+  }
+  window.StartNeu = { auftritt() { if (hn.classList.contains('hn-los')) return; hn.classList.add('hn-los'); zaehlen(); } };
+  if (!document.documentElement.classList.contains('intro-laeuft')) StartNeu.auftritt();
+})();
+
 // Claim im Footer buchstabenweise
 const claim = $('.footer .claim');
 if (claim) { let i = 0; [...claim.childNodes].forEach(n => { if (n.nodeType !== 3) return; const frag = document.createDocumentFragment(); [...n.textContent].forEach(ch => { const s = document.createElement('span'); s.textContent = ch; s.style.setProperty('--i', i++); frag.appendChild(s); }); n.replaceWith(frag); }); }

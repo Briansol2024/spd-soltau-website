@@ -434,6 +434,9 @@ async function main() {
   // Assets
   await copyFile(path.join(__dirname, 'src', 'styles.css'), path.join(OUT, 'assets', 'styles.css'));
   await copyFile(path.join(__dirname, 'src', 'site.js'), path.join(OUT, 'assets', 'site.js'));
+  // Intro der Startseite (src/intro.js) mit den Punkten des Stadtumrisses
+  const { SOLTAU_UMRISS } = await import('./src/data-soltau-umriss.mjs');
+  await writeFile(path.join(OUT, 'assets', 'intro.js'), (await readFile(path.join(__dirname, 'src', 'intro.js'), 'utf8')).replace('/*PUNKTE*/[]', JSON.stringify(SOLTAU_UMRISS)), 'utf8');
   await copyFile(path.join(__dirname, 'src', 'render.mjs'), path.join(OUT, 'assets', 'render.mjs'));
   await writeFile(path.join(OUT, 'assets', 'favicon.svg'), FAVICON, 'utf8');
   await copyFonts();

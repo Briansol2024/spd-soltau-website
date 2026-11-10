@@ -4,6 +4,7 @@ import { stadtKacheln } from './lib/stadt.mjs';
 import { HELP_TOPICS, stepsFor } from './lib/hilfe.mjs';
 
 import { videoBlock, mitredenBlock } from './templates-mitreden.mjs';
+import { SOLTAU_UMRISS, SOLTAU_ORT, HERZ_PFAD } from './data-soltau-umriss.mjs';
 /* Honigfalle gegen Formular-Bots.
  *
  * Ein Feld, das kein Mensch je sieht: aus dem Sichtfeld geschoben, aus der
@@ -28,8 +29,9 @@ const navFuer = site => site.mitreden ? [...NAV.slice(0, 5), ['/mitreden/', 'Mit
 export function layout({ site, path, title, description, content, clientData = {}, noindex = false, ogImage = null, welcome = null }) {
   const fullTitle = path === '/' ? `${site.name} – ${site.claim}` : `${title} – ${site.name}`;
   const canonical = site.url ? `${site.url}${path}` : '';
+  const startNeu = (path === '/' || path === '/start/') && !!site.heroVideoId;   // neue erste Ansicht mit Intro (siehe heroNeu, src/intro.js)
   return `<!doctype html>
-<html lang="de">
+<html lang="de"${startNeu ? ' class="start-neu"' : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -55,6 +57,7 @@ ${path === '/' ? `<script>(function(){try{if((matchMedia('(display-mode: standal
 <link rel="stylesheet" href="${url('/assets/fonts.css')}">
 <link rel="stylesheet" href="${url('/assets/styles.css')}">
 <script>window.SPD=${JSON.stringify({ base: url(''), ...clientData }).replace(/</g, '\\u003c')};</script>
+${startNeu ? `<script>(function(){var h=document.documentElement;h.classList.add('hn-js');try{if(!sessionStorage.getItem('spd-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!location.hash){sessionStorage.setItem('spd-intro','1');h.classList.add('intro-an')}}catch(e){}})();</script>` : ''}
 </head>
 <body>
 <div id="site">
@@ -72,7 +75,7 @@ ${path.startsWith('/mitglieder/') ? `<header class="app-header">
 <header class="header">
   <div class="wrap">
     <a class="logo" href="${url('/index.html')}" aria-label="SPD Soltau – Startseite"><img src="${url('/assets/images/logo-spd-soltau-weiss.png')}" alt="SPD Soltau" width="88" height="60" decoding="async"></a>
-    <span class="slogan">Aus Liebe<br>zu Soltau</span>
+    <span class="slogan">Aus Liebe<br>zu Soltau<svg class="slogan-herz" viewBox="0 0 100 90" aria-hidden="true" focusable="false"><path d="${HERZ_PFAD}"/></svg></span>
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
       ${navFuer(site).map(([p, label]) => `<a href="${url(p)}"${path.startsWith(p) ? ' class="active" aria-current="page"' : ''}>${label}</a>`).join('\n      ')}
     </nav>
@@ -147,7 +150,7 @@ ${path.startsWith('/mitglieder/') ? `<footer class="app-footer"><span>© ${new D
 
 <div class="progress" id="progress" aria-hidden="true"></div>
 <button class="totop" id="totop" type="button" aria-label="Nach oben"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
-<script type="module" src="${url('/assets/site.js')}"></script>
+${startNeu ? `<script src="${url('/assets/intro.js')}"></script>\n` : ''}<script type="module" src="${url('/assets/site.js')}"></script>
 </body>
 </html>
 `;
@@ -235,6 +238,40 @@ export function laufband(spans, sekProElement = 6, extraKlasse = '') {
   const jeHaelfte = Math.ceil(20 / teile.length) * teile.length; const haelfte = Array.from({ length: jeHaelfte }, (_, i) => teile[i % teile.length]).join('');
   return `<div class="ticker-track" style="animation-duration:${jeHaelfte * sekProElement}s">${haelfte}${haelfte}</div>`;
 }
+// „Moin!“ mit Pinselstrich – auf der alten und der neuen ersten Ansicht
+const MOIN_H1 = '<h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span><svg class="moin-strich" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><filter id="moin-rau" x="-6%" y="-40%" width="112%" height="180%"><feTurbulence type="fractalNoise" baseFrequency="0.035 0.07" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/></filter></defs><g filter="url(#moin-rau)"><path class="zug1" d="M9 16 C 70 8, 150 22, 226 12 C 258 8, 276 14, 291 10" stroke-width="10"/><path class="zug2" d="M285 31 C 232 35, 168 27, 104 33 C 76 36, 56 32, 32 35" stroke-width="7.5"/></g></svg></h1>';
+
+// Neue erste Ansicht (seit 10.11.2026): Drohnenvideo über die volle Höhe, Kopfzeile darüber, groß „Moin!“,
+// Stadtumriss mit Herz auf der Stadt und eine Faktenleiste (Wahlergebnis, Sitze, nächster Termin).
+// Beim ersten Besuch läuft davor das Intro „Soltau wird Herz“ (src/intro.js); der Auftritt startet mit .hn-los (site.js).
+const UMRISS_D = 'M' + Array.from({ length: SOLTAU_UMRISS.length / 2 }, (_, i) => `${(SOLTAU_UMRISS[2 * i] * 1000).toFixed(1)} ${(SOLTAU_UMRISS[2 * i + 1] * 1000).toFixed(1)}`).join('L') + 'Z';
+function heroNeu(d, ratLink, ratText) {
+  const [px, py] = SOLTAU_ORT.map(v => (v * 1000).toFixed(1));
+  const mitreden = d.startVariante === 'mitreden';
+  const text = mitreden ? 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wie Sie mitreden können.' : 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wer für Sie im Stadtrat sitzt.';
+  const knoepfe = mitreden ? `<a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${ratLink}">${ratText}</a>` : `<a class="btn btn-rot" href="${ratLink}">${ratText}</a>`;
+  const prozent = d.wahl?.spd?.prozent != null ? Math.round(d.wahl.spd.prozent * 10) / 10 : null;
+  const fakten = [
+    prozent != null ? `<div class="hn-fakt"><b data-zahl="${prozent}" data-stellen="1" data-nach=" %">${prozent.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</b><span>Kommunalwahl ${esc(String(d.wahl.datum || '').slice(0, 4))}</span></div>` : '',
+    d.fr ? `<div class="hn-fakt"><b>${d.fr.sitze} <small>von ${d.fr.sitzeRat}</small></b><span>Sitze · stärkste Fraktion</span></div>` : '',
+    `<a class="hn-fakt hn-termin" href="${url('/termine/')}"><span>Nächster Termin</span><b></b><i aria-hidden="true">→</i></a>`,
+  ].join('\n      ');
+  return `<div class="hero has-video hero-neu">
+    ${heroMedia(d.site)}
+    <div class="hn-karte" aria-hidden="true"><svg viewBox="-520 -360 1040 720">
+      <path class="hn-umriss" d="${UMRISS_D}" pathLength="1"/><path class="hn-scan" d="${UMRISS_D}" pathLength="1" stroke-dasharray=".05 .95"/>
+      <path class="hn-linie" d="M${px} ${py}L230 232L470 232" pathLength="1"/>
+      <g transform="translate(${px} ${py})"><g class="hn-pin"><circle class="hn-ring" r="8"/><circle class="hn-ring r2" r="8"/><path class="hn-pinherz" d="${HERZ_PFAD}" transform="translate(-15 -13.5) scale(.3)"/></g></g>
+    </svg><div class="hn-ort">Stadt Soltau<span>52,99° N · 9,84° O</span></div></div>
+    <div class="wrap hn-wrap">
+      ${MOIN_H1}
+      <div class="hn-unter"><p>${text}</p><div class="hero-actions">${knoepfe}</div></div>
+    </div>
+    <div class="hn-leiste"><div class="wrap hn-leiste-in">
+      ${fakten}
+    </div></div>
+  </div>`;
+}
 export function startPage(d) {
   const upcoming = d.events.filter(e => e.typ === 'Öffentlich' || e.typ === 'Rat').slice(0, 4); // Website: nur öffentliche Termine
   // Ab der konstituierenden Sitzung führt der Knopf im Hero zur Fraktion, vorher zum Wahlergebnis
@@ -245,11 +282,10 @@ export function startPage(d) {
     : laufband(d.nachStichwahl ? termine.flatMap((t, i) => i % 2 ? [t] : ['<span>Danke für Ihre Stimme bei der Stichwahl!</span>', t]).concat(termine.length ? [] : ['<span>Danke für Ihre Stimme bei der Stichwahl!</span>']) : (termine.length ? termine : ['<span>Termine folgen</span>']), 10);
   return `
 <section>
-  <div class="hero${d.site.heroVideoId ? ' has-video' : ''}">
-    ${heroMedia(d.site)}
+  ${d.site.heroVideoId ? heroNeu(d, ratLink, ratText) : `<div class="hero">
     <div class="wrap">
       <div class="hero-text">
-        <h1 class="hero-moin" aria-label="Moin!"><span class="ln"><span class="moin" aria-hidden="true"><i>M</i><i>o</i><i>i</i><i>n</i><i class="bang">!</i></span></span><svg class="moin-strich" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><filter id="moin-rau" x="-6%" y="-40%" width="112%" height="180%"><feTurbulence type="fractalNoise" baseFrequency="0.035 0.07" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/></filter></defs><g filter="url(#moin-rau)"><path class="zug1" d="M9 16 C 70 8, 150 22, 226 12 C 258 8, 276 14, 291 10" stroke-width="10"/><path class="zug2" d="M285 31 C 232 35, 168 27, 104 33 C 76 36, 56 32, 32 35" stroke-width="7.5"/></g></svg></h1>
+        ${MOIN_H1}
         <div class="hero-box">
           <p>${d.startVariante === 'mitreden' ? 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wie Sie mitreden können.' : 'Schön, dass Sie hier sind. Hier erfahren Sie, was uns in Soltau bewegt – und wer für Sie im Stadtrat sitzt.'}</p>
           ${d.startVariante === 'mitreden' ? `<div class="hero-actions"><a class="btn btn-rot" href="#mitreden">Informieren &amp; Mitreden</a><a class="btn btn-weiss" href="${ratLink}">${ratText}</a></div>` : `<a class="btn btn-rot" href="${ratLink}">${ratText}</a>`}
@@ -257,7 +293,7 @@ export function startPage(d) {
       </div>
       ${heroPhoto(d.site)}
     </div>
-  </div>
+  </div>`}
   <div class="ticker ticker-slow" aria-label="${d.stichwahl ? 'Stichwahl' : 'Nächste Termine'}" id="ticker">${band}</div>
 
   ${d.stichwahl ? `<div class="band-schwarz zinke-band foto">${motiv('heide')}<div class="wrap section zinke">
@@ -764,6 +800,7 @@ export function impressumPage(d) {
     <h2>Bildnachweise</h2>
     <p>Hintergrund- und Symbolbilder stammen, soweit nicht anders angegeben, vom SPD Ortsverein Soltau (eigene Fotos und Drohnenaufnahmen). Das Luftbild auf der Kontaktseite: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN, 2026), Digitale Orthophotos, <a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>. Der Zeitungsstapel auf der Seite „Aktuelles“ stammt von der Hochschulbibliothek Wildau (Wikimedia Commons, CC0). Folgende Fotos stammen von Wikimedia Commons und stehen unter <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>:</p>
     <ul class="bildnachweise">${MOTIV_CREDITS.map(([, titel, autor, link]) => `<li><a href="${esc(link)}" target="_blank" rel="noopener">${esc(titel)}</a> – ${esc(autor)}</li>`).join('')}</ul>
+    <p>Stadtumriss auf der Startseite: Geodaten © GeoBasis-DE / BKG (2026), Verwaltungsgebiete 1:250 000, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">Datenlizenz Deutschland – Namensnennung – Version 2.0</a>, vereinfacht.</p>
     <h2>Technik</h2>
     <p>Die Website wird als statische Seite über GitHub Pages ausgeliefert; Inhalte werden im Redaktionssystem von Wix gepflegt. Einzelheiten zur Datenverarbeitung: <a href="${url('/datenschutz/')}">Datenschutzerklärung</a>.</p>`);
 }

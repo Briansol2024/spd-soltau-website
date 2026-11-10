@@ -4,7 +4,7 @@
 const VERSION = '__BUILD__';
 const CACHE = 'spd-soltau-' + VERSION;
 const SCOPE = self.registration.scope;
-const PRECACHE = ['./', './index.html', './mitglieder/', './assets/styles.css', './assets/fonts.css', './assets/site.js', './assets/render.mjs', './assets/mitglieder.js', './assets/images/logo-spd-soltau-weiss.png', './offline.html'];
+const PRECACHE = ['./', './index.html', './mitglieder/', './assets/styles.css', './assets/fonts.css', './assets/site.js', './assets/intro.js', './assets/render.mjs', './assets/mitglieder.js', './assets/images/logo-spd-soltau-weiss.png', './offline.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.allSettled(PRECACHE.map(u => c.add(new Request(u, { cache: 'reload' }))))).then(() => self.skipWaiting()));

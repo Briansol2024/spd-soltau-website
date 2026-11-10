@@ -2307,3 +2307,132 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 .fp-weiter a:hover b{color:var(--rot)}
 @container site (max-width:800px){.fp{grid-template-columns:minmax(0,1fr);gap:28px}.fp-foto{max-width:320px}}
 @container site (max-width:520px){.fp-weiter{grid-template-columns:minmax(0,1fr)}.fp-weiter a:last-child{text-align:left;border-right:0;border-left:6px solid var(--rot)}}
+
+/* ===== Neue erste Ansicht der Startseite (seit 10.11.2026): Drohnenvideo über die volle Höhe, Kopfzeile darüber
+   mit „Aus Liebe zu Soltau ♥“, groß „Moin!“, Stadtumriss, Faktenleiste. Markup: heroNeu in templates.mjs,
+   Intro beim ersten Besuch: src/intro.js; Auftritt (.hn-los), Termin und Zähler: site.js ===== */
+/* Dunkle Vorab-Decke beim ersten Besuch, bis das Intro übernimmt – lädt es nicht, gibt sie die Seite nach 3 s frei */
+html.intro-an::after{content:"";position:fixed;inset:0;z-index:9998;background:#060505;animation:introDecke .3s ease 3s forwards}
+@keyframes introDecke{to{opacity:0;visibility:hidden}}
+html.start-neu{--kopf:72px}
+
+/* Kopfzeile: über dem Video durchsichtig, beim Scrollen wieder rot */
+html.start-neu .header{background:transparent;box-shadow:none;transition:background .35s,box-shadow .35s}
+html.start-neu .header::before{content:"";position:absolute;inset:0 0 -70px;background:linear-gradient(180deg,rgba(8,8,8,.62),rgba(8,8,8,.28) 55%,rgba(8,8,8,0));pointer-events:none;transition:opacity .35s}
+html.start-neu .header.scrolled{background:var(--rot);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+html.start-neu .header.scrolled::before{opacity:0}
+html.start-neu .header .slogan{transition:opacity .35s}
+/* „Aus Liebe zu Soltau“ neben dem Logo, mit Herz: über dem Video rot, auf der roten Kopfzeile weiß */
+.header .slogan{white-space:nowrap;flex-shrink:0}
+.slogan .slogan-herz{display:inline-block;width:.9em;height:.81em;margin-left:.3em;vertical-align:-.04em;overflow:visible}
+.slogan .slogan-herz path{fill:#fff;transition:fill .35s}
+html.start-neu .header:not(.scrolled) .slogan .slogan-herz path{fill:var(--rot)}
+
+/* Bühne */
+.hero.hero-neu{margin-top:calc(-1 * var(--kopf));min-height:100vh;min-height:100svh;display:flex;flex-direction:column;background:#0C0B0B;isolation:isolate;overflow:hidden}
+.hero.hero-neu::after{z-index:1}
+.hero-neu .hero-media{z-index:0}
+.hero-neu .hero-media video{transform:scale(var(--hn-zoom,1.08)) translateY(var(--hn-par,0px));transition:opacity 1.2s ease}
+.hero-neu .hero-media::after{background:
+  linear-gradient(0deg,rgba(12,11,11,.94) 0%,rgba(12,11,11,.62) 30%,rgba(12,11,11,.08) 62%,rgba(12,11,11,0) 100%),
+  linear-gradient(90deg,rgba(12,11,11,.62) 0%,rgba(12,11,11,.18) 50%,rgba(12,11,11,0) 72%)}
+.hero.hero-neu .wrap.hn-wrap{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:0;min-height:0;padding-block:calc(var(--kopf) + 32px) 34px;width:100%;max-width:1480px;grid-template-columns:none}
+
+/* Überschrift: großes „Moin!“ mit rotem Ausrufezeichen, darunter der Handstrich (wie auf der bisherigen Startseite) */
+.hero.hero-neu h1.hero-moin{font-size:clamp(96px,15cqw,232px);margin:0;line-height:.86;display:inline-flex;flex:none;flex-direction:column;align-items:stretch;align-self:flex-start;justify-content:flex-start;text-align:left;width:-moz-fit-content;width:fit-content;perspective:900px;text-shadow:0 6px 40px rgba(0,0,0,.35)}
+.hero-neu .moin-strich{display:block;width:108%;margin:.02em -4% 0;height:.1em;overflow:visible}
+
+/* Text und Knöpfe */
+.hero-neu .hn-unter{display:flex;align-items:center;gap:20px 34px;flex-wrap:wrap;margin-top:26px}
+.hero-neu .hn-unter p{margin:0;max-width:46ch;font-size:19px;line-height:1.5;color:#fff;padding-left:16px;border-left:4px solid var(--rot);text-shadow:0 2px 14px rgba(0,0,0,.4)}
+.hero-neu .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.hero-neu .hero-actions .btn{padding:16px 24px}
+.hero-neu .hero-actions .btn-rot::after{content:"→";font-family:Arial,sans-serif;margin-left:4px;transition:transform .25s var(--ease)}
+.hero-neu .hero-actions .btn-rot:hover::after{transform:translateX(5px)}
+.hero-neu .hero-actions .btn-weiss{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hero-neu .hero-actions .btn-weiss:hover{background:#fff;color:var(--schwarz)}
+
+/* Stadtumriss als feine Kartenlinie, mit Herz auf der Stadt */
+.hn-karte{position:absolute;z-index:1;right:max(3vw,24px);top:calc(var(--kopf) + 3vh);width:min(40vw,600px);aspect-ratio:1040/720;pointer-events:none;filter:drop-shadow(0 2px 10px rgba(0,0,0,.45));transform:translate(var(--hn-kx,0px),var(--hn-ky,0px));transition:transform .6s cubic-bezier(.2,.75,.15,1)}
+.hn-karte svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.hn-umriss{fill:rgba(255,255,255,.035);stroke:rgba(255,255,255,.82);stroke-width:2.6;stroke-linejoin:round}
+.hn-scan{fill:none;stroke:#fff;stroke-width:4.5;stroke-linecap:round;opacity:0}
+.hn-linie{fill:none;stroke:rgba(255,255,255,.7);stroke-width:1.6}
+.hn-ring{fill:none;stroke:var(--rot);stroke-width:3;opacity:0}
+.hn-pinherz{fill:var(--rot)}
+.hn-ort{position:absolute;left:72.6%;top:83.4%;color:#fff;white-space:nowrap;font:800 15px/1.15 var(--display);letter-spacing:.16em;text-transform:uppercase;padding-top:9px}
+.hn-ort span{display:block;font:700 12px/1.3 var(--display);letter-spacing:.14em;color:rgba(255,255,255,.72);margin-top:3px;font-variant-numeric:tabular-nums}
+
+/* Faktenleiste unten */
+.hn-leiste{position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.16);background:rgba(12,11,11,.42);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2)}
+.hero.hero-neu .wrap.hn-leiste-in{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:0;min-height:0;padding-block:0;align-content:normal;align-items:stretch;max-width:1480px}
+.hn-fakt{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:18px 34px 18px 0;margin-right:34px;border-right:1px solid rgba(255,255,255,.14);color:#fff;text-decoration:none;min-width:0}
+.hn-fakt b{font:800 32px/1 var(--display);letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hn-fakt b small{font-size:.55em;letter-spacing:.06em;opacity:.8;margin-left:2px}
+.hn-fakt span{font:700 12px/1.2 var(--display);letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.hn-termin{border-right:0;margin-right:0;padding-right:0;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:18px;align-items:center}
+.hn-termin span{grid-column:1}
+.hn-termin b{grid-column:1;font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hn-termin b em{font-style:normal;color:var(--rot);margin-right:10px}
+.hn-termin i{grid-column:2;grid-row:1 / 3;font-style:normal;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--rot);font:700 20px/1 Arial,sans-serif;transition:transform .25s var(--ease)}
+.hn-termin:hover i{transform:translateX(5px)}
+
+/* ---------- Auftritt (startet mit .hn-los; vorher nur ausgeblendet, wenn JavaScript läuft) ---------- */
+/* Sicherheitsnetz: läuft site.js nicht (sehr alter Browser, Netzfehler), erscheint der Inhalt nach 6 s trotzdem */
+html.hn-js .hero-neu:not(.hn-los) :is(h1.hero-moin i,.moin-strich path,.hn-unter,.hn-leiste,.hn-ort,.hn-pin,.hn-linie){opacity:0;animation:hnNotfall .4s ease 6s forwards}
+@keyframes hnNotfall{to{opacity:1}}
+html.hn-js .hero-neu:not(.hn-los) .hn-umriss{stroke-dasharray:1;stroke-dashoffset:1;fill-opacity:0}
+.hero-neu:not(.hn-los) .moin-strich path,.hero-neu:not(.hn-los) h1.hero-moin i{animation:none}
+.hero-neu.hn-los h1.hero-moin i{animation:moinKipp .65s cubic-bezier(.2,.9,.25,1.15) both}
+.hero-neu.hn-los h1.hero-moin i:nth-child(1){animation-delay:.05s}.hero-neu.hn-los h1.hero-moin i:nth-child(2){animation-delay:.16s}.hero-neu.hn-los h1.hero-moin i:nth-child(3){animation-delay:.26s}.hero-neu.hn-los h1.hero-moin i:nth-child(4){animation-delay:.36s}
+.hero-neu.hn-los h1.hero-moin i.bang{animation:moinFall .7s cubic-bezier(.3,1.6,.4,1) .6s both,bang 7s ease-in-out 2.9s infinite}
+.hero-neu.hn-los .moin-strich path{stroke:var(--rot)}
+.hero-neu.hn-los .moin-strich .zug1{animation:moinZug .45s cubic-bezier(.4,.02,.25,1) 1s backwards}
+.hero-neu.hn-los .moin-strich .zug2{animation:moinZug2 .36s cubic-bezier(.4,0,.3,1) 1.36s backwards}
+.hero-neu.hn-los .hn-unter{animation:up .7s cubic-bezier(.2,.75,.15,1) .6s both}
+.hero-neu.hn-los .hn-leiste{animation:hnLeiste .8s cubic-bezier(.2,.75,.15,1) .8s both}
+.hero-neu.hn-los .hn-umriss{stroke-dasharray:1;animation:hnZeichnen 1.7s cubic-bezier(.45,0,.2,1) .13s both}
+.hero-neu.hn-los .hn-scan{animation:hnScan 7s linear 2.1s infinite}
+.hero-neu.hn-los .hn-pin{animation:hnPin .65s cubic-bezier(.3,1.6,.45,1) 1.24s both}
+.hero-neu.hn-los .hn-ring{animation:hnRing 2.6s cubic-bezier(.2,.7,.3,1) 1.43s infinite}
+.hero-neu.hn-los .hn-ring.r2{animation-delay:1.95s}
+.hero-neu.hn-los .hn-linie{stroke-dasharray:1;animation:hnZeichnen .58s cubic-bezier(.45,0,.2,1) 1.43s both}
+.hero-neu.hn-los .hn-ort{animation:up .58s cubic-bezier(.2,.75,.15,1) 1.75s both}
+.hero-neu.hn-los .hero-media video{animation:hnRein 1.8s cubic-bezier(.2,.75,.15,1) backwards}
+.hn-pin{transform-box:fill-box;transform-origin:50% 50%}
+@keyframes hnLeiste{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
+@keyframes hnZeichnen{from{stroke-dashoffset:1;fill-opacity:0}70%{fill-opacity:0}to{stroke-dashoffset:0;fill-opacity:1}}
+@keyframes hnScan{0%{stroke-dashoffset:1;opacity:0}6%{opacity:.95}94%{opacity:.95}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes hnPin{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
+@keyframes hnRing{0%{opacity:.9;r:8}100%{opacity:0;r:60}}
+@keyframes hnRein{from{transform:scale(1.18)}to{transform:scale(var(--hn-zoom,1.08))}}
+
+/* Tablet */
+@container site (max-width:900px){
+  .hn-karte{width:62vw;right:-6vw;top:calc(var(--kopf) + 2vh);opacity:.6}
+  .hn-ort{display:none}
+  .hero.hero-neu .wrap.hn-leiste-in{grid-template-columns:auto minmax(0,1fr)}
+  .hn-fakt:nth-child(2){display:none}
+}
+/* Handy */
+@container site (max-width:600px){
+  html.start-neu{--kopf:72px}
+  .hero.hero-neu .wrap.hn-wrap{padding-block:calc(var(--kopf) + 20px) 22px}
+  .hero.hero-neu h1.hero-moin{font-size:clamp(84px,28cqw,124px)}
+  .hn-karte{width:96vw;right:auto;left:2vw;top:calc(var(--kopf) + 4vh);opacity:.78}
+  .hn-karte .hn-linie{display:none}
+  .hn-ort{display:block;left:auto;right:4%;top:-4%;font-size:12px;padding:0;text-align:right}
+  .hn-ort span{font-size:10.5px}
+  .hero-neu .hn-unter{margin-top:20px;gap:16px}
+  .hero-neu .hn-unter p{font-size:16px;line-height:1.48;padding-left:12px;border-left-width:3px}
+  .hero-neu .hero-actions{width:100%;flex-wrap:nowrap;gap:8px}
+  .hero-neu .hero-actions .btn{flex:1 1 0;justify-content:center;padding:13px 10px;font-size:12.5px;letter-spacing:.06em;text-align:center;white-space:normal;line-height:1.2}
+  .hero.hero-neu .wrap.hn-leiste-in{grid-template-columns:auto minmax(0,1fr);padding-inline:16px}
+  .hn-fakt{padding:13px 16px 13px 0;margin-right:16px}
+  .hn-fakt b{font-size:25px}
+  .hn-fakt span{font-size:10px;letter-spacing:.12em}
+  .hn-termin b{font-size:14px;line-height:1.2;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .hn-termin b em{display:block;margin:0 0 2px}
+  .hn-termin i{width:38px;height:38px;font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){.hero-neu.hn-los *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}
