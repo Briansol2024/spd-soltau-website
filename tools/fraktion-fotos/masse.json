@@ -1,0 +1,14 @@
+{
+  "_hinweis": "Von Hand am Original abgelesen (Pixel, y von oben): scheitel = oberster Punkt von Kopf/Haar über der Gesichtsmitte, kinn = Unterkante Kinn (bei Vollbart geschätzte Kinnlinie unter dem Bart).",
+  "bernd-ingendahl": { "scheitel": 76, "kinn": 405 },
+  "birhat-kacar": { "scheitel": 138, "kinn": 495 },
+  "brian-weber": { "scheitel": 68, "kinn": 457 },
+  "christian-frost": { "scheitel": 62, "kinn": 400 },
+  "harald-garbers": { "scheitel": 77, "kinn": 442 },
+  "igor-mamanow": { "scheitel": 33, "kinn": 457 },
+  "inna-herold": { "scheitel": 74, "kinn": 372 },
+  "manuela-bartels": { "scheitel": 40, "kinn": 412 },
+  "reiner-klatt": { "scheitel": 82, "kinn": 455 },
+  "siegfried-belz": { "scheitel": 82, "kinn": 450 },
+  "valerij-stroh": { "scheitel": 102, "kinn": 410 }
+}

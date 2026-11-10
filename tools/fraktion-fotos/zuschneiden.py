@@ -1,6 +1,8 @@
 # Schneidet die Fraktionsfotos einheitlich zu: quadratisch, Kopf und Schultern, alle Köpfe gleich groß,
 # Augen auf gleicher Höhe. Quelle: tools/fraktion-fotos/original/<slug>.jpg  ->  src/images/fraktion/<slug>.jpg
 # Es wird nur die Lage der Augen bestimmt (OpenCV-Kaskaden), keine Person erkannt.
+# Kopfgröße = Mittel aus Augenabstand und Kopfhöhe (Scheitel bis Kinn, von Hand gemessen in masse.json).
+# Nur der Augenabstand allein täuscht bei leicht gedrehten Köpfen, nur die Kopfhöhe bei Frisur und Bart.
 # Aufruf:  python tools/fraktion-fotos/zuschneiden.py  [--rahmen 6.2] [--augen 0.39]
 import argparse, glob, os
 import cv2, numpy as np
@@ -34,13 +36,22 @@ def augenpaar(g):
                 return (x + l[0] + l[2] / 2, oy + l[1] + l[3] / 2), (x + r[0] + r[2] / 2, oy + r[1] + r[3] / 2)
     raise SystemExit('Augen nicht gefunden')
 
+import json
+MASSE = {k: v for k, v in json.load(open(os.path.join(HIER, 'masse.json'), encoding='utf-8')).items() if not k.startswith('_')}
 os.makedirs(a.ziel, exist_ok=True)
+daten = {}
 for pfad in sorted(glob.glob(os.path.join(QUELLE, '*.jpg'))):
-    name = os.path.basename(pfad)
-    bild = cv2.imread(pfad); H, W = bild.shape[:2]
+    bild = cv2.imread(pfad)
     (lx, ly), (rx, ry) = augenpaar(cv2.cvtColor(bild, cv2.COLOR_BGR2GRAY))
-    d = ((rx - lx) ** 2 + (ry - ly) ** 2) ** .5
-    seite = d * a.rahmen
+    daten[pfad] = (bild, lx, ly, rx, ry, ((rx - lx) ** 2 + (ry - ly) ** 2) ** .5)
+# Verhältnis Kopfhöhe : Augenabstand im Mittel aller Fotos
+K = sum((MASSE[os.path.basename(p)[:-4]]['kinn'] - MASSE[os.path.basename(p)[:-4]]['scheitel']) / v[5] for p, v in daten.items()) / len(daten)
+bericht = []
+for pfad, (bild, lx, ly, rx, ry, d) in daten.items():
+    name = os.path.basename(pfad); H, W = bild.shape[:2]
+    m = MASSE[name[:-4]]; kopf = m['kinn'] - m['scheitel']
+    d_eff = (d + kopf / K) / 2
+    seite = d_eff * a.rahmen
     mx, my = (lx + rx) / 2, (ly + ry) / 2
     x0, y0 = mx - seite / 2, my - seite * a.augen
     # Ragt der Ausschnitt oben/seitlich etwas über das Foto hinaus, wird der rote Hintergrund gespiegelt fortgesetzt
@@ -53,4 +64,8 @@ for pfad in sorted(glob.glob(os.path.join(QUELLE, '*.jpg'))):
     faktor = a.groesse / seite
     if faktor > 1.05: pil = pil.filter(ImageFilter.UnsharpMask(radius=1.2, percent=40, threshold=2))
     pil.save(os.path.join(a.ziel, name), quality=86, optimize=True, progressive=True)
-    print(f'{name:22s} Augenabstand {d:5.1f}px  Ausschnitt {seite:5.0f}px  Vergrößerung {faktor:.2f}  Rand {rand}px')
+    bericht.append((name, d * faktor, kopf * faktor, (m['scheitel'] - y0) * faktor, (m['kinn'] - y0) * faktor, faktor, rand))
+print(f'Kopfhöhe/Augenabstand im Mittel: {K:.2f}')
+print('Foto                   Augenabstand  Kopfhöhe  Scheitel  Kinn   (Pixel im fertigen Bild)  Vergr.  Rand')
+for n, dd, kk, sc, ki, f, r in bericht:
+    print(f'{n:22s} {dd:8.1f}  {kk:9.1f}  {sc:8.1f}  {ki:6.1f}                          {f:5.2f}  {r:4d}')

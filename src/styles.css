@@ -2278,8 +2278,8 @@ a.box.foto:hover>.foto-bg{transform:scale(1.07)}
 @container site (max-width:560px){
   .fk-grid{grid-template-columns:minmax(0,1fr);gap:14px}
   .fk{grid-template-columns:118px minmax(0,1fr);grid-template-rows:auto}
-  .fk-bild,.fk-foto{height:100%}
-  .fk-foto{aspect-ratio:auto;min-height:150px;font-size:30px}
+  .fk-bild{align-self:start}
+  .fk-foto{aspect-ratio:1/1;font-size:30px}
   .fk-text{border-top:0;border-left:4px solid var(--rot);padding:14px 14px 16px;gap:8px}
   .fk-name{font-size:22px}
   .fk-haupt{font-size:15.5px}
