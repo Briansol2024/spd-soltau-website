@@ -49,7 +49,8 @@ button{font:inherit;cursor:pointer}
 .nav a.active{background:var(--schwarz)}
 .header .cta{margin-left:6px;padding:12px 18px}
 .burger{display:none;margin-left:auto;background:none;border:2px solid #fff;padding:8px 10px;color:#fff}
-@container site (max-width:1060px){
+/* Menü mit 8 Punkten passt mit Logo und Spruch erst ab gut 1230 px – darunter der Menüknopf (vorher 1060 px: dazwischen wurde das Logo gestaucht) */
+@container site (max-width:1250px){
   .nav{display:none}
   .nav.open{display:flex;flex-direction:column;position:absolute;left:0;right:0;top:100%;background:var(--schwarz);padding:8px 24px 16px}
   .nav.open a{padding:14px 8px;border-bottom:1px solid #333;font-size:22px}
@@ -411,6 +412,7 @@ dialog[open]::backdrop{animation:fadeIn .35s}
 /* Echtes Logo, weiße Variante direkt auf Rot (Header) bzw. Schwarz (Footer) */
 .logo{background:none;padding:0;line-height:0;flex-direction:row;align-items:center}
 .logo img{display:block;height:54px;width:auto;transition:height .3s var(--ease)}
+.header .logo{flex-shrink:0}
 .header.scrolled .logo img{height:44px}
 .footer .logo{display:inline-flex}
 .footer .logo img{height:64px}
@@ -695,7 +697,7 @@ h1.title{font-size:clamp(44px,7cqw,92px);letter-spacing:0}
 .member-link:hover,.member-link.active{background:var(--schwarz);border-color:var(--schwarz)}
 .nav-member{display:none}
 .nav.open .nav-member{display:block;color:#fff;text-decoration:none;padding:14px 8px;border-bottom:1px solid #333;font:700 22px/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
-@container site (max-width:1060px){.member-link{margin-left:auto}.burger{margin-left:0}}
+@container site (max-width:1250px){.member-link{margin-left:auto}.burger{margin-left:0}}
 .mb-wrap{padding-top:48px}
 .mb-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:32px;align-items:start}
 @container site (max-width:860px){.mb-grid{grid-template-columns:minmax(0,1fr)}}
