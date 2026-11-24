@@ -31,7 +31,7 @@ export function ph(label, cls = '') {
 // Bildfläche: echtes Foto (wenn vorhanden) oder Platzhalter; `inner` wird vorangestellt (z. B. Kategorie-Tag)
 export function photo(img, label, cls = '', inner = '') {
   if (img && img.url) {
-    return `<div class="ph ${cls} has-img">${inner}<img src="${esc(img.url)}" alt="${esc(img.alt || label || '')}" loading="lazy" decoding="async"></div>`;
+    return `<div class="ph ${cls} has-img ph-bild">${inner}<img src="${esc(img.url)}" alt="${esc(img.alt || label || '')}" loading="lazy" decoding="async"></div>`;
   }
   return `<div class="ph ${cls}">${inner}<span>${esc(label ? `Foto: ${label}` : 'Foto folgt')}</span></div>`;
 }
